@@ -8,6 +8,14 @@ const DB_PATH = path.join(DATA_DIR, 'csms.db');
 
 let db: Database.Database | null = null;
 
+export function setDb(database: Database.Database | null) {
+  db = database;
+}
+
+export function resetDb() {
+  db = null;
+}
+
 export function initSchema(database: Database.Database) {
   database.exec(`
     CREATE TABLE IF NOT EXISTS roles (
