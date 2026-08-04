@@ -1,5 +1,5 @@
 import { getDb, withTransaction } from '@/lib/persistence/db';
-import { detectConflicts } from '@/lib/modules/mod-04-conflict-engine/validator';
+import { detectConflicts, validateScheduleMove } from '@/lib/modules/mod-04-conflict-engine/validator';
 import type { Schedule, ScheduleInput } from '@/lib/domain/types';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
 
@@ -90,8 +90,6 @@ export function deleteSchedule(scheduleId: number, userId?: number) {
   db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
   logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
 }
-
-import { validateScheduleMove } from '@/lib/modules/mod-04-conflict-engine/validator';
 
 export function generateSchedulesForSection(
   sectionId: number,
