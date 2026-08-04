@@ -36,5 +36,10 @@
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
     "tsx": "^4.7.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@11.10.0": true,
+    "esbuild@0.28.1": true,
+    "unrs-resolver@1.12.2": true
   }
 }
