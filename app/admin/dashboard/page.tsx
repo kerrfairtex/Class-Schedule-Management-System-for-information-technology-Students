@@ -16,6 +16,7 @@ export default async function AdminDashboardPage() {
   const adminLinks = [
     { href: '/admin/dashboard', label: 'Dashboard', active: true },
     { href: '/admin/master-list', label: 'Master List (MOD-02)' },
+    { href: '/admin/faculty-availability', label: 'Faculty Availability' },
     { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)' },
   ];
 

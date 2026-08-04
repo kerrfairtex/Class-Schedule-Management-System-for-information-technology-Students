@@ -46,6 +46,12 @@ npm install
 npm run dev
 ```
 
+### Run Tests
+
+```bash
+npm test
+```
+
 Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on first run.
 
 ## Demo Credentials
@@ -89,7 +95,8 @@ app/
 - [x] Phase 2: Schedule Generation, Conflict Detection
 - [x] Phase 3: Manual Adjustment, Faculty Portal, Student Portal
 - [x] Phase 4: Database Service (backup, audit logging)
-- [ ] Phase 5: Testing (unit, integration, UAT)
+- [x] Phase 5: Unit tests for MOD-03/MOD-04
+- [ ] Phase 5: Integration tests, UAT
 
 ## Reference
 
