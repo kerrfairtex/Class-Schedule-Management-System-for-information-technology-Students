@@ -2,6 +2,7 @@ data/
 *.db
 *.db-wal
 *.db-shm
+data/backups/
 
 .env
 .env.local
