@@ -45,6 +45,7 @@ export default function ScheduleBoardPage() {
   const adminLinks = [
     { href: '/admin/dashboard', label: 'Dashboard' },
     { href: '/admin/master-list', label: 'Master List (MOD-02)' },
+    { href: '/admin/faculty-availability', label: 'Faculty Availability' },
     { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)', active: true },
   ];
 
