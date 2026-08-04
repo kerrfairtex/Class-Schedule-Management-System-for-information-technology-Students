@@ -12,6 +12,8 @@ import {
   getCurriculum,
   getActiveSemester,
   getTimeSlots,
+  getPrograms,
+  getDepartments,
   createFaculty,
   createStudent,
   createSubject,
@@ -30,6 +32,11 @@ import {
 import { createBackup } from '@/lib/modules/mod-08-database-service/backup';
 import { getAuditLogs } from '@/lib/modules/mod-08-database-service/audit';
 import { createUser } from '@/lib/modules/mod-01-auth/service';
+import {
+  getFacultyList,
+  getAvailabilityGrid,
+  setFacultyAvailability,
+} from '@/lib/modules/mod-02-master-list/availability';
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -70,6 +77,25 @@ export async function GET(request: Request) {
       return NextResponse.json(getAuditLogs());
     case 'time-slots':
       return NextResponse.json(getTimeSlots());
+    case 'meta':
+      return NextResponse.json({
+        programs: getPrograms(),
+        departments: getDepartments(),
+        sections: (() => {
+          const semester = getActiveSemester();
+          return semester ? getSections(semester.id) : [];
+        })(),
+        buildings: getBuildings(),
+        subjects: getSubjects(),
+        semester: getActiveSemester(),
+      });
+    case 'faculty-list':
+      return NextResponse.json(getFacultyList());
+    case 'availability': {
+      const facultyId = Number(searchParams.get('facultyId'));
+      if (!facultyId) return NextResponse.json({ error: 'facultyId required' }, { status: 400 });
+      return NextResponse.json(getAvailabilityGrid(facultyId));
+    }
     default:
       return NextResponse.json({ error: 'Unknown resource' }, { status: 400 });
   }
@@ -136,6 +162,9 @@ export async function POST(request: Request) {
       }
       case 'backup':
         return NextResponse.json({ path: createBackup() });
+      case 'set-availability':
+        setFacultyAvailability(body.facultyId, body.timeSlotId, body.isAvailable, session!.id);
+        return NextResponse.json({ success: true });
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }

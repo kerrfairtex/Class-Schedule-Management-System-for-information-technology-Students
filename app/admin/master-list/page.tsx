@@ -1,26 +1,61 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PortalSidebar } from '@/components/Sidebar';
+import { MasterListForm } from '@/components/MasterListForm';
 import { ORGANIZATION } from '@/lib/domain/constants';
 
 type Tab = 'faculty' | 'students' | 'subjects' | 'sections' | 'rooms';
+
+interface Meta {
+  programs: { id: number; code: string }[];
+  departments: { id: number; code: string }[];
+  sections: { id: number; code: string }[];
+  buildings: { id: number; code: string }[];
+  subjects: { id: number; code: string; name: string }[];
+  semester: { id: number; name: string } | null;
+}
+
+const ADMIN_LINKS = [
+  { href: '/admin/dashboard', label: 'Dashboard' },
+  { href: '/admin/master-list', label: 'Master List (MOD-02)', active: true },
+  { href: '/admin/faculty-availability', label: 'Faculty Availability' },
+  { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)' },
+];
 
 export default function MasterListPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('faculty');
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
+  const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
+  const [meta, setMeta] = useState<Meta | null>(null);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     fetch('/api/admin?resource=' + tab)
       .then((r) => r.json())
       .then((d) => {
         if (d.error) router.push('/login');
-        else setRows(formatRows(tab, d));
+        else {
+          setRawData(d);
+          setRows(formatRows(tab, d));
+        }
       });
   }, [tab, router]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    fetch('/api/admin?resource=meta')
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.error) setMeta(d);
+      });
+  }, []);
 
   async function handleBackup() {
     const res = await fetch('/api/admin', {
@@ -48,11 +83,7 @@ export default function MasterListPage() {
         title="Admin"
         name="Administrator"
         subtitle={ORGANIZATION.departmentCode}
-        links={[
-          { href: '/admin/dashboard', label: 'Dashboard' },
-          { href: '/admin/master-list', label: 'Master List (MOD-02)', active: true },
-          { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)' },
-        ]}
+        links={ADMIN_LINKS}
       />
       <main className="flex-1 p-8">
         <div className="mb-6 flex items-center justify-between">
@@ -67,6 +98,9 @@ export default function MasterListPage() {
 
         {message && (
           <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{message}</div>
+        )}
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
 
         <div className="mb-6 flex gap-2 border-b border-slate-200">
@@ -85,6 +119,22 @@ export default function MasterListPage() {
           ))}
         </div>
 
+        {meta && (
+          <MasterListForm
+            tab={tab}
+            meta={meta}
+            onSuccess={(msg) => {
+              setMessage(msg);
+              setError('');
+              loadData();
+            }}
+            onError={(msg) => {
+              setError(msg);
+              setMessage('');
+            }}
+          />
+        )}
+
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
@@ -97,18 +147,28 @@ export default function MasterListPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => (
-                <tr key={i} className="border-t border-slate-100">
-                  {columns.map((col) => (
-                    <td key={col} className="px-4 py-3">
-                      {String(row[col] ?? '')}
-                    </td>
-                  ))}
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-400">
+                    No records yet. Use the form above to add one.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                rows.map((row, i) => (
+                  <tr key={i} className="border-t border-slate-100">
+                    {columns.map((col) => (
+                      <td key={col} className="px-4 py-3">
+                        {String(row[col] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+
+        <p className="mt-2 text-xs text-slate-400">{rawData.length} record(s)</p>
       </main>
     </div>
   );
