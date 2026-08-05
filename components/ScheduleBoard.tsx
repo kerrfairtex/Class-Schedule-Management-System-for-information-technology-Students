@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Schedule } from '@/lib/domain/types';
 import { DAY_LABELS } from '@/lib/domain/constants';
+import { Trash2 } from 'lucide-react';
 
 interface TimeSlot {
   id: number;
@@ -14,17 +15,30 @@ interface TimeSlot {
 interface ScheduleBoardProps {
   schedules: Schedule[];
   timeSlots: TimeSlot[];
+  sectionFilter: number | null;
   onMove: (scheduleId: number, timeSlotId: number) => Promise<void>;
+  onDelete: (scheduleId: number) => Promise<void>;
   onRefresh: () => void;
 }
 
-export function ScheduleBoard({ schedules, timeSlots, onMove, onRefresh }: ScheduleBoardProps) {
+export function ScheduleBoard({
+  schedules,
+  timeSlots,
+  sectionFilter,
+  onMove,
+  onDelete,
+  onRefresh,
+}: ScheduleBoardProps) {
   const [dragging, setDragging] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
   const uniqueTimes = Array.from(new Set(timeSlots.map((t) => t.start_time))).sort();
+
+  const filtered = sectionFilter
+    ? schedules.filter((s) => s.section_id === sectionFilter)
+    : schedules;
 
   const getSlotId = useCallback(
     (day: string, startTime: string) => {
@@ -35,7 +49,7 @@ export function ScheduleBoard({ schedules, timeSlots, onMove, onRefresh }: Sched
   );
 
   const getScheduleAt = (day: string, startTime: string) =>
-    schedules.find((s) => s.day_of_week === day && s.start_time === startTime);
+    filtered.find((s) => s.day_of_week === day && s.start_time === startTime);
 
   async function handleDrop(day: string, startTime: string) {
     if (!dragging) return;
@@ -55,6 +69,18 @@ export function ScheduleBoard({ schedules, timeSlots, onMove, onRefresh }: Sched
     }
   }
 
+  async function handleDelete(id: number) {
+    if (!confirm('Remove this schedule entry?')) return;
+    setError('');
+    try {
+      await onDelete(id);
+      setMessage('Schedule removed');
+      onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+    }
+  }
+
   return (
     <div>
       {message && (
@@ -64,7 +90,7 @@ export function ScheduleBoard({ schedules, timeSlots, onMove, onRefresh }: Sched
         <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
       <p className="mb-4 text-sm text-slate-500">
-        Drag schedule blocks to new time slots. Conflicts are validated on drop (MOD-04).
+        Drag blocks to reschedule, or click delete to remove. All changes validated by MOD-04.
       </p>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[900px] border-collapse text-sm">
@@ -97,8 +123,16 @@ export function ScheduleBoard({ schedules, timeSlots, onMove, onRefresh }: Sched
                         <div
                           draggable
                           onDragStart={() => setDragging(entry.id)}
-                          className="cursor-grab rounded-lg border border-primary/20 bg-primary/5 p-2 active:cursor-grabbing"
+                          className="group relative cursor-grab rounded-lg border border-primary/20 bg-primary/5 p-2 active:cursor-grabbing"
                         >
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(entry.id)}
+                            className="absolute right-1 top-1 hidden rounded p-0.5 text-red-500 hover:bg-red-50 group-hover:block"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                           <p className="text-xs font-semibold text-primary">{entry.subject_code}</p>
                           <p className="text-xs text-slate-600">{entry.section_code}</p>
                           <p className="text-xs text-slate-400">{entry.faculty_name}</p>
@@ -119,20 +153,20 @@ export function ScheduleBoard({ schedules, timeSlots, onMove, onRefresh }: Sched
   );
 }
 
-export function useScheduleBoardData() {
+export function useScheduleBoardData(sectionId?: number | null) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
 
   const refresh = useCallback(async () => {
-    const [schedRes, slotsRes] = await Promise.all([
-      fetch('/api/admin?resource=schedules'),
-      fetch('/api/admin?resource=time-slots'),
-    ]);
+    const url = sectionId
+      ? `/api/admin?resource=schedules&sectionId=${sectionId}`
+      : '/api/admin?resource=schedules';
+    const [schedRes, slotsRes] = await Promise.all([fetch(url), fetch('/api/admin?resource=time-slots')]);
     const schedData = await schedRes.json();
     const slotsData = await slotsRes.json();
     setSchedules(schedData);
     setTimeSlots(slotsData);
-  }, []);
+  }, [sectionId]);
 
   useEffect(() => {
     refresh();

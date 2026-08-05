@@ -24,6 +24,7 @@ import {
 } from '@/lib/modules/mod-02-master-list/service';
 import {
   getSchedulesBySemester,
+  getSchedulesBySection,
   createSchedule,
   updateScheduleTimeSlot,
   deleteSchedule,
@@ -71,12 +72,27 @@ export async function GET(request: Request) {
     case 'schedules': {
       const semester = getActiveSemester();
       if (!semester) return NextResponse.json([]);
+      const sectionId = searchParams.get('sectionId');
+      if (sectionId) {
+        return NextResponse.json(getSchedulesBySection(Number(sectionId), semester.id));
+      }
       return NextResponse.json(getSchedulesBySemester(semester.id));
     }
     case 'audit':
       return NextResponse.json(getAuditLogs());
     case 'time-slots':
       return NextResponse.json(getTimeSlots());
+    case 'schedule-options': {
+      const semester = getActiveSemester();
+      return NextResponse.json({
+        sections: semester ? getSections(semester.id) : [],
+        subjects: getSubjects(),
+        faculty: getFaculty(),
+        rooms: getRooms(),
+        timeSlots: getTimeSlots(),
+        semester,
+      });
+    }
     case 'meta':
       return NextResponse.json({
         programs: getPrograms(),
