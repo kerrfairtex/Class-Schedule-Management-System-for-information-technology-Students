@@ -10,7 +10,9 @@
     "type-check": "tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:uat": "vitest run __tests__/uat.test.ts",
+    "uat:api": "bash scripts/uat-api.sh"
   },
   "dependencies": {
     "react": "^18.3.0",

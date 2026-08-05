@@ -49,7 +49,9 @@ npm run dev
 ### Run Tests
 
 ```bash
-npm test
+npm test          # unit + integration + UAT acceptance tests
+npm run test:uat  # UAT acceptance tests only
+npm run uat:api   # API-level UAT (requires dev server)
 ```
 
 Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on first run.
@@ -99,7 +101,7 @@ lib/api/                 # Typed frontend API client
 - [x] Phase 4: Database Service (backup, audit logging)
 - [x] Phase 5: Unit tests for MOD-03/MOD-04
 - [x] Phase 5: Integration tests (auth + scheduling workflows)
-- [ ] Phase 5: User acceptance testing (UAT)
+- [x] Phase 5: User acceptance testing (UAT) — see [docs/UAT.md](docs/UAT.md)
 
 ## Reference
 
