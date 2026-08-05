@@ -49,7 +49,9 @@ npm run dev
 ### Run Tests
 
 ```bash
-npm test
+npm test          # unit + integration + UAT acceptance tests
+npm run test:uat  # UAT acceptance tests only
+npm run uat:api   # API-level UAT (requires dev server)
 ```
 
 Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on first run.
@@ -83,20 +85,23 @@ lib/
     ├── mod-04-conflict-engine/
     └── mod-08-database-service/
 app/
-├── admin/               # Admin dashboard, master list, schedule board
-├── faculty/             # Faculty view-only schedule
-├── student/             # Student view-only schedule
-└── api/                 # REST API routes
+├── admin/               # Dashboard, master list, schedule board, availability
+├── faculty/             # Dashboard + view-only schedule (grid/list/print)
+├── student/             # Dashboard + view-only schedule (search/grid/list/print)
+├── api/                 # REST API routes (presentation ↔ application layer)
+middleware.ts            # Route protection (MOD-01 RBAC)
+lib/api/                 # Typed frontend API client
 ```
 
 ## Development Roadmap
 
 - [x] Phase 1: Authentication, Master List, Database schema
 - [x] Phase 2: Schedule Generation, Conflict Detection
-- [x] Phase 3: Manual Adjustment, Faculty Portal, Student Portal
+- [x] Phase 3: Manual Adjustment, Faculty Portal, Student Portal (fullstack dashboards, grid/list views, print/PDF, manual CRUD)
 - [x] Phase 4: Database Service (backup, audit logging)
 - [x] Phase 5: Unit tests for MOD-03/MOD-04
-- [ ] Phase 5: Integration tests, UAT
+- [x] Phase 5: Integration tests (auth + scheduling workflows)
+- [x] Phase 5: User acceptance testing (UAT) — see [docs/UAT.md](docs/UAT.md)
 
 ## Reference
 

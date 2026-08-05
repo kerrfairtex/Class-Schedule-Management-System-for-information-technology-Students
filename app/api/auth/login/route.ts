@@ -14,8 +14,8 @@ export async function POST(request: Request) {
 
     const redirectMap = {
       admin: '/admin/dashboard',
-      faculty: '/faculty/schedule',
-      student: '/student/schedule',
+      faculty: '/faculty/dashboard',
+      student: '/student/dashboard',
     };
 
     return NextResponse.json({ success: true, role: user.role, redirect: redirectMap[user.role] });
