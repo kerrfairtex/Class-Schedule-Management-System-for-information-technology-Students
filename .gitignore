@@ -10,3 +10,10 @@ data/backups/
 node_modules/
 .next/
 out/
+
+.vercel
+.env*
+.phpunit.result.cache
+
+key.txt
+migrate.log
