@@ -3,9 +3,23 @@ import fs from 'fs';
 import path from 'path';
 import { ensureSeeded } from './seed';
 
-const DATA_DIR = process.env.VERCEL
-  ? path.join('/tmp', 'csms-data')
-  : path.join(process.cwd(), 'data');
+function getDataDir(): string {
+  if (process.env.CSMS_DATA_DIR) {
+    return path.resolve(process.env.CSMS_DATA_DIR);
+  }
+
+  if (process.env.VERCEL) {
+    return path.join('/tmp', 'csms-data');
+  }
+
+  if (process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID) {
+    return path.join('/data', 'csms-data');
+  }
+
+  return path.join(process.cwd(), 'data');
+}
+
+const DATA_DIR = getDataDir();
 const DB_PATH = path.join(DATA_DIR, 'csms.db');
 
 let db: Database.Database | null = null;
@@ -190,6 +204,16 @@ export function getDb(): Database.Database {
 
 export function getDbPath(): string {
   return DB_PATH;
+}
+
+export function backupDatabase(destinationPath: string) {
+  const database = getDb();
+  const destinationDir = path.dirname(destinationPath);
+  if (!fs.existsSync(destinationDir)) {
+    fs.mkdirSync(destinationDir, { recursive: true });
+  }
+
+  database.prepare('VACUUM INTO ?').run(destinationPath);
 }
 
 export function withTransaction<T>(fn: (database: Database.Database) => T): T {
