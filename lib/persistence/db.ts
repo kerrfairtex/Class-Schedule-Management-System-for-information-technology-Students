@@ -3,7 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { ensureSeeded } from './seed';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const DATA_DIR = process.env.VERCEL
+  ? path.join('/tmp', 'csms-data')
+  : path.join(process.cwd(), 'data');
 const DB_PATH = path.join(DATA_DIR, 'csms.db');
 
 let db: Database.Database | null = null;
