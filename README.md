@@ -56,6 +56,13 @@ npm run uat:api   # API-level UAT (requires dev server)
 
 Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on first run.
 
+### Runtime Data Directory
+
+- Local development defaults to `<project-root>/data`
+- Vercel runs use `/tmp/csms-data` for ephemeral preview/demo storage
+- Railway defaults to `/data/csms-data`; attach a persistent volume to `/data`
+- Override any environment with `CSMS_DATA_DIR=/absolute/path`
+
 ## Demo Credentials
 
 | Role | Username | Password |
@@ -71,6 +78,25 @@ Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on 
 - **Database:** SQLite (better-sqlite3) with WAL mode
 - **Auth:** bcrypt password hashing, HTTP-only sessions
 - **Styling:** Tailwind CSS
+
+## Deployment
+
+### Vercel
+
+Vercel can build and run the app, but this project uses local SQLite storage. On Vercel the database is stored in `/tmp`, so data is ephemeral and can reset between deployments or cold starts. Use Vercel only for preview/demo environments unless you replace SQLite with a managed database.
+
+### Railway
+
+Railway is the recommended production target for the current architecture.
+
+1. Create a Railway project for the repository
+2. Attach a persistent volume mounted at `/data`
+3. Set `CSMS_DATA_DIR=/data/csms-data` if you use a different mount path
+4. Deploy with the existing commands:
+   - Build: `npm run build`
+   - Start: `npm start`
+
+The app already produces a standalone Next.js build and will auto-seed the SQLite database on first boot.
 
 ## Project Structure
 
