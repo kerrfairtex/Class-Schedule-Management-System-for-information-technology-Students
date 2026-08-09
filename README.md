@@ -58,7 +58,7 @@ Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on 
 
 ### Runtime Data Directory
 
-- Local development defaults to `/home/runner/work/Class-Schedule-Management-System-for-information-technology-Students/Class-Schedule-Management-System-for-information-technology-Students/data`
+- Local development defaults to `<project-root>/data`
 - Vercel runs use `/tmp/csms-data` for ephemeral preview/demo storage
 - Railway defaults to `/data/csms-data`; attach a persistent volume to `/data`
 - Override any environment with `CSMS_DATA_DIR=/absolute/path`
