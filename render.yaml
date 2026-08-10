@@ -1,0 +1,43 @@
+# Exported from Render on 2026-08-10T03:19:34Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: Class-Schedule-Management-System-for-information-technology-Students
+      runtime: static
+      repo: https://github.com/kerrfairtex/Class-Schedule-Management-System-for-information-technology-Students
+      envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_JWKS_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: PROJECT_PUBLISHABLE_KEY
+        sync: false
+      - key: PROJECT_ID
+        sync: false
+      - key: DB_OAUTH_URL
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_HOST
+        sync: false
+      buildCommand: npm install; npm run build
+      staticPublishPath: frontend
+      autoDeployTrigger: commit
