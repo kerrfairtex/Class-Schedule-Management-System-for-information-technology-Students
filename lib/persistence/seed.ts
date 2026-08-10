@@ -5,6 +5,12 @@ import { DAYS, TIME_SLOTS, ORGANIZATION } from '@/lib/domain/constants';
 
 let seeded = false;
 
+function getEnvPassword(envKey: string, fallback: string): string {
+  const value = process.env[envKey];
+  if (value && value.length >= 8) return value;
+  return fallback;
+}
+
 export function ensureSeeded() {
   if (seeded) return;
   const db = getDb();
@@ -175,8 +181,9 @@ export function ensureSeeded() {
   }
 
   const userCount = (db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number }).c;
-  if (userCount === 0) {
-    createUser({ username: 'admin', password: 'admin123', role: 'admin' });
+  const seedDefaultUsers = process.env.SEED_DEFAULT_USERS !== '0';
+  if (userCount === 0 && seedDefaultUsers) {
+    createUser({ username: 'admin', password: getEnvPassword('ADMIN_PASSWORD', 'admin123'), role: 'admin' });
 
     const faculty = db.prepare('SELECT id, employee_id FROM faculty').all() as {
       id: number;
@@ -185,7 +192,7 @@ export function ensureSeeded() {
     for (const f of faculty) {
       createUser({
         username: f.employee_id.toLowerCase(),
-        password: 'faculty123',
+        password: getEnvPassword('FACULTY_PASSWORD', 'faculty123'),
         role: 'faculty',
         faculty_id: f.id,
       });
@@ -198,7 +205,7 @@ export function ensureSeeded() {
     for (const s of students) {
       createUser({
         username: s.student_id,
-        password: 'student123',
+        password: getEnvPassword('STUDENT_PASSWORD', 'student123'),
         role: 'student',
         student_id: s.id,
       });

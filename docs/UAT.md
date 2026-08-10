@@ -6,11 +6,13 @@
 
 ## Test Credentials
 
+> **Warning:** These are development defaults. Rotate all passwords before capstone submission or any shared deployment.
+
 | Role | Username | Password |
 |------|----------|----------|
-| Admin | `admin` | `admin123` |
-| Faculty | `fac-001` | `faculty123` |
-| Student | `2022-0001` | `student123` |
+| Admin | `admin` | `admin123` | `ADMIN_PASSWORD` |
+| Faculty | `fac-001` | `faculty123` | `FACULTY_PASSWORD` |
+| Student | `2022-0001` | `student123` | `STUDENT_PASSWORD` |
 
 ## Browser UAT Checklist
 
@@ -76,19 +78,28 @@ Run with: `npm run test:uat` or `./scripts/uat-api.sh`
 
 ## Automated Regression
 
-| Suite | Command | Tests |
+| Suite | Command | Notes |
 |-------|---------|-------|
-| Unit (MOD-03/MOD-04) | `npm test` | 10 |
-| Integration (auth + scheduling) | `npm test` | 6 |
-| UAT acceptance | `npm run test:uat` | 13 |
+| Unit (MOD-03/MOD-04) | `npm test` | Requires `better-sqlite3` native bindings |
+| Integration (auth + scheduling) | `npm test` | Requires `better-sqlite3` native bindings |
+| UAT acceptance | `npm run test:uat` | Requires `better-sqlite3` native bindings |
+
+## Current Verification Status
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| `npm run lint` | PASS | No ESLint warnings or errors |
+| `npm run type-check` | PASS | TypeScript compiles cleanly |
+| `npm test` | BLOCKED | Fails on Termux/Android due to missing `better-sqlite3` bindings |
+| CI on `ubuntu-latest` | PENDING | Run via GitHub Actions after push |
 
 ## Summary
 
-| Category | Passed | Failed |
-|----------|--------|--------|
-| Browser UAT | 20 | 0 |
-| API UAT | 18 | 0 |
-| Automated tests | 29 | 0 |
-| **Total** | **67** | **0** |
+| Category | Passed | Failed | Blocked |
+|----------|--------|--------|---------|
+| Browser UAT | 20 | 0 | 0 |
+| API UAT | 18 | 0 | 0 |
+| Automated tests | 0 | 0 | 29 |
+| **Total** | **38** | **0** | **29** |
 
-**Verdict:** All acceptance criteria met. CSMS is ready for deployment.
+**Verdict:** Code quality and typing are green. Automated tests are currently blocked by native-module binding availability in the local Termux environment; they are expected to pass on Linux CI once `better-sqlite3` is able to build/load.
