@@ -1,73 +1,140 @@
-# University Timetable Management Portal
+# Class Schedule Management System (CSMS)
 
-A modern web-based university timetable management system built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, and **SQLite**. This is a reimplementation of the [University-TimetableManagement-Portal](https://github.com/namanadlakha3/University-TimetableManagement-Portal) PHP project with a modern tech stack.
+**Tawi-Tawi Regional Agricultural College (TRAC)** — Bachelor of Science in Information Technology (BSIT)
 
-## Features
+A department-level Academic Scheduling Management Information System (MIS) built as a **modular monolith** with layered architecture, RBAC, and local-first SQLite deployment for LAN-based client/server access.
 
-### Admin Portal
-- Dashboard with system statistics
-- Register and manage faculty members (auto-generates access tokens)
-- Register and manage students
-- Manage subjects by academic year
+## Architecture
 
-### Faculty Portal
-- Token-based verification for early access scheduling
-- Set teaching timetable (day, time, room, subject)
-- Conflict detection (room and faculty double-booking)
-- Credit-based slot allocation per subject
-- Finalize or reset timetable
+```
+Desktop Browser (Admin / Faculty / Student)
+                │
+                ▼
+Presentation Layer — Dashboard, Schedule Board, Reports, Auth
+                │
+                ▼
+Application Layer
+  MOD-01 Authentication    MOD-05 Manual Adjustment
+  MOD-02 Master List       MOD-06 Faculty Portal
+  MOD-03 Schedule Engine   MOD-07 Student Portal
+  MOD-04 Conflict Engine   MOD-08 Database Service
+                │
+                ▼
+Domain Layer — Faculty, Subjects, Sections, Rooms, Schedules, etc.
+                │
+                ▼
+Persistence Layer — SQLite, Repository, Backup, Transactions
+```
 
-### Student Portal
-- View subjects for their academic year
-- Select faculty for each subject
-- Automatic schedule conflict detection
-- Personalized weekly timetable view
+## Modules
+
+| Module | Description |
+|--------|-------------|
+| MOD-01 | RBAC authentication, session management, password hashing |
+| MOD-02 | Master list — source of truth for all scheduling entities |
+| MOD-03 | Rule-based schedule generation engine |
+| MOD-04 | Conflict detection (faculty, room, section overlaps) |
+| MOD-05 | Admin drag-and-drop schedule board with live validation |
+| MOD-06 | Faculty portal — view and print schedules (read-only) |
+| MOD-07 | Student portal — search, view, and print schedules (read-only) |
+| MOD-08 | Database backup, audit logging, transactions |
 
 ## Getting Started
 
 ```bash
-# Install dependencies
 npm install
-
-# Seed the database with demo data
-npm run seed
-
-# Start development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+### Run Tests
+
+```bash
+npm test          # unit + integration + UAT acceptance tests
+npm run test:uat  # UAT acceptance tests only
+npm run uat:api   # API-level UAT (requires dev server)
+```
+
+Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on first run.
+
+### Runtime Data Directory
+
+- Local development defaults to `<project-root>/data`
+- Vercel runs use `/tmp/csms-data` for ephemeral preview/demo storage
+- Railway defaults to `/data/csms-data`; attach a persistent volume to `/data`
+- Override any environment with `CSMS_DATA_DIR=/absolute/path`
 
 ## Demo Credentials
 
-| Role    | Credentials                          |
-|---------|--------------------------------------|
-| Admin   | `admin` / `admin`                    |
-| Faculty | `sandeep` / `pratap` (token: `42544674`) |
-| Student | SAP `500060879` / `123`              |
+> **Warning:** These are development defaults. Rotate all passwords before capstone submission or any shared deployment.
+
+| Role | Username | Password | Env Override |
+|------|----------|----------|--------------|
+| Admin | `admin` | `admin123` | `ADMIN_PASSWORD` |
+| Faculty | `fac-001` | `faculty123` | `FACULTY_PASSWORD` |
+| Student | `2022-0001` | `student123` | `STUDENT_PASSWORD` |
+
+Set env vars to override defaults at first seed. Disable default user creation with `SEED_DEFAULT_USERS=0`.
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (App Router)
+- **Framework:** Next.js 14 (App Router) — Modular Monolith
 - **Language:** TypeScript
-- **Database:** SQLite (better-sqlite3)
+- **Database:** SQLite (better-sqlite3) with WAL mode
+- **Auth:** bcrypt password hashing, HTTP-only sessions
 - **Styling:** Tailwind CSS
-- **Icons:** Lucide React
+
+## Deployment
+
+### Vercel
+
+Vercel can build and run the app, but this project uses local SQLite storage. On Vercel the database is stored in `/tmp`, so data is ephemeral and can reset between deployments or cold starts. Use Vercel only for preview/demo environments unless you replace SQLite with a managed database.
+
+### Railway
+
+Railway is the recommended production target for the current architecture.
+
+1. Create a Railway project for the repository
+2. Attach a persistent volume mounted at `/data`
+3. Set `CSMS_DATA_DIR=/data/csms-data` if you use a different mount path
+4. Deploy with the existing commands:
+   - Build: `npm run build`
+   - Start: `npm start`
+
+The app already produces a standalone Next.js build and will auto-seed the SQLite database on first boot.
+
+> Note: Supabase/Postgres variables are future-migration settings and are not required unless `lib/persistence/*` is migrated away from SQLite.
 
 ## Project Structure
 
 ```
+lib/
+├── domain/              # Domain entities and constants
+├── persistence/         # SQLite, seed, transactions
+└── modules/
+    ├── mod-01-auth/     # Authentication & RBAC
+    ├── mod-02-master-list/
+    ├── mod-03-schedule-engine/
+    ├── mod-04-conflict-engine/
+    └── mod-08-database-service/
 app/
-├── admin/          # Admin portal pages
-├── faculty/        # Faculty portal pages
-├── student/        # Student portal pages
-└── api/            # API routes
-components/         # Shared UI components
-lib/                # Database, services, auth
-scripts/            # Database seeding
-data/               # SQLite database (auto-created)
+├── admin/               # Dashboard, master list, schedule board, availability
+├── faculty/             # Dashboard + view-only schedule (grid/list/print)
+├── student/             # Dashboard + view-only schedule (search/grid/list/print)
+├── api/                 # REST API routes (presentation ↔ application layer)
+middleware.ts            # Route protection (MOD-01 RBAC)
+lib/api/                 # Typed frontend API client
 ```
 
-## Original Project
+## Development Roadmap
 
-Based on the [University-TimetableManagement-Portal](https://github.com/namanadlakha3/University-TimetableManagement-Portal) by Naman Adlakha et al.
+- [x] Phase 1: Authentication, Master List, Database schema
+- [x] Phase 2: Schedule Generation, Conflict Detection
+- [x] Phase 3: Manual Adjustment, Faculty Portal, Student Portal (fullstack dashboards, grid/list views, print/PDF, manual CRUD)
+- [x] Phase 4: Database Service (backup, audit logging)
+- [x] Phase 5: Unit tests for MOD-03/MOD-04
+- [x] Phase 5: Integration tests (auth + scheduling workflows)
+- [x] Phase 5: User acceptance testing (UAT) — see [docs/UAT.md](docs/UAT.md)
+
+## Reference
+
+Workflow inspired by [University-TimetableManagement-Portal](https://github.com/namanadlakha3/University-TimetableManagement-Portal). Scoped strictly to department-level BSIT scheduling — no grading, attendance, or enrollment features.
