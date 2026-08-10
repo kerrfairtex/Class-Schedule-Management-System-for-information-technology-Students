@@ -8,6 +8,7 @@ export interface TestFixtures {
   sectionId: number;
   subjectId: number;
   facultyId: number;
+  studentId: number;
   roomId: number;
   timeSlotId: number;
   timeSlotId2: number;
@@ -80,6 +81,12 @@ export function createTestDb(): { db: Database.Database; fixtures: TestFixtures 
   );
 
   db.prepare(
+    `INSERT INTO students (student_id, first_name, last_name, email, section_id)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run('2022-0001', 'Test', 'Student', 's@trac.edu.ph', sectionId);
+  const studentId = Number((db.prepare('SELECT id FROM students').get() as { id: number }).id);
+
+  db.prepare(
     'INSERT INTO time_slots (day_of_week, start_time, end_time) VALUES (?, ?, ?)'
   ).run('monday', '09:00', '10:00');
   const timeSlotId = Number(
@@ -103,6 +110,7 @@ export function createTestDb(): { db: Database.Database; fixtures: TestFixtures 
       sectionId,
       subjectId,
       facultyId,
+      studentId,
       roomId,
       timeSlotId,
       timeSlotId2,

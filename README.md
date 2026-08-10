@@ -49,18 +49,31 @@ npm run dev
 ### Run Tests
 
 ```bash
-npm test
+npm test          # unit + integration + UAT acceptance tests
+npm run test:uat  # UAT acceptance tests only
+npm run uat:api   # API-level UAT (requires dev server)
 ```
 
 Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on first run.
 
+### Runtime Data Directory
+
+- Local development defaults to `<project-root>/data`
+- Vercel runs use `/tmp/csms-data` for ephemeral preview/demo storage
+- Railway defaults to `/data/csms-data`; attach a persistent volume to `/data`
+- Override any environment with `CSMS_DATA_DIR=/absolute/path`
+
 ## Demo Credentials
 
-| Role | Username | Password |
-|------|----------|----------|
-| Admin | `admin` | `admin123` |
-| Faculty | `fac-001` | `faculty123` |
-| Student | `2022-0001` | `student123` |
+> **Warning:** These are development defaults. Rotate all passwords before capstone submission or any shared deployment.
+
+| Role | Username | Password | Env Override |
+|------|----------|----------|--------------|
+| Admin | `admin` | `admin123` | `ADMIN_PASSWORD` |
+| Faculty | `fac-001` | `faculty123` | `FACULTY_PASSWORD` |
+| Student | `2022-0001` | `student123` | `STUDENT_PASSWORD` |
+
+Set env vars to override defaults at first seed. Disable default user creation with `SEED_DEFAULT_USERS=0`.
 
 ## Tech Stack
 
@@ -69,6 +82,27 @@ Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on 
 - **Database:** SQLite (better-sqlite3) with WAL mode
 - **Auth:** bcrypt password hashing, HTTP-only sessions
 - **Styling:** Tailwind CSS
+
+## Deployment
+
+### Vercel
+
+Vercel can build and run the app, but this project uses local SQLite storage. On Vercel the database is stored in `/tmp`, so data is ephemeral and can reset between deployments or cold starts. Use Vercel only for preview/demo environments unless you replace SQLite with a managed database.
+
+### Railway
+
+Railway is the recommended production target for the current architecture.
+
+1. Create a Railway project for the repository
+2. Attach a persistent volume mounted at `/data`
+3. Set `CSMS_DATA_DIR=/data/csms-data` if you use a different mount path
+4. Deploy with the existing commands:
+   - Build: `npm run build`
+   - Start: `npm start`
+
+The app already produces a standalone Next.js build and will auto-seed the SQLite database on first boot.
+
+> Note: Supabase/Postgres variables are future-migration settings and are not required unless `lib/persistence/*` is migrated away from SQLite.
 
 ## Project Structure
 
@@ -83,20 +117,23 @@ lib/
     ├── mod-04-conflict-engine/
     └── mod-08-database-service/
 app/
-├── admin/               # Admin dashboard, master list, schedule board
-├── faculty/             # Faculty view-only schedule
-├── student/             # Student view-only schedule
-└── api/                 # REST API routes
+├── admin/               # Dashboard, master list, schedule board, availability
+├── faculty/             # Dashboard + view-only schedule (grid/list/print)
+├── student/             # Dashboard + view-only schedule (search/grid/list/print)
+├── api/                 # REST API routes (presentation ↔ application layer)
+middleware.ts            # Route protection (MOD-01 RBAC)
+lib/api/                 # Typed frontend API client
 ```
 
 ## Development Roadmap
 
 - [x] Phase 1: Authentication, Master List, Database schema
 - [x] Phase 2: Schedule Generation, Conflict Detection
-- [x] Phase 3: Manual Adjustment, Faculty Portal, Student Portal
+- [x] Phase 3: Manual Adjustment, Faculty Portal, Student Portal (fullstack dashboards, grid/list views, print/PDF, manual CRUD)
 - [x] Phase 4: Database Service (backup, audit logging)
 - [x] Phase 5: Unit tests for MOD-03/MOD-04
-- [ ] Phase 5: Integration tests, UAT
+- [x] Phase 5: Integration tests (auth + scheduling workflows)
+- [x] Phase 5: User acceptance testing (UAT) — see [docs/UAT.md](docs/UAT.md)
 
 ## Reference
 
