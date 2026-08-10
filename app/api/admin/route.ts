@@ -188,7 +188,7 @@ export async function POST(request: Request) {
             last_name: z.string().min(1),
             email: z.string().email(),
             phone: z.string().min(1),
-            department_id: z.number().optional(),
+            department_id: z.number(),
           }),
           subjectIds: z.array(z.number()),
           password: z.string().optional(),
