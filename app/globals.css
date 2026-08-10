@@ -22,3 +22,30 @@
     @apply rounded-xl border border-slate-200 bg-white p-6 shadow-sm;
   }
 }
+
+@media print {
+  body {
+    @apply bg-white text-black;
+  }
+  aside,
+  .print\\:hidden,
+  button,
+  nav {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .print-header {
+    display: block !important;
+    margin-bottom: 1rem;
+  }
+  table {
+    font-size: 10px;
+  }
+  .card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}
