@@ -7,37 +7,17 @@ projects:
     services:
     - type: web
       name: Class-Schedule-Management-System-for-information-technology-Students
-      runtime: static
+      runtime: node
       repo: https://github.com/kerrfairtex/Class-Schedule-Management-System-for-information-technology-Students
       envVars:
-      - key: DATABASE_URL
+      - key: CSMS_DATA_DIR
         sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: NODE_ENV
         sync: false
-      - key: SUPABASE_ANON_KEY
+      - key: SESSION_SECRET
         sync: false
-      - key: SUPABASE_PUBLISHABLE_KEY
-        sync: false
-      - key: SUPABASE_SECRET_KEY
-        sync: false
-      - key: SUPABASE_JWKS_URL
-        sync: false
-      - key: NEXT_PUBLIC_SUPABASE_URL
-        sync: false
-      - key: PROJECT_PUBLISHABLE_KEY
-        sync: false
-      - key: PROJECT_ID
-        sync: false
-      - key: DB_OAUTH_URL
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_DATABASE
-        sync: false
-      - key: DB_PORT
-        sync: false
-      - key: DB_HOST
+      - key: CSMS_ALLOW_UNSIGNED
         sync: false
       buildCommand: npm install; npm run build
-      staticPublishPath: frontend
+      startCommand: npm start
       autoDeployTrigger: commit
