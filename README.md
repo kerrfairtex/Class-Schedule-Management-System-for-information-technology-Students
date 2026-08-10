@@ -65,11 +65,15 @@ Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on 
 
 ## Demo Credentials
 
-| Role | Username | Password |
-|------|----------|----------|
-| Admin | `admin` | `admin123` |
-| Faculty | `fac-001` | `faculty123` |
-| Student | `2022-0001` | `student123` |
+> **Warning:** These are development defaults. Rotate all passwords before capstone submission or any shared deployment.
+
+| Role | Username | Password | Env Override |
+|------|----------|----------|--------------|
+| Admin | `admin` | `admin123` | `ADMIN_PASSWORD` |
+| Faculty | `fac-001` | `faculty123` | `FACULTY_PASSWORD` |
+| Student | `2022-0001` | `student123` | `STUDENT_PASSWORD` |
+
+Set env vars to override defaults at first seed. Disable default user creation with `SEED_DEFAULT_USERS=0`.
 
 ## Tech Stack
 
@@ -97,6 +101,8 @@ Railway is the recommended production target for the current architecture.
    - Start: `npm start`
 
 The app already produces a standalone Next.js build and will auto-seed the SQLite database on first boot.
+
+> Note: Supabase/Postgres variables are future-migration settings and are not required unless `lib/persistence/*` is migrated away from SQLite.
 
 ## Project Structure
 
