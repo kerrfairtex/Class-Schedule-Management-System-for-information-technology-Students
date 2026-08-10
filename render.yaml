@@ -1,0 +1,23 @@
+# Exported from Render on 2026-08-10T03:19:34Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: Class-Schedule-Management-System-for-information-technology-Students
+      runtime: node
+      repo: https://github.com/kerrfairtex/Class-Schedule-Management-System-for-information-technology-Students
+      envVars:
+      - key: CSMS_DATA_DIR
+        sync: false
+      - key: NODE_ENV
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: CSMS_ALLOW_UNSIGNED
+        sync: false
+      buildCommand: npm install; npm run build
+      startCommand: npm start
+      autoDeployTrigger: commit
