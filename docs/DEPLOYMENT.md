@@ -2,6 +2,8 @@
 
 ## Option A — Render (recommended for persistent SQLite)
 
+This app should run on Render as a **Node web service**. Do not deploy it as a static site.
+
 ### Prerequisites
 - GitHub repo connected to Render
 - Render account with ability to create Web Services and Disks
@@ -26,6 +28,8 @@
 | `NODE_ENV` | `production` |
 | `SESSION_SECRET` | 32+ byte random string |
 | `CSMS_ALLOW_UNSIGNED` | `0` in production |
+
+> Supabase/Postgres environment variables are not required for the current SQLite architecture. Add them only after the persistence layer is migrated away from `better-sqlite3`.
 
 ### Build & Start
 - Build Command: `npm run build`
@@ -52,11 +56,12 @@
 - SQLite is stored in `/tmp` and is ephemeral
 - Data can reset between deploys or cold starts
 - Suitable for preview URLs and time-boxed demos only
+- Render service configuration (disk mounts and Render blueprint settings) does not apply to Vercel deployments
 
 ### Setup
 - Build Command: `npm run build`
 - Output: `.next`
-- Env vars: same as Render except omit `CSMS_DATA_DIR`
+- Env vars: set `NODE_ENV=production` and `SESSION_SECRET`; omit Render-specific disk variables such as `CSMS_DATA_DIR`
 
 ### Caveats
 - Do not use for persistent capstone demo unless paired with Vercel KV/Blob
