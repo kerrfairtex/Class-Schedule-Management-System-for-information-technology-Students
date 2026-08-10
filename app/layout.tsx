@@ -1,18 +1,15 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
-
 export const metadata: Metadata = {
-  title: 'University Timetable Management Portal',
-  description: 'Manage university timetables for students and faculty',
+  title: 'Class Schedule Management System',
+  description: 'TRAC BSIT Department Scheduling MIS',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
