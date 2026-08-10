@@ -1,1 +1,1 @@
-export { getDb, withTransaction, getDbPath, initSchema } from './persistence/db';
+export { getDb, withTransaction, getDbPath, initSchema, backupDatabase } from './persistence/db';
