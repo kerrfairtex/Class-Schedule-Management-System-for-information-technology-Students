@@ -1,41 +1,63 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
-import { getDashboardStats } from '@/lib/services';
-import { Sidebar } from '@/components/Sidebar';
-import { Users, GraduationCap, BookOpen, Shield } from 'lucide-react';
+import { PortalSidebar } from '@/components/Sidebar';
 import Link from 'next/link';
+import { getDashboardStats, getActiveSemester } from '@/lib/modules/mod-02-master-list/service';
+import { ORGANIZATION } from '@/lib/domain/constants';
+import { Users, GraduationCap, BookOpen, Building, Calendar, Layers } from 'lucide-react';
 
 export default async function AdminDashboardPage() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') redirect('/admin/login');
+  if (!session || session.role !== 'admin') redirect('/login');
 
   const stats = getDashboardStats();
+  const semester = getActiveSemester();
+
+  const adminLinks = [
+    { href: '/admin/dashboard', label: 'Dashboard', active: true },
+    { href: '/admin/master-list', label: 'Master List (MOD-02)' },
+    { href: '/admin/faculty-availability', label: 'Faculty Availability' },
+    { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)' },
+  ];
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar
-        role="admin"
+      <PortalSidebar
+        title="Admin"
         name={session.name}
-        details={[{ label: 'Role', value: 'Administrator' }]}
-        links={[
-          { href: '/admin/dashboard', label: 'Dashboard', active: true },
-          { href: '/admin/faculty', label: 'Manage Faculty' },
-          { href: '/admin/students', label: 'Manage Students' },
-          { href: '/admin/subjects', label: 'Manage Subjects' },
+        subtitle={ORGANIZATION.departmentCode}
+        details={[
+          { label: 'College', value: ORGANIZATION.shortName },
+          { label: 'Semester', value: semester?.name || 'Not set' },
         ]}
+        links={adminLinks}
       />
       <main className="flex-1 p-8">
-        <h1 className="mb-8 text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={<Shield className="h-6 w-6" />} label="Admins" value={stats.adminCount} />
-          <StatCard icon={<Users className="h-6 w-6" />} label="Faculty" value={stats.facultyCount} />
-          <StatCard icon={<GraduationCap className="h-6 w-6" />} label="Students" value={stats.studentCount} />
-          <StatCard icon={<BookOpen className="h-6 w-6" />} label="Subjects" value={stats.subjectCount} />
+        <h1 className="mb-2 text-2xl font-bold">Admin Dashboard</h1>
+        <p className="mb-8 text-slate-600">
+          {ORGANIZATION.college} — Department Scheduling MIS
+        </p>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard icon={<Users />} label="Faculty" value={stats.faculty} />
+          <StatCard icon={<GraduationCap />} label="Students" value={stats.students} />
+          <StatCard icon={<BookOpen />} label="Subjects" value={stats.subjects} />
+          <StatCard icon={<Layers />} label="Sections" value={stats.sections} />
+          <StatCard icon={<Building />} label="Rooms" value={stats.rooms} />
+          <StatCard icon={<Calendar />} label="Schedules" value={stats.schedules} />
         </div>
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <QuickLink href="/admin/faculty" title="Register Faculty" description="Add new faculty members" />
-          <QuickLink href="/admin/students" title="Register Students" description="Add new student records" />
-          <QuickLink href="/admin/subjects" title="Manage Subjects" description="Add subjects by year" />
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <QuickLink
+            href="/admin/master-list"
+            title="Master List (MOD-02)"
+            description="Manage faculty, subjects, rooms, sections, and curriculum."
+          />
+          <QuickLink
+            href="/admin/schedule-board"
+            title="Schedule Board (MOD-05)"
+            description="Generate schedules, drag-and-drop manual adjustments."
+          />
         </div>
       </main>
     </div>
@@ -48,7 +70,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
       <div className="rounded-lg bg-primary/10 p-3 text-primary">{icon}</div>
       <div>
         <p className="text-sm text-slate-500">{label}</p>
-        <p className="text-2xl font-bold text-slate-900">{value}</p>
+        <p className="text-2xl font-bold">{value}</p>
       </div>
     </div>
   );
@@ -57,7 +79,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 function QuickLink({ href, title, description }: { href: string; title: string; description: string }) {
   return (
     <Link href={href} className="card transition hover:border-primary/30 hover:shadow-md">
-      <h3 className="font-semibold text-slate-900">{title}</h3>
+      <h3 className="font-semibold">{title}</h3>
       <p className="mt-1 text-sm text-slate-500">{description}</p>
     </Link>
   );
