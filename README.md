@@ -102,6 +102,8 @@ Railway is the recommended production target for the current architecture.
 
 The app already produces a standalone Next.js build and will auto-seed the SQLite database on first boot.
 
+> Note: Supabase/Postgres variables are future-migration settings and are not required unless `lib/persistence/*` is migrated away from SQLite.
+
 ## Project Structure
 
 ```
