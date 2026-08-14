@@ -1,30 +1,30 @@
-&apos;use client&apos;;
-import Link from &apos;next/link&apos;;
-import { Calendar, GraduationCap, Shield, Users, MapPin, BookOpen, Building2 } from &apos;lucide-react&apos;;
-import { ORGANIZATION } from &apos;../lib/domain/constants&apos;;
-import { useEffect } from &apos;react&apos;;
+'use client';
+import Link from 'next/link';
+import { Calendar, GraduationCap, Shield, Users, MapPin, BookOpen, Building2 } from 'lucide-react';
+import { ORGANIZATION } from '../lib/domain/constants';
+import { useEffect } from 'react';
 
 // Import images
-import heroImage from &apos;@/assets/images/FB_IMG_1786666792795.jpg&apos;;
-import featureImage from &apos;@/assets/images/Screenshot_20260814-082147~3.jpg&apos;;
+import heroImage from '@/assets/images/FB_IMG_1786666792795.jpg';
+import featureImage from '@/assets/images/Screenshot_20260814-082147~3.jpg';
 
 export default function HomePage() {
   useEffect(() => {
     // Initialize AOS
-    if (typeof window !== &apos;undefined&apos;) {
+    if (typeof window !== 'undefined') {
       // Load AOS CSS and JS dynamically
-      const link = document.createElement(&apos;link&apos;);
-      link.rel = &apos;stylesheet&apos;;
-      link.href = &apos;https://unpkg.com/aos@next/dist/aos.css&apos;;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/aos@next/dist/aos.css';
       document.head.appendChild(link);
 
-      const script = document.createElement(&apos;script&apos;);
-      script.src = &apos;https://unpkg.com/aos@next/dist/aos.js&apos;;
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/aos@next/dist/aos.js';
       script.onload = () => {
         // @ts-ignore - AOS types not available in this environment
         (window as any).AOS.init({
           duration: 800,
-          easing: &apos;slide&apos;,
+          easing: 'slide',
           once: true,
           mirror: false
         });
