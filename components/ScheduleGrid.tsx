@@ -76,7 +76,7 @@ export function ScheduleGrid({
                   return (
                     <td key={day} className="schedule-grid-cell">
                       {entry ? (
-                        <div className={`schedule-block ${getCourseBadgeClass(entry.subject_code)} relative group`}>
+                        <div className={`schedule-block ${getCourseBadgeClass(entry.subject_code || '')} relative group`}>
                           <div className="flex items-start justify-between gap-1">
                             <CourseBadgeInline
                               subjectCode={entry.subject_code}
