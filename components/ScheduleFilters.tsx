@@ -121,7 +121,7 @@ export function ScheduleFilters({
             <FilterInput
               label="SEARCH"
               placeholder="Search course code, name..."
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('search' as any, e.target.value)}
+              onChange={(value) => handleChange('search', value)}
             />
           </div>
         </div>
