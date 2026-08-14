@@ -41,5 +41,8 @@
     "tsx": "^4.7.0",
     "typescript": "^5.4.0",
     "vitest": "^2.0.0"
+  },
+  "optionalDependencies": {
+    "@next/swc-android-arm64": "^13.2.4"
   }
 }

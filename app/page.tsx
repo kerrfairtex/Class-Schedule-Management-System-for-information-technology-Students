@@ -1,4 +1,5 @@
 'use client';
+import ClassScheduleForm from '@/components/ClassScheduleForm';
 import Link from 'next/link';
 import { Calendar, GraduationCap, Shield, Users, MapPin, BookOpen, Building2 } from 'lucide-react';
 import { ORGANIZATION } from '../lib/domain/constants';
