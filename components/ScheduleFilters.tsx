@@ -14,12 +14,14 @@ interface ScheduleFiltersProps {
     section?: string;
     room?: string;
     instructor?: string;
+    search?: string;
   };
   onChange: (filters: {
     yearLevel?: string;
     section?: string;
     room?: string;
     instructor?: string;
+    search?: string;
   }) => void;
   options: {
     yearLevels: FilterOption[];
