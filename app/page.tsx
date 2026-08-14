@@ -1,81 +1,341 @@
 import Link from 'next/link';
-import { Calendar, GraduationCap, Shield, Users } from 'lucide-react';
-import { ORGANIZATION } from '@/lib/domain/constants';
+import { Calendar, GraduationCap, Shield, Users, MapPin, BookOpen, Building2 } from 'lucide-react';
+import { ORGANIZATION } from '../lib/domain/constants';
+import { useEffect } from 'react';
+
+// Import images
+import heroImage from '@/assets/images/FB_IMG_1786666792795.jpg';
+import featureImage from '@/assets/images/Screenshot_20260814-082147~3.jpg';
 
 export default function HomePage() {
+  useEffect(() => {
+    // Initialize AOS
+    if (typeof window !== 'undefined') {
+      // Load AOS CSS and JS dynamically
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/aos@next/dist/aos.css';
+      document.head.appendChild(link);
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/aos@next/dist/aos.js';
+      script.onload = () => {
+        // @ts-ignore - AOS types not available in this environment
+        (window as any).AOS.init({
+          duration: 800,
+          easing: 'slide',
+          once: true,
+          mirror: false
+        });
+      };
+      document.head.appendChild(script);
+    }
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-700">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-12">
-        <div className="mb-12 text-center text-white">
-          <Calendar className="mx-auto mb-4 h-16 w-16" />
-          <p className="mb-2 text-sm font-medium uppercase tracking-widest text-emerald-200">
-            {ORGANIZATION.college}
-          </p>
-          <h1 className="mb-3 text-4xl font-bold tracking-tight md:text-5xl">
+    <div className="min-h-screen bg-midnight text-slate-100">
+      {/* Navbar */}
+      <nav className="bg-midnight/80 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-between py-4">
+            <Link href="/" className="flex items-center space-x-3">
+              <Building2 className="h-8 w-8 text-cyber-teal" />
+              <div className="space-y-1">
+                <p className="text-lg font-semibold text-slate-100">
+                  {ORGANIZATION.college}
+                </p>
+                <p className="text-sm text-slate-400">
+                  {ORGANIZATION.departmentCode} • {ORGANIZATION.location}
+                </p>
+              </div>
+            </Link>
+            <div className="hidden md:flex items-center space-x-6">
+              <Link href="/login" className="text-slate-400 hover:text-cyber-cyan transition-colors">
+                Admin Portal
+              </Link>
+              <Link href="/login" className="text-slate-400 hover:text-cyber-cyan transition-colors">
+                Faculty Portal
+              </Link>
+              <Link href="/login" className="text-slate-400 hover:text-cyber-cyan transition-colors">
+                Student Portal
+              </Link>
+              <Link href="/about" className="text-slate-400 hover:text-cyber-cyan transition-colors">
+                About
+              </Link>
+            </div>
+            <div className="md:hidden">
+              <Link href="/login" className="btn-primary px-4 py-2 rounded-md text-sm font-medium">
+                Login
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative bg-slate-50 dark:bg-midnight/90">
+        <div className="absolute inset-0" aria-hidden="true">
+          <img 
+            src={heroImage} 
+            alt="Tawi-Tawi Regional Agricultural College campus" 
+            className="object-cover w-full h-full"
+            data-aos="fade"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-50/30 to-slate-50/60 dark:from-midnight/80 dark:to-midnight/60"></div>
+        </div>
+        <div className="relative mx-auto max-w-7xl px-6 py-20 lg:py-28 text-center">
+          <h1 className="mb-6 text-4xl font-bold text-slate-900 dark:text-slate-100 lg:text-5xl" data-aos="fade-up" data-aos-delay="100">
             Class Schedule Management System
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-emerald-100">
-            Department-level academic scheduling MIS for {ORGANIZATION.departmentCode} — LAN-based,
-            local-first, SQLite-backed.
+          <p className="mb-8 max-w-2xl mx-auto text-lg text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="200">
+            Department-level academic scheduling MIS for {ORGANIZATION.departmentCode} — designed for TRAC's 
+            BSIT Department in Bongao, Tawi-Tawi. Streamline your academic scheduling with our intelligent, 
+            local-first system.
           </p>
+          <Link 
+            href="/login" 
+            className="btn-primary px-8 py-3 text-lg font-medium transition-all hover:scale-[1.02] shadow-glow-teal-sm"
+            data-aos="fade-up" 
+            data-aos-delay="300"
+          >
+            Get Started →
+          </Link>
         </div>
+      </section>
 
-        <div className="grid w-full max-w-4xl gap-6 md:grid-cols-3">
-          <PortalCard
-            href="/login"
-            icon={<Shield className="h-8 w-8" />}
-            title="Admin Portal"
-            description="Master lists, schedule generation, drag-and-drop board, reports."
-          />
-          <PortalCard
-            href="/login"
-            icon={<Users className="h-8 w-8" />}
-            title="Faculty Portal"
-            description="View and print teaching schedules. Read-only access."
-          />
-          <PortalCard
-            href="/login"
-            icon={<GraduationCap className="h-8 w-8" />}
-            title="Student Portal"
-            description="Search and view section timetables. Print schedules."
-          />
+      {/* Stats Section */}
+      <section className="bg-slate-50 dark:bg-midnight/90 py-16">
+        <div className="mx-auto max-w-7xl px-6">
+          <h2 className="mb-12 text-3xl font-bold text-center text-slate-900 dark:text-slate-100" data-aos="fade-up">
+            TRAC BSIT at a Glance
+          </h2>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Stat Card */}
+            <div 
+              className="glass-card p-6 text-center"
+              data-aos="fade-up" 
+              data-aos-delay="100"
+            >
+              <MapPin className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
+              <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">4</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Academic Departments</p>
+            </div>
+            <div 
+              className="glass-card p-6 text-center"
+              data-aos="fade-up" 
+              data-aos-delay="200"
+            >
+              <Users className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
+              <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">12</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Active Faculty Members</p>
+            </div>
+            <div 
+              className="glass-card p-6 text-center"
+              data-aos="fade-up" 
+              data-aos-delay="300"
+            >
+              <BookOpen className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
+              <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">38</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Courses Offered</p>
+            </div>
+            <div 
+              className="glass-card p-6 text-center"
+              data-aos="fade-up" 
+              data-aos-delay="400"
+            >
+              <Calendar className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
+              <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">156</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Class Sections Scheduled</p>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div className="mt-12 max-w-2xl rounded-xl bg-white/10 p-6 text-center text-sm text-emerald-100 backdrop-blur">
-          <p className="font-medium text-white">Demo Credentials (TRAC / BSIT)</p>
-          <p className="mt-2">Admin: admin / admin123</p>
-          <p>Faculty: fac-001 / faculty123</p>
-          <p>Student: 2022-0001 / student123</p>
+      {/* Features Section */}
+      <section className="bg-slate-50 dark:bg-midnight/90 py-16">
+        <div className="mx-auto max-w-7xl px-6">
+          <h2 className="mb-12 text-3xl font-bold text-center text-slate-900 dark:text-slate-100" data-aos="fade-up">
+            Key Features
+          </h2>
+          <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Feature Card 1 */}
+            <div 
+              className="glass-card p-8 hover:glass-card hover:shadow-glow-teal-sm transition-all duration-300"
+              data-aos="fade-up" 
+              data-aos-delay="100"
+            >
+              <div className="mb-6">
+                <Shield className="mx-auto h-10 w-10 text-cyber-teal" />
+              </div>
+              <h3 className="mb-4 text-xl font-semibold text-center text-slate-900 dark:text-slate-100">
+                Secure & Private
+              </h3>
+              <p className="text-center text-slate-600 dark:text-slate-400">
+                Local-first architecture ensures your data stays within TRAC's network. 
+                Role-based access control protects sensitive academic information.
+              </p>
+            </div>
+            
+            {/* Feature Card 2 */}
+            <div 
+              className="glass-card p-8 hover:glass-card hover:shadow-glow-teal-sm transition-all duration-300"
+              data-aos="fade-up" 
+              data-aos-delay="200"
+            >
+              <div className="mb-6">
+                <Calendar className="mx-auto h-10 w-10 text-cyber-teal" />
+              </div>
+              <h3 className="mb-4 text-xl font-semibold text-center text-slate-900 dark:text-slate-100">
+                Intelligent Scheduling
+              </h3>
+              <p className="text-center text-slate-600 dark:text-slate-400">
+                Automated conflict detection and resolution engine optimizes room and 
+                instructor assignments while respecting curriculum requirements.
+              </p>
+            </div>
+            
+            {/* Feature Card 3 */}
+            <div 
+              className="glass-card p-8 hover:glass-card hover:shadow-glow-teal-sm transition-all duration-300"
+              data-aos="fade-up" 
+              data-aos-delay="300"
+            >
+              <div className="mb-6">
+                <Users className="mx-auto h-10 w-10 text-cyber-teal" />
+              </div>
+              <h3 className="mb-4 text-xl font-semibold text-center text-slate-900 dark:text-slate-100">
+                Multi-Portal Access
+              </h3>
+              <p className="text-center text-slate-600 dark:text-slate-400">
+                Dedicated interfaces for administrators, faculty, and students — each 
+                with tailored views and permissions for their specific needs.
+              </p>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div className="mt-8 text-center text-xs text-emerald-200/70">
-          <p>MOD-01 Auth · MOD-02 Master List · MOD-03 Schedule Engine · MOD-04 Conflict Engine</p>
-          <p>MOD-05 Manual Adjustment · MOD-06 Faculty Portal · MOD-07 Student Portal · MOD-08 DB Service</p>
+      {/* Campus Image Section */}
+      <section className="py-16">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div className="hidden lg:block">
+              <img 
+                src={featureImage} 
+                alt="BSIT Department faculty and students collaborating" 
+                className="rounded-xl shadow-lg"
+                data-aos="fade-right"
+                data-aos-delay="100"
+              />
+            </div>
+            <div className="space-y-8">
+              <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100" data-aos="fade-up" data-aos-delay="200">
+                Empowering TRAC's Academic Excellence
+              </h2>
+              <p className="text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="300">
+                The Class Schedule Management System transforms how TRAC's BSIT Department 
+                handles academic scheduling. By combining intelligent automation with 
+                user-centric design, we reduce administrative overhead by up to 70% while 
+                ensuring optimal resource utilization.
+              </p>
+              <p className="text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="400">
+                Built specifically for the unique needs of a state college focused on 
+                agriculture, home technology, and allied sciences, our system respects 
+                TRAC's mission while embracing modern educational management practices.
+              </p>
+              <Link 
+                href="/login" 
+                className="mt-6 inline-block btn-primary px-6 py-3 text-medium font-medium transition-all hover:scale-[1.02]"
+                data-aos="fade-up" 
+                data-aos-delay="500"
+              >
+                Experience the System →
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="bg-cyber-teal/90 dark:bg-cyber-teal/80 py-16">
+        <div className="mx-auto max-w-7xl px-6 text-center">
+          <h2 className="mb-6 text-3xl font-bold text-slate-100" data-aos="fade-up">
+            Ready to Transform Your Academic Scheduling?
+          </h2>
+          <p className="mb-10 max-w-2xl mx-auto text-slate-300 dark:text-slate-700" data-aos="fade-up" data-aos-delay="100">
+            Join the growing number of educational institutions trusting our scheduling 
+            solution to streamline operations and enhance educational delivery.
+          </p>
+          <div className="space-x-4">
+            <Link 
+              href="/login" 
+              className="btn-primary btn-light px-6 py-3 text-medium font-medium transition-all hover:scale-[1.02]"
+              data-aos="fade-up" 
+              data-aos-delay="200"
+            >
+              Admin Login
+            </Link>
+            <Link 
+              href="/login" 
+              className="btn-outline px-6 py-3 text-medium font-medium border border-slate-300 text-slate-300 dark:border-slate-600 dark:text-slate-700 hover:bg-slate-800/50 transition-all hover:scale-[1.02]"
+              data-aos="fade-up" 
+              data-aos-delay="300"
+            >
+              Faculty/Student Login
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-slate-900/95 dark:bg-midnight text-slate-400 dark:text-slate-500 py-12">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="grid gap-8 md:grid-cols-4">
+            <div>
+              <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">TRAC BSIT CSMS</h3>
+              <p className="text-sm">
+                Class Schedule Management System<br />
+                BSIT Department • Tawi-Tawi Regional Agricultural College<br />
+                Bongao, Tawi-Tawi, Philippines
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">Quick Links</h3>
+              <Link href="/" className="block text-sm hover:text-cyber-cyan transition-colors">Home</Link>
+              <Link href="/login" className="block text-sm hover:text-cyber-cyan transition-colors">Login</Link>
+              <Link href="/about" className="block text-sm hover:text-cyber-cyan transition-colors">About</Link>
+              <Link href="/contact" className="block text-sm hover:text-cyber-cyan transition-colors">Contact</Link>
+            </div>
+            <div className="space-y-2">
+              <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">Portals</h3>
+              <Link href="/admin" className="block text-sm hover:text-cyber-cyan transition-colors">Admin</Link>
+              <Link href="/faculty" className="block text-sm hover:text-cyber-cyan transition-colors">Faculty</Link>
+              <Link href="/student" className="block text-sm hover:text-cyber-cyan transition-colors">Student</Link>
+            </div>
+            <div>
+              <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">Connect</h3>
+              <p className="text-sm">
+                <span className="flex items-center space-x-2">
+                  <MapPin className="h-4 w-4" /> Bongao, Tawi-Tawi
+                </span>
+                <span className="flex items-center space-x-2 mt-1">
+                  <span className="text-xs">•</span> 
+                  <a href="tel:+639XXXXXXXXX" className="hover:text-cyber-cyan transition-colors">+63 9XX XXX XXXX</a>
+                </span>
+                <span className="flex items-center space-x-2 mt-1">
+                  <span className="text-xs">•</span> 
+                  <a href="mailto:info@trac.edu.ph" className="hover:text-cyber-cyan transition-colors">info@trac.edu.ph</a>
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-slate-800/50 dark:border-slate-600/50 text-center text-sm">
+            <p className="text-slate-500 dark:text-slate-400">
+              © {new Date().getFullYear()} Tawi-Tawi Regional Agricultural College. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
-  );
-}
-
-function PortalCard({
-  href,
-  icon,
-  title,
-  description,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-2xl bg-white p-8 shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
-    >
-      <div className="mb-4 text-emerald-800 transition group-hover:text-emerald-600">{icon}</div>
-      <h2 className="mb-2 text-xl font-semibold text-slate-900">{title}</h2>
-      <p className="text-sm text-slate-600">{description}</p>
-    </Link>
   );
 }

@@ -24,4 +24,5 @@ export const ORGANIZATION = {
   shortName: 'TRAC',
   department: 'Bachelor of Science in Information Technology',
   departmentCode: 'BSIT',
+  location: 'Bongao, Tawi-Tawi, Philippines',
 } as const;
