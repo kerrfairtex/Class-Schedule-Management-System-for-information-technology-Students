@@ -5,7 +5,7 @@ projects:
     services:
     - type: web
       name: Class-Schedule-Management-System-for-informati>
-      runtime: static
+      runtime: nod
       repo: https://github.com/kerrfairtex/Class-Schedule->
       envVars:
       - key: DATABASE_URL
@@ -37,7 +37,7 @@ projects:
       - key: DB_HOST
         sync: false
       buildCommand: npm install; npm run build
-      staticPublishPath: frontend
+      startCommand: node .next/standalone/server.js
       autoDeployTrigger: commit
       previews:
         generation: automatic
