@@ -1,30 +1,30 @@
-'use client';
-import Link from 'next/link';
-import { Calendar, GraduationCap, Shield, Users, MapPin, BookOpen, Building2 } from 'lucide-react';
-import { ORGANIZATION } from '../lib/domain/constants';
-import { useEffect } from 'react';
+&apos;use client&apos;;
+import Link from &apos;next/link&apos;;
+import { Calendar, GraduationCap, Shield, Users, MapPin, BookOpen, Building2 } from &apos;lucide-react&apos;;
+import { ORGANIZATION } from &apos;../lib/domain/constants&apos;;
+import { useEffect } from &apos;react&apos;;
 
 // Import images
-import heroImage from '@/assets/images/FB_IMG_1786666792795.jpg';
-import featureImage from '@/assets/images/Screenshot_20260814-082147~3.jpg';
+import heroImage from &apos;@/assets/images/FB_IMG_1786666792795.jpg&apos;;
+import featureImage from &apos;@/assets/images/Screenshot_20260814-082147~3.jpg&apos;;
 
 export default function HomePage() {
   useEffect(() => {
     // Initialize AOS
-    if (typeof window !== 'undefined') {
+    if (typeof window !== &apos;undefined&apos;) {
       // Load AOS CSS and JS dynamically
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/aos@next/dist/aos.css';
+      const link = document.createElement(&apos;link&apos;);
+      link.rel = &apos;stylesheet&apos;;
+      link.href = &apos;https://unpkg.com/aos@next/dist/aos.css&apos;;
       document.head.appendChild(link);
 
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/aos@next/dist/aos.js';
+      const script = document.createElement(&apos;script&apos;);
+      script.src = &apos;https://unpkg.com/aos@next/dist/aos.js&apos;;
       script.onload = () => {
         // @ts-ignore - AOS types not available in this environment
         (window as any).AOS.init({
           duration: 800,
-          easing: 'slide',
+          easing: &apos;slide&apos;,
           once: true,
           mirror: false
         });
@@ -89,7 +89,7 @@ export default function HomePage() {
             Class Schedule Management System
           </h1>
           <p className="mb-8 max-w-2xl mx-auto text-lg text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="200">
-            Department-level academic scheduling MIS for {ORGANIZATION.departmentCode} — designed for TRAC's 
+            Department-level academic scheduling MIS for {ORGANIZATION.departmentCode} — designed for TRAC&apos;s 
             BSIT Department in Bongao, Tawi-Tawi. Streamline your academic scheduling with our intelligent, 
             local-first system.
           </p>
@@ -172,7 +172,7 @@ export default function HomePage() {
                 Secure & Private
               </h3>
               <p className="text-center text-slate-600 dark:text-slate-400">
-                Local-first architecture ensures your data stays within TRAC's network. 
+                Local-first architecture ensures your data stays within TRAC&apos;s network. 
                 Role-based access control protects sensitive academic information.
               </p>
             </div>
@@ -231,10 +231,10 @@ export default function HomePage() {
             </div>
             <div className="space-y-8">
               <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100" data-aos="fade-up" data-aos-delay="200">
-                Empowering TRAC's Academic Excellence
+                Empowering TRAC&apos;s Academic Excellence
               </h2>
               <p className="text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="300">
-                The Class Schedule Management System transforms how TRAC's BSIT Department 
+                The Class Schedule Management System transforms how TRAC&apos;s BSIT Department 
                 handles academic scheduling. By combining intelligent automation with 
                 user-centric design, we reduce administrative overhead by up to 70% while 
                 ensuring optimal resource utilization.
@@ -242,7 +242,7 @@ export default function HomePage() {
               <p className="text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="400">
                 Built specifically for the unique needs of a state college focused on 
                 agriculture, home technology, and allied sciences, our system respects 
-                TRAC's mission while embracing modern educational management practices.
+                TRAC&apos;s mission while embracing modern educational management practices.
               </p>
               <Link 
                 href="/login" 

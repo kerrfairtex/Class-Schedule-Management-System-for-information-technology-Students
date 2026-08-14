@@ -1,3 +1,4 @@
+import { PortalLayout } from '@/components/PortalLayout';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { getDashboardStats, getActiveSemester, getActiveAcademicYear } from '@/lib/modules/mod-02-master-list/service';
