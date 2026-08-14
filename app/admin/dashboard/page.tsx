@@ -4,7 +4,6 @@ import { getDashboardStats, getActiveSemester, getActiveAcademicYear } from '@/l
 import { getSchedulesBySemester } from '@/lib/modules/mod-03-schedule-engine/service';
 import { LayoutDashboard, Users, GraduationCap, BookOpen, Building2, Calendar, Layers, Database, AlertTriangle, Activity, Server } from 'lucide-react';
 import { ORGANIZATION } from '@/lib/domain/constants';
-import { PortalLayout, TelemetryBar } from '@/components/PortalLayout';
 import { MetricCard, QuickLink } from '@/components/DashboardComponents';
 
 export default async function AdminDashboardPage() {
@@ -51,7 +50,6 @@ export default async function AdminDashboardPage() {
           <p className="text-slate-400">{ORGANIZATION.college} — Department Scheduling MIS</p>
         </div>
 
-        <TelemetryBar data={telemetry} />
 
         <section aria-label="System Metrics">
           <h2 className="mb-4 text-lg font-semibold text-slate-300 flex items-center gap-2">
