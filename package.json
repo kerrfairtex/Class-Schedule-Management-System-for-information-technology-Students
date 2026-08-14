@@ -18,6 +18,9 @@
     "uat:api": "bash scripts/uat-api.sh"
   },
   "dependencies": {
+    "@base-ui/react": "^1.7.0",
+    "@hugeicons/core-free-icons": "^4.2.3",
+    "@hugeicons/react": "^1.1.9",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "11.10.0",
     "class-variance-authority": "^0.7.0",

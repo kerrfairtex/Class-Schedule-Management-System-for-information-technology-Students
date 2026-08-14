@@ -40,7 +40,7 @@ export default function ClassScheduleForm() {
 
         <div>
           <label className="block text-sm font-medium mb-1">Day</label>
-          <Select value={day} onValueChange={setDay}>
+          <Select value={day} onValueChange={(value) => setDay(value || '')}>
             <SelectTrigger>
               <SelectValue placeholder="Select a day" />
             </SelectTrigger>
