@@ -3,49 +3,468 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 9 13 22;        /* #090D16 - midnight */
+    --foreground: 248 250 252;    /* slate-50 */
+    --card: 15 20 30;             /* #0F141E - midnight-light */
+    --card-border: 6 182 212;     /* cyan-500 */
+    --muted: 30 41 59;            /* slate-700 */
+    --muted-foreground: 148 163 184; /* slate-400 */
+    --accent: 6 182 212;          /* cyan-500 */
+    --accent-foreground: 9 13 22; /* midnight */
+    --success: 16 185 129;        /* emerald-500 */
+    --warning: 245 158 11;        /* amber-500 */
+    --destructive: 239 68 68;     /* red-500 */
+  }
+
+  * {
+    @apply border-slate-800;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-midnight text-slate-100 antialiased min-h-screen;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-cyber-teal/30 text-white;
+  }
+
+  /* Focus visible for accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-cyber-teal ring-offset-2 ring-offset-midnight;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-midnight-light;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full hover:bg-slate-600;
+  }
+  ::-webkit-scrollbar-corner {
+    @apply bg-midnight;
   }
 }
 
 @layer components {
+  /* ===== GLASSMORPHISM UTILITIES ===== */
+  .glass {
+    @apply bg-slate-900/80 backdrop-blur-glass border border-cyber-teal/20 shadow-glass;
+  }
+
+  .glass-strong {
+    @apply bg-slate-900/95 backdrop-blur-glass border border-cyber-teal/30 shadow-glass;
+  }
+
+  .glass-subtle {
+    @apply bg-slate-900/60 backdrop-blur-md border border-slate-800/50;
+  }
+
+  .glass-card {
+    @apply glass rounded-2xl p-6 transition-all duration-300 hover:border-cyber-teal/40 hover:shadow-glow-teal-sm;
+  }
+
+  .glass-panel {
+    @apply glass rounded-xl p-4 transition-all duration-200;
+  }
+
+  /* ===== BUTTONS ===== */
   .btn-primary {
-    @apply rounded-lg bg-primary px-4 py-2 font-medium text-white transition hover:bg-primary-light disabled:opacity-50;
+    @apply relative inline-flex items-center justify-center gap-2 rounded-lg bg-cyber-teal px-4 py-2.5 font-medium text-midnight transition-all duration-200 hover:bg-cyber-cyan hover:shadow-glow-teal active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight;
   }
+
   .btn-secondary {
-    @apply rounded-lg border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5 font-medium text-slate-200 transition-all duration-200 hover:border-cyber-teal/50 hover:bg-slate-800 hover:text-white active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight;
   }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-medium text-slate-400 transition-all duration-200 hover:text-cyber-cyan hover:bg-slate-800/50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-red-600/20 border border-red-500/30 px-4 py-2.5 font-medium text-red-400 transition-all duration-200 hover:bg-red-600/30 hover:border-red-500/50 hover:text-red-300 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-midnight;
+  }
+
+  .btn-icon {
+    @apply inline-flex items-center justify-center rounded-lg p-2 text-slate-400 transition-all duration-200 hover:text-cyber-cyan hover:bg-slate-800/50 active:scale-[0.95] focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight;
+  }
+
+  /* ===== FORM INPUTS ===== */
   .input-field {
-    @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20;
+    @apply w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-600 transition-all duration-200 focus:border-cyber-teal focus:ring-2 focus:ring-cyber-teal/20 focus:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed;
   }
+
+  .input-field-error {
+    @apply border-red-500/50 focus:border-red-500 focus:ring-red-500/20;
+  }
+
+  .label-field {
+    @apply mb-1.5 block text-sm font-medium text-slate-300;
+  }
+
+  .select-field {
+    @apply input-field appearance-none bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%2394A3B8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E')] bg-[length:1.5rem_1.5rem] bg-[right_0.75rem_center] bg-no-repeat pr-10;
+  }
+
+  .textarea-field {
+    @apply input-field resize-y min-h-[80px];
+  }
+
+  /* ===== CARDS & PANELS ===== */
   .card {
-    @apply rounded-xl border border-slate-200 bg-white p-6 shadow-sm;
+    @apply glass-card;
+  }
+
+  .card-hover {
+    @apply glass-card hover:border-cyber-teal/50 hover:shadow-glow-teal-sm hover:translate-y-[-2px];
+  }
+
+  .panel {
+    @apply glass-panel;
+  }
+
+  .panel-section {
+    @apply space-y-4;
+  }
+
+  /* ===== METRIC CARDS ===== */
+  .metric-card {
+    @apply glass-card flex items-center gap-4;
+  }
+
+  .metric-icon {
+    @apply flex h-12 w-12 items-center justify-center rounded-xl;
+  }
+
+  .metric-icon-teal {
+    @apply metric-icon bg-cyber-teal/10 text-cyber-teal;
+  }
+
+  .metric-icon-emerald {
+    @apply metric-icon bg-emerald-500/10 text-emerald-500;
+  }
+
+  .metric-icon-amber {
+    @apply metric-icon bg-amber-500/10 text-amber-500;
+  }
+
+  .metric-icon-violet {
+    @apply metric-icon bg-violet-500/10 text-violet-500;
+  }
+
+  .metric-icon-red {
+    @apply metric-icon bg-red-500/10 text-red-500;
+  }
+
+  .metric-content {
+    @apply flex-1 min-w-0;
+  }
+
+  .metric-label {
+    @apply text-sm font-medium text-slate-400 truncate;
+  }
+
+  .metric-value {
+    @apply text-2xl font-bold text-slate-100 tabular-nums font-mono;
+  }
+
+  .metric-trend {
+    @apply mt-1 flex items-center gap-1 text-xs font-medium;
+  }
+
+  .metric-trend-up {
+    @apply metric-trend text-emerald-400;
+  }
+
+  .metric-trend-down {
+    @apply metric-trend text-red-400;
+  }
+
+  .metric-trend-neutral {
+    @apply metric-trend text-slate-500;
+  }
+
+  /* ===== COURSE BADGES ===== */
+  .course-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium font-mono transition-all duration-200;
+  }
+
+  .course-badge-networking {
+    @apply course-badge bg-cyber-teal/15 text-cyber-teal border border-cyber-teal/30 hover:bg-cyber-teal/25;
+  }
+
+  .course-badge-software {
+    @apply course-badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25;
+  }
+
+  .course-badge-systems {
+    @apply course-badge bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25;
+  }
+
+  .course-badge-gened {
+    @apply course-badge bg-violet-500/15 text-violet-400 border border-violet-500/30 hover:bg-violet-500/25;
+  }
+
+  .course-badge-unknown {
+    @apply course-badge bg-slate-700 text-slate-400 border border-slate-600;
+  }
+
+  /* ===== STATUS INDICATORS ===== */
+  .status-dot {
+    @apply relative inline-flex h-2 w-2 rounded-full;
+  }
+
+  .status-dot::after {
+    @apply content-[''] absolute -inset-1 rounded-full opacity-75 animate-pulse-glow;
+  }
+
+  .status-active {
+    @apply status-dot bg-emerald-500;
+  }
+  .status-active::after {
+    @apply bg-emerald-500;
+  }
+
+  .status-warning {
+    @apply status-dot bg-amber-500;
+  }
+  .status-warning::after {
+    @apply bg-amber-500;
+  }
+
+  .status-error {
+    @apply status-dot bg-red-500;
+  }
+  .status-error::after {
+    @apply bg-red-500;
+  }
+
+  .status-idle {
+    @apply status-dot bg-slate-500;
+  }
+  .status-idle::after {
+    @apply bg-slate-500;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    @apply fixed inset-y-0 left-0 z-50 w-72 glass-strong border-r border-cyber-teal/20 flex flex-col transition-all duration-300 ease-out;
+  }
+
+  .sidebar-collapsed {
+    @apply w-20;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-all duration-200 hover:text-cyber-cyan hover:bg-slate-800/50;
+  }
+
+  .sidebar-link-active {
+    @apply sidebar-link text-cyber-cyan bg-cyber-teal/10 border-l-2 border-cyber-teal;
+  }
+
+  .sidebar-link-collapsed {
+    @apply justify-center px-2;
+  }
+
+  /* ===== TELEMETRY BAR ===== */
+  .telemetry-bar {
+    @apply glass mb-6 rounded-xl p-4;
+  }
+
+  .telemetry-item {
+    @apply flex flex-col;
+  }
+
+  .telemetry-label {
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wider;
+  }
+
+  .telemetry-value {
+    @apply text-lg font-bold text-slate-100 font-mono;
+  }
+
+  .telemetry-value-accent {
+    @apply telemetry-value text-cyber-cyan;
+  }
+
+  .telemetry-value-success {
+    @apply telemetry-value text-emerald-400;
+  }
+
+  .telemetry-value-warning {
+    @apply telemetry-value text-amber-400;
+  }
+
+  .telemetry-value-error {
+    @apply telemetry-value text-red-400;
+  }
+
+  /* ===== SCHEDULE GRID ===== */
+  .schedule-grid {
+    @apply glass overflow-hidden rounded-xl;
+  }
+
+  .schedule-grid-table {
+    @apply w-full min-w-[900px] border-collapse text-sm;
+  }
+
+  .schedule-grid-header {
+    @apply bg-slate-900/50 text-cyber-cyan;
+  }
+
+  .schedule-grid-header th {
+    @apply px-3 py-3 text-left font-medium text-xs uppercase tracking-wider;
+  }
+
+  .schedule-grid-time-col {
+    @apply whitespace-nowrap border-t border-slate-800 px-3 py-2 font-mono font-medium text-slate-400;
+  }
+
+  .schedule-grid-cell {
+    @apply border-t border-slate-800/50 px-2 py-2 align-top min-h-[70px] transition-colors duration-150;
+  }
+
+  .schedule-grid-cell:hover {
+    @apply bg-cyber-teal/5;
+  }
+
+  .schedule-block {
+    @apply rounded-lg p-2.5 text-xs animate-fade-in;
+  }
+
+  .schedule-block-networking {
+    @apply schedule-block bg-cyber-teal/15 border border-cyber-teal/30 text-cyber-teal;
+  }
+
+  .schedule-block-software {
+    @apply schedule-block bg-emerald-500/15 border border-emerald-500/30 text-emerald-400;
+  }
+
+  .schedule-block-systems {
+    @apply schedule-block bg-amber-500/15 border border-amber-500/30 text-amber-400;
+  }
+
+  .schedule-block-gened {
+    @apply schedule-block bg-violet-500/15 border border-violet-500/30 text-violet-400;
+  }
+
+  .schedule-block-title {
+    @apply font-semibold font-mono truncate;
+  }
+
+  .schedule-block-meta {
+    @apply text-[10px] text-slate-500 truncate;
+  }
+
+  .schedule-empty {
+    @apply text-slate-700 text-center py-4;
+  }
+
+  /* ===== FILTER TOOLBAR ===== */
+  .filter-toolbar {
+    @apply glass mb-4 rounded-lg p-4;
+  }
+
+  .filter-group {
+    @apply flex flex-wrap items-center gap-3;
+  }
+
+  .filter-select {
+    @apply select-field min-w-[160px] max-w-[200px];
+  }
+
+  .filter-input {
+    @apply input-field min-w-[140px] max-w-[180px];
+  }
+
+  .filter-btn {
+    @apply btn-secondary whitespace-nowrap;
+  }
+
+  /* ===== QUICK LINKS ===== */
+  .quick-link {
+    @apply glass-card flex items-center gap-4 transition-all duration-200 hover:border-cyber-teal/50 hover:shadow-glow-teal-sm hover:translate-y-[-2px];
+  }
+
+  .quick-link-icon {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800/50 text-cyber-teal;
+  }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    body {
+      @apply bg-white text-black;
+    }
+    .sidebar,
+    .print\\:hidden,
+    button,
+    nav,
+    .telemetry-bar,
+    .filter-toolbar {
+      display: none !important;
+    }
+    main {
+      padding: 0 !important;
+      width: 100% !important;
+    }
+    .glass,
+    .glass-card,
+    .glass-panel,
+    .card,
+    .panel {
+      @apply bg-white border-slate-300 shadow-none;
+    }
+    .schedule-grid {
+      @apply border border-slate-300;
+    }
+    .schedule-grid-header {
+      @apply bg-slate-900 text-white -print:bg-slate-900 -print:text-white;
+    }
+    .schedule-block {
+      @apply border border-slate-400 bg-slate-50 -print:border -print:bg-slate-50;
+    }
+    .metric-card {
+      @apply border border-slate-300 bg-white -print:border -print:bg-white;
+    }
+    .course-badge {
+      @apply border border-slate-400 bg-white -print:border -print:bg-white;
+    }
   }
 }
 
-@media print {
-  body {
-    @apply bg-white text-black;
+@layer utilities {
+  /* Text gradient utilities */
+  .text-gradient-cyber {
+    @apply bg-gradient-to-r from-cyber-teal to-cyber-cyan bg-clip-text text-transparent;
   }
-  aside,
-  .print\\:hidden,
-  button,
-  nav {
-    display: none !important;
+
+  .text-gradient-emerald {
+    @apply bg-gradient-to-r from-emerald-500 to-emerald-400 bg-clip-text text-transparent;
   }
-  main {
-    padding: 0 !important;
-    width: 100% !important;
+
+  .text-gradient-warning {
+    @apply bg-gradient-to-r from-amber-500 to-amber-400 bg-clip-text text-transparent;
   }
-  .print-header {
-    display: block !important;
-    margin-bottom: 1rem;
+
+  /* Animation utilities */
+  .animate-in {
+    animation: fade-in 0.3s ease-out, slide-up 0.3s ease-out;
   }
-  table {
-    font-size: 10px;
-  }
-  .card {
-    box-shadow: none;
-    border: 1px solid #ccc;
-  }
+
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+  .stagger-6 { animation-delay: 300ms; }
 }

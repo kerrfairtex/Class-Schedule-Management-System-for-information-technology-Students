@@ -65,7 +65,7 @@ Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on 
 
 ## Demo Credentials
 
-> **Warning:** These are development defaults. Rotate all passwords before capstone submission or any shared deployment.
+> **⚠️ SECURITY WARNING:** These are development defaults only. **All passwords MUST be rotated before capstone submission or any shared deployment.** The system enforces signed session cookies in production (requires `SESSION_SECRET` env var). Default users are only created when `SEED_DEFAULT_USERS=1` (default).
 
 | Role | Username | Password | Env Override |
 |------|----------|----------|--------------|
@@ -73,7 +73,13 @@ Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on 
 | Faculty | `fac-001` | `faculty123` | `FACULTY_PASSWORD` |
 | Student | `2022-0001` | `student123` | `STUDENT_PASSWORD` |
 
-Set env vars to override defaults at first seed. Disable default user creation with `SEED_DEFAULT_USERS=0`.
+**Production Checklist:**
+- [ ] Set `SESSION_SECRET` to a strong random string (32+ chars)
+- [ ] Override all default passwords via environment variables
+- [ ] Set `SEED_DEFAULT_USERS=0` to disable default user creation
+- [ ] Configure `CSMS_DATA_DIR` to a persistent volume path
+- [ ] Enable HTTPS (automatic on Vercel/Railway)
+- [ ] Review rate limiting: login endpoint limited to 5 attempts per 15 minutes per IP
 
 ## Tech Stack
 

@@ -5,7 +5,6 @@ import * as crypto from 'crypto';
 const SESSION_COOKIE = 'csms_session';
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const isProduction = process.env.NODE_ENV === 'production';
-const ALLOW_UNSIGNED = process.env.CSMS_ALLOW_UNSIGNED === '1';
 
 function failClosed(message: string): never {
   throw new Error(message);
@@ -16,9 +15,8 @@ function sign(payload: string): string {
     if (isProduction) {
       failClosed('SESSION_SECRET is required in production');
     }
-    if (!ALLOW_UNSIGNED) {
-      failClosed('SESSION_SECRET is not set');
-    }
+    // Development only: allow unsigned but warn
+    console.warn('[AUTH] SESSION_SECRET not set - using unsigned sessions (development only)');
     return payload;
   }
   const hmac = crypto.createHmac('sha256', SESSION_SECRET);
@@ -28,15 +26,13 @@ function sign(payload: string): string {
 
 function unsign(raw: string): string | null {
   if (!raw.includes('|')) {
-    if (!SESSION_SECRET && ALLOW_UNSIGNED) return raw;
+    if (!SESSION_SECRET && !isProduction) return raw;
     if (isProduction) return null;
-    if (!SESSION_SECRET && !ALLOW_UNSIGNED) return null;
-    return raw;
+    return null;
   }
   const [payload, signature] = raw.split('|');
   if (!SESSION_SECRET) {
     if (isProduction) return null;
-    if (ALLOW_UNSIGNED) return payload;
     return null;
   }
   const hmac = crypto.createHmac('sha256', SESSION_SECRET);
