@@ -431,16 +431,16 @@
       @apply border border-slate-300;
     }
     .schedule-grid-header {
-      @apply bg-slate-900 text-white -print:bg-slate-900 -print:text-white;
+      @apply bg-slate-900 text-white print:bg-slate-900 print:text-white;
     }
     .schedule-block {
-      @apply border border-slate-400 bg-slate-50 -print:border -print:bg-slate-50;
+      @apply border border-slate-400 bg-slate-50 print:border print:bg-slate-50;
     }
     .metric-card {
-      @apply border border-slate-300 bg-white -print:border -print:bg-white;
+      @apply border border-slate-300 bg-white print:border print:bg-white;
     }
     .course-badge {
-      @apply border border-slate-400 bg-white -print:border -print:bg-white;
+      @apply border border-slate-400 bg-white print:border print:bg-white;
     }
   }
 }
