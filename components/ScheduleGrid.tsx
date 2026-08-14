@@ -79,8 +79,8 @@ export function ScheduleGrid({
                         <div className={`schedule-block ${getCourseBadgeClass(entry.subject_code || '')} relative group`}>
                           <div className="flex items-start justify-between gap-1">
                             <CourseBadgeInline
-                              subjectCode={entry.subject_code}
-                              categoryLabel={getCourseCategoryLabel(entry.subject_code)}
+                              subjectCode={entry.subject_code || ''}
+                              categoryLabel={getCourseCategoryLabel(entry.subject_code || '')}
                             />
                             {showSection && entry.section_code && (
                               <span className="schedule-block-meta font-mono">{entry.section_code}</span>
