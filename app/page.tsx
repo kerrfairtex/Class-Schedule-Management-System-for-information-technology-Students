@@ -77,7 +77,7 @@ export default function HomePage() {
       <section className="relative bg-slate-50 dark:bg-midnight/90">
         <div className="absolute inset-0" aria-hidden="true">
           <img 
-            src={heroImage} 
+            src={heroImage.src} 
             alt="Tawi-Tawi Regional Agricultural College campus" 
             className="object-cover w-full h-full"
             data-aos="fade"
@@ -222,7 +222,7 @@ export default function HomePage() {
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="hidden lg:block">
               <img 
-                src={featureImage} 
+                src={featureImage.src} 
                 alt="BSIT Department faculty and students collaborating" 
                 className="rounded-xl shadow-lg"
                 data-aos="fade-right"
