@@ -1,23 +1,43 @@
-# Exported from Render on 2026-08-10T03:19:34Z
-version: "1"
+# Exported from Render on 2026-08-14T04:00:47Z             version: "1"
 projects:
-- name: My project
-  environments:
-  - name: Production
+- name: My project                                           environments:
+  - name: production
     services:
     - type: web
-      name: Class-Schedule-Management-System-for-information-technology-Students
-      runtime: node
-      repo: https://github.com/kerrfairtex/Class-Schedule-Management-System-for-information-technology-Students
+      name: Class-Schedule-Management-System-for-informati>
+      runtime: static
+      repo: https://github.com/kerrfairtex/Class-Schedule->
       envVars:
-      - key: CSMS_DATA_DIR
+      - key: DATABASE_URL
         sync: false
-      - key: NODE_ENV
+      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: SESSION_SECRET
+      - key: SUPABASE_ANON_KEY
         sync: false
-      - key: CSMS_ALLOW_UNSIGNED
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_JWKS_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: PROJECT_PUBLISHABLE_KEY
+        sync: false
+      - key: PROJECT_ID
+        sync: false
+      - key: DB_OAUTH_URL
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_HOST
         sync: false
       buildCommand: npm install; npm run build
-      startCommand: npm start
+      staticPublishPath: frontend
       autoDeployTrigger: commit
+      previews:
+        generation: automatic
