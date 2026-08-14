@@ -59,7 +59,7 @@ export function ScheduleList({ schedules, showFaculty, showSection, filters }: S
         >
           <div className="flex items-center gap-4 min-w-0 flex-1">
             <CourseBadge
-              subjectCode={s.subject_code}
+              subjectCode={s.subject_code || ''}
               subjectName={s.subject_name}
               size="md"
               showName={true}
