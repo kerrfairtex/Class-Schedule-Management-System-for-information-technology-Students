@@ -29,7 +29,7 @@ export default async function AdminDashboardPage() {
   const telemetry = {
     term: `${academicYear?.label || 'AY 2024-2025'} • ${semester?.name || 'No Active Semester'}`,
     week: getCurrentWeekLabel(),
-    health: conflicts > 0 ? 'warning' : 'healthy' as const,
+    health: (conflicts > 0 ? 'warning' : 'healthy') as 'warning' | 'healthy' | 'critical',
     conflicts,
   };
 
