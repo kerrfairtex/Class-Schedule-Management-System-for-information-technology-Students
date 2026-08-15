@@ -174,7 +174,7 @@ export function ensureSeeded() {
       .get('BSIT-1A') as { id: number };
     db.prepare(
       'INSERT INTO students (student_id, first_name, last_name, email, section_id) VALUES (?, ?, ?, ?, ?)'
-    ).run('2022-0001', 'Ahmad', 'Hassan', 'ahassan@trac.edu.ph', section2A.id);
+    ).run('2022-0001', 'Kerr', 'Fairtex', 'kfairtex@trac.edu.ph', section2A.id);
     db.prepare(
       'INSERT INTO students (student_id, first_name, last_name, email, section_id) VALUES (?, ?, ?, ?, ?)'
     ).run('2023-0001', 'Fatima', 'Ibrahim', 'fibrahim@trac.edu.ph', section1A.id);
