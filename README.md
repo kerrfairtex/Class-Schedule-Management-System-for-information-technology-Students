@@ -71,7 +71,7 @@ Open [http://localhost:3000](http://localhost:3000). The database auto-seeds on 
 |------|----------|----------|--------------|
 | Admin | `admin` | `admin123` | `ADMIN_PASSWORD` |
 | Faculty | `fac-001` | `faculty123` | `FACULTY_PASSWORD` |
-| Student | `2022-0001` | `student123` | `STUDENT_PASSWORD` |
+| Student | `2025-0001` | `student123` | `STUDENT_PASSWORD` |
 
 **Production Checklist:**
 - [ ] Set `SESSION_SECRET` to a strong random string (32+ chars)
