@@ -3,11 +3,8 @@ const nextConfig = {
   output: 'standalone',
   experimental: {
     serverComponentsExternalPackages: ['better-sqlite3'],
+    forceSwcTransforms: true,
   },
 };
 
-module.exports = {
-  experimental: {
-    forceSwcTransforms: true,
-  },
-}
+module.exports = nextConfig;
