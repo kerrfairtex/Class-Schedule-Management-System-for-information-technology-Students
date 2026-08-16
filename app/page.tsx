@@ -314,18 +314,22 @@ export default function HomePage() {
               <Link href="/student" className="block text-sm hover:text-cyber-cyan transition-colors">Student</Link>
             </div>
             <div>
-              <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">Connect</h3>
+              <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">Contact</h3>
               <p className="text-sm">
                 <span className="flex items-center space-x-2">
                   <MapPin className="h-4 w-4" /> Bongao, Tawi-Tawi
                 </span>
                 <span className="flex items-center space-x-2 mt-1">
                   <span className="text-xs">•</span> 
-                  <a href="tel:+639XXXXXXXXX" className="hover:text-cyber-cyan transition-colors">+63 9XX XXX XXXX</a>
+                  <span>FB: Kerr Fairtex</span>
                 </span>
                 <span className="flex items-center space-x-2 mt-1">
                   <span className="text-xs">•</span> 
-                  <a href="mailto:info@trac.edu.ph" className="hover:text-cyber-cyan transition-colors">info@trac.edu.ph</a>
+                  <a href="tel:09637130812" className="hover:text-cyber-cyan transition-colors">0963 713 0812</a>
+                </span>
+                <span className="flex items-center space-x-2 mt-1">
+                  <span className="text-xs">•</span> 
+                  <a href="mailto:kerrfairtex@gmail.com" className="hover:text-cyber-cyan transition-colors">kerrfairtex@gmail.com</a>
                 </span>
               </p>
             </div>
