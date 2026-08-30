@@ -2,8 +2,14 @@ import { getDb } from '@/lib/persistence/db';
 import { createUser } from '@/lib/modules/mod-01-auth/service';
 import { ensureTimeSlots } from '@/lib/modules/mod-02-master-list/service';
 import { DAYS, TIME_SLOTS, ORGANIZATION } from '@/lib/domain/constants';
+import {
+  EVIDENCE_SOURCES,
+  INSTITUTIONAL_FACTS,
+  getSource,
+} from '@/lib/evidence/institutional-facts';
 
 let seeded = false;
+let evidenceSeeded = false;
 
 /**
  * Spec §63/§64: distinguish project/sample data from institutional data.
@@ -231,4 +237,135 @@ export function ensureSeeded() {
   }
 
   seeded = true;
+}
+
+/**
+ * Seed the evidence layer (sources, institutional_facts, fact_sources,
+ * verification_records, officials, institution_contacts, system_settings)
+ * with the verified facts from lib/evidence/institutional-facts.ts.
+ *
+ * Spec §61: "The initial database should contain at least: TRAC legal name,
+ * TRAC legal foundation, 1983 establishment, Nalil/Bongao/Tawi-Tawi location,
+ * Current TRAC website, Current BSIT offering, Institute of Computing Studies,
+ * Current institutional mission, Current institutional vision, Four-fold
+ * institutional thrust, Official institutional contact channels."
+ */
+export function ensureEvidenceSeeded(): void {
+  if (evidenceSeeded) return;
+  const db = getDb();
+
+  const sourcesCount = (db.prepare('SELECT COUNT(*) as c FROM sources').get() as { c: number }).c;
+  if (sourcesCount === 0) {
+    const insertSource = db.prepare(
+      `INSERT INTO sources (id, title, source_type, authority_level, publisher, url, document_date, accessed_at, status, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    for (const s of EVIDENCE_SOURCES) {
+      insertSource.run(
+        s.id,
+        s.title,
+        s.sourceType,
+        s.authorityLevel,
+        s.publisher,
+        s.url ?? null,
+        s.documentDate ?? null,
+        s.accessedAt,
+        s.status,
+        s.notes ?? null
+      );
+    }
+  }
+
+  const factsCount = (db.prepare('SELECT COUNT(*) as c FROM institutional_facts').get() as { c: number }).c;
+  if (factsCount === 0) {
+    const insertFact = db.prepare(
+      `INSERT INTO institutional_facts (id, category, key, value, value_type, status, confidence, effective_from, verified_at, review_due_at, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    const insertFactSource = db.prepare(
+      `INSERT INTO fact_sources (fact_id, source_id, supports) VALUES (?, ?, 1)`
+    );
+    const insertVerification = db.prepare(
+      `INSERT INTO verification_records (fact_id, verified_by, verified_at, verification_method, source_count, authority_level, next_review_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    );
+    for (const f of INSTITUTIONAL_FACTS) {
+      insertFact.run(
+        f.id,
+        f.category,
+        f.key,
+        f.value,
+        f.valueType,
+        f.status,
+        f.confidence,
+        f.effectiveFrom ?? null,
+        f.verifiedAt,
+        f.reviewDueAt ?? null,
+        f.notes ?? null
+      );
+      insertFactSource.run(f.id, f.sourceId);
+      const source = getSource(f.sourceId);
+      insertVerification.run(
+        f.id,
+        'developer',
+        f.verifiedAt,
+        'manual-review-of-source',
+        1,
+        source?.authorityLevel ?? 0,
+        f.reviewDueAt ?? null
+      );
+    }
+  }
+
+  // Institution contacts (spec §13/§51)
+  const contactsCount = (db.prepare('SELECT COUNT(*) as c FROM institution_contacts').get() as { c: number }).c;
+  if (contactsCount === 0) {
+    const insertContact = db.prepare(
+      `INSERT INTO institution_contacts (office, contact_type, value, label, is_primary, source_id, verified_at, data_environment)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'VERIFIED')`
+    );
+    const contacts: Array<[string, 'email'|'mobile'|'phone', string, string|null, number, string]> = [
+      ['Office of the College President', 'email', 'op@trac.edu.ph', null, 1, 'SRC-TRAC-WEB'],
+      ['Office of the College Registrar', 'email', 'registrar@trac.edu.ph', null, 1, 'SRC-TRAC-WEB'],
+      ['Office of Admission', 'email', 'admission@trac.edu.ph', null, 1, 'SRC-TRAC-WEB'],
+      ['Office of Admission', 'mobile', '0951-733-7474', null, 1, 'SRC-TRAC-WEB'],
+    ];
+    for (const c of contacts) {
+      insertContact.run(...c, '2026-08-31');
+    }
+  }
+
+  // Officials (spec §13/§75). All marked PENDING_VERIFICATION / DEMO until
+  // a CHED or official TRAC directory confirms current appointments.
+  const officialsCount = (db.prepare('SELECT COUNT(*) as c FROM officials').get() as { c: number }).c;
+  if (officialsCount === 0) {
+    const insertOfficial = db.prepare(
+      `INSERT INTO officials (position, first_name, middle_name, last_name, title, source_id, status, data_environment)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    // Names below were visible on the TRAC official website at access date.
+    // Marked PENDING_VERIFICATION until an official directory confirms each.
+    const officials: Array<[string, string, string|null, string, string|null, string, string]> = [
+      ['College President', 'Sitti Amina', 'J.', 'Mohammad', 'SUC President I', 'SRC-TRAC-WEB', 'PENDING_VERIFICATION'],
+      ['Vice President for Academic Affairs', 'Al-Ghazier', 'H.', 'Kandon', 'Ph.D.', 'SRC-TRAC-WEB', 'PENDING_VERIFICATION'],
+      ['Dean of Institute of Computing Studies', 'Abubakar', 'M.', 'Hiyang', 'MIT', 'SRC-TRAC-WEB', 'PENDING_VERIFICATION'],
+      ['Dean of Admission', 'Alnalyn', 'K.', 'Saral', 'Ed.D.', 'SRC-TRAC-WEB', 'PENDING_VERIFICATION'],
+    ];
+    for (const o of officials) {
+      insertOfficial.run(...o, 'DEMO');
+    }
+  }
+
+  // System settings (spec §64)
+  const settingsCount = (db.prepare('SELECT COUNT(*) as c FROM system_settings').get() as { c: number }).c;
+  if (settingsCount === 0) {
+    const insertSetting = db.prepare(
+      `INSERT INTO system_settings (key, value, description, updated_by) VALUES (?, ?, ?, ?)`
+    );
+    insertSetting.run('system_status', 'DEVELOPMENT', 'Per spec §47: not yet formally institutionally adopted.', 'developer');
+    insertSetting.run('data_environment', 'DEMO', 'Per spec §64: development fixtures, never authoritative.', 'developer');
+    insertSetting.run('verification_baseline', '2026-08-31', 'Date when source-of-truth baseline was established.', 'developer');
+  }
+
+  evidenceSeeded = true;
 }
