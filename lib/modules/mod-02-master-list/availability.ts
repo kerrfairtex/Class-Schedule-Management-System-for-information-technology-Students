@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/persistence/db';
 import type { Faculty, TimeSlot } from '@/lib/domain/types';
-import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
+import { logAudit, type AuditContext } from '@/lib/modules/mod-08-database-service/audit';
 
 export interface FacultyAvailabilityRow {
   faculty_id: number;
@@ -39,7 +39,8 @@ export function setFacultyAvailability(
   facultyId: number,
   timeSlotId: number,
   isAvailable: boolean,
-  userId?: number
+  userId?: number,
+  auditCtx?: AuditContext
 ) {
   const db = getDb();
   const existing = db
@@ -63,7 +64,8 @@ export function setFacultyAvailability(
     'UPDATE',
     'faculty_availability',
     facultyId,
-    `slot=${timeSlotId} available=${isAvailable}`
+    `slot=${timeSlotId} available=${isAvailable}`,
+    auditCtx
   );
 }
 

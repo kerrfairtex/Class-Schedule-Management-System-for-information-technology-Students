@@ -40,10 +40,15 @@ export default async function SchedulesPage() {
     if (!years.has(r.ay_id)) years.set(r.ay_id, { id: r.ay_id, label: r.label, active: r.ay_active });
   }
 
-  // Per spec §35: public schedule = PUBLISHED status only.
-  // Currently no schedules exist in seed (none published), so we show 0.
+  // Per spec §35 + §63: public schedule = status='PUBLISHED' AND
+  // data_environment IN ('VERIFIED','PRODUCTION'). DEMO records must never
+  // appear in public counts even if accidentally published.
   const published = db
-    .prepare(`SELECT COUNT(*) as c FROM schedules WHERE status = 'PUBLISHED'`)
+    .prepare(
+      `SELECT COUNT(*) as c FROM schedules
+       WHERE status = 'PUBLISHED'
+         AND data_environment IN ('VERIFIED','PRODUCTION')`
+    )
     .get() as { c: number };
 
   return (

@@ -1,7 +1,7 @@
 import { getDb, withTransaction } from '@/lib/persistence/db';
 import { detectConflicts, validateScheduleMove, validateForPublish } from '@/lib/modules/mod-04-conflict-engine/validator';
 import type { Schedule, ScheduleInput } from '@/lib/domain/types';
-import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
+import { logAudit, type AuditContext } from '@/lib/modules/mod-08-database-service/audit';
 
 const SCHEDULE_SELECT = `
   SELECT s.*,
@@ -43,7 +43,11 @@ export function getSchedulesByFaculty(facultyId: number, semesterId: number): Sc
     .all(facultyId, semesterId) as Schedule[];
 }
 
-export function createSchedule(input: ScheduleInput, userId?: number): Schedule {
+export function createSchedule(
+  input: ScheduleInput,
+  userId?: number,
+  auditCtx?: AuditContext
+): Schedule {
   const conflict = detectConflicts(input);
   if (conflict.hasBlockingConflict) {
     throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
@@ -64,7 +68,7 @@ export function createSchedule(input: ScheduleInput, userId?: number): Schedule 
       input.semester_id
     );
 
-  logAudit(userId ?? null, 'CREATE', 'schedule', Number(result.lastInsertRowid), JSON.stringify(input));
+  logAudit(userId ?? null, 'CREATE', 'schedule', Number(result.lastInsertRowid), JSON.stringify(input), auditCtx);
   return db
     .prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`)
     .get(result.lastInsertRowid) as Schedule;
@@ -73,7 +77,8 @@ export function createSchedule(input: ScheduleInput, userId?: number): Schedule 
 export function updateScheduleTimeSlot(
   scheduleId: number,
   timeSlotId: number,
-  userId?: number
+  userId?: number,
+  auditCtx?: AuditContext
 ): Schedule {
   const conflict = validateScheduleMove(scheduleId, timeSlotId);
   if (conflict.hasBlockingConflict) {
@@ -85,14 +90,18 @@ export function updateScheduleTimeSlot(
     'UPDATE schedules SET time_slot_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
   ).run(timeSlotId, scheduleId);
 
-  logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}`);
+  logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}`, auditCtx);
   return db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(scheduleId) as Schedule;
 }
 
-export function deleteSchedule(scheduleId: number, userId?: number) {
+export function deleteSchedule(
+  scheduleId: number,
+  userId?: number,
+  auditCtx?: AuditContext
+) {
   const db = getDb();
   db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
-  logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
+  logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId, undefined, auditCtx);
 }
 
 /**
@@ -150,7 +159,8 @@ export function transitionSchedule(
   scheduleId: number,
   toStatus: ScheduleStatus,
   userId?: number,
-  userName?: string
+  userName?: string,
+  auditCtx?: AuditContext
 ): TransitionResult {
   const fromStatus = currentStatus(scheduleId);
   if (!fromStatus) {
@@ -195,7 +205,8 @@ export function transitionSchedule(
     `${toStatus}`,
     'schedule',
     scheduleId,
-    `${fromStatus} → ${toStatus}`
+    `${fromStatus} → ${toStatus}`,
+    auditCtx
   );
 
   return { ok: true, fromStatus, toStatus };
@@ -204,7 +215,8 @@ export function transitionSchedule(
 export function generateSchedulesForSection(
   sectionId: number,
   semesterId: number,
-  userId?: number
+  userId?: number,
+  auditCtx?: AuditContext
 ): { created: number; errors: string[] } {
   const db = getDb();
   const section = db
@@ -279,7 +291,7 @@ export function generateSchedulesForSection(
             // Per spec §33/§34: blocking conflicts prevent creation; non-blocking
             // (e.g. availability) are tolerated.
             if (!conflict.hasBlockingConflict) {
-              createSchedule(input, userId);
+              createSchedule(input, userId, auditCtx);
               created++;
               assigned = true;
               break;

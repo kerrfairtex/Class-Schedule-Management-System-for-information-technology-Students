@@ -320,6 +320,11 @@ export function initSchema(database: Database.Database) {
     { table: 'schedules', column: 'status', sql: "ALTER TABLE schedules ADD COLUMN status TEXT NOT NULL DEFAULT 'DRAFT' CHECK(status IN ('DRAFT','PENDING_REVIEW','APPROVED','PUBLISHED','CANCELLED','ARCHIVED'))" },
     { table: 'schedules', column: 'published_at', sql: "ALTER TABLE schedules ADD COLUMN published_at TEXT" },
     { table: 'schedules', column: 'approved_by', sql: "ALTER TABLE schedules ADD COLUMN approved_by TEXT" },
+    // audit_logs columns per spec section 36
+    { table: 'audit_logs', column: 'ip_hash', sql: "ALTER TABLE audit_logs ADD COLUMN ip_hash TEXT" },
+    { table: 'audit_logs', column: 'user_agent', sql: "ALTER TABLE audit_logs ADD COLUMN user_agent TEXT" },
+    { table: 'audit_logs', column: 'old_value', sql: "ALTER TABLE audit_logs ADD COLUMN old_value TEXT" },
+    { table: 'audit_logs', column: 'new_value', sql: "ALTER TABLE audit_logs ADD COLUMN new_value TEXT" },
   ];
   for (const m of alterStatements) {
     const cols = database.prepare(`PRAGMA table_info(${m.table})`).all() as Array<{ name: string }>;

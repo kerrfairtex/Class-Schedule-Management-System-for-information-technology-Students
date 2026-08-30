@@ -166,6 +166,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Capture request context for audit (spec section 36)
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    null;
+  const userAgent = request.headers.get('user-agent');
+  const auditCtx = { ip, userAgent };
+
   let body: unknown;
   try {
     body = await request.json();
@@ -306,7 +314,7 @@ export async function POST(request: Request) {
         });
         const validated = scheduleSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid schedule payload');
-        return NextResponse.json(createSchedule(validated.data.data, session!.id));
+        return NextResponse.json(createSchedule(validated.data.data, session!.id, auditCtx));
       }
       case 'move-schedule': {
         const moveSchema = z.object({
@@ -316,7 +324,7 @@ export async function POST(request: Request) {
         const validated = moveSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid move payload');
         const m = validated.data;
-        return NextResponse.json(updateScheduleTimeSlot(m.scheduleId, m.timeSlotId, session!.id));
+        return NextResponse.json(updateScheduleTimeSlot(m.scheduleId, m.timeSlotId, session!.id, auditCtx));
       }
       case 'delete-schedule': {
         const deleteSchema = z.object({
@@ -325,7 +333,7 @@ export async function POST(request: Request) {
         const validated = deleteSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid delete payload');
         const d = validated.data;
-        deleteSchedule(d.scheduleId, session!.id);
+        deleteSchedule(d.scheduleId, session!.id, auditCtx);
         return NextResponse.json({ success: true });
       }
       case 'generate-schedules': {
@@ -337,7 +345,7 @@ export async function POST(request: Request) {
         const semester = getActiveSemester();
         if (!semester) return NextResponse.json({ error: 'No active semester' }, { status: 400 });
         const g = validated.data;
-        return NextResponse.json(generateSchedulesForSection(g.sectionId, semester.id, session!.id));
+        return NextResponse.json(generateSchedulesForSection(g.sectionId, semester.id, session!.id, auditCtx));
       }
       case 'backup':
         return NextResponse.json({ path: createBackup() });
@@ -350,7 +358,7 @@ export async function POST(request: Request) {
         const validated = availabilitySchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid availability payload');
         const a = validated.data;
-        setFacultyAvailability(a.facultyId, a.timeSlotId, a.isAvailable, session!.id);
+        setFacultyAvailability(a.facultyId, a.timeSlotId, a.isAvailable, session!.id, auditCtx);
         return NextResponse.json({ success: true });
       }
       case 'transition-schedule': {
@@ -372,7 +380,8 @@ export async function POST(request: Request) {
           t.scheduleId,
           t.toStatus,
           session!.id,
-          session!.username
+          session!.username,
+          auditCtx
         );
         if (!result.ok) {
           return NextResponse.json(result, { status: 409 });
