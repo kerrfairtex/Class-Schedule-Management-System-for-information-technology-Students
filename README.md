@@ -4,6 +4,18 @@
 
 A department-level Academic Scheduling Management Information System (MIS) built as a **modular monolith** with layered architecture, RBAC, and local-first SQLite deployment for LAN-based client/server access.
 
+## Developers
+
+The CSMS was developed by the following students of the BSIT program:
+
+- Jimlani Paiji K.
+- Albashrie Mashul A.
+- Haidin Magbanua S.
+- Jemmarie Ubias A.
+- Aizalyn Kasim D.
+
+The developer list represents the system developers and does not constitute the official TRAC administration or institutional contact directory. For institutional inquiries, contact the official TRAC offices (see `app/contact/page.tsx`).
+
 ## Architecture
 
 ```

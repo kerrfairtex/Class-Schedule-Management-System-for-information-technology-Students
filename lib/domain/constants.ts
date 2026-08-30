@@ -33,3 +33,26 @@ export const ORGANIZATION = {
   legalFoundation: 'Batas Pambansa Blg. 384 (April 8, 1983)',
   systemStatus: 'DEVELOPMENT' as const, // §47: not formally institutionally adopted
 } as const;
+
+/**
+ * Canonical developer attribution per the Source-of-Truth spec.
+ * These five developers are credited as the system developers of the
+ * Class Schedule Management System for TRAC BSIT.
+ */
+export const DEVELOPERS = [
+  'Jimlani Paiji K.',
+  'Albashrie Mashul A.',
+  'Haidin Magbanua S.',
+  'Jemmarie Ubias A.',
+  'Aizalyn Kasim D.',
+] as const;
+
+/**
+ * Canonical system identity per spec "System Identity" section.
+ */
+export const SYSTEM_IDENTITY = {
+  product: 'CLASS SCHEDULE MANAGEMENT SYSTEM',
+  short: 'TRAC BSIT CSMS',
+  institution: 'Tawi-Tawi Regional Agricultural College',
+  program: 'Bachelor of Science in Information Technology',
+} as const;

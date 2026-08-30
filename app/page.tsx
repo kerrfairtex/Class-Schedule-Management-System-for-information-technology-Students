@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, GraduationCap, Shield, Users, MapPin, BookOpen, Building2 } from 'lucide-react';
-import { ORGANIZATION } from '../lib/domain/constants';
+import { ORGANIZATION, DEVELOPERS } from '../lib/domain/constants';
 import { useEffect } from 'react';
 
 export default function HomePage() {
@@ -487,28 +487,37 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* System Support (per spec §14) — CLEARLY SEPARATED */}
+              {/* Developers (per spec "Developer Attribution" section) — CLEARLY SEPARATED */}
               <div className="border-t border-slate-700 pt-3">
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                  System Support
+                  System Developers
                 </h3>
                 <p className="text-xs text-slate-500">
-                  For technical issues with this platform only — not an institutional contact.
+                  This system was developed by the following students. See the{' '}
+                  <Link href="/developers" className="text-cyber-teal hover:text-cyber-cyan">
+                    Developers
+                  </Link>{' '}
+                  page for full attribution. Not an institutional contact directory.
                 </p>
-                <div className="mt-2 space-y-1 text-sm">
-                  <a href="mailto:kerrfairtex@gmail.com" className="block hover:text-cyber-cyan transition-colors">
-                    kerrfairtex@gmail.com
-                  </a>
-                  <a href="tel:09637130812" className="block hover:text-cyber-cyan transition-colors">
-                    0963 713 0812
-                  </a>
-                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  For institutional inquiries, contact the official TRAC
+                  offices listed above.
+                </p>
               </div>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-slate-800/50 dark:border-slate-600/50 text-center text-sm">
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-xs uppercase tracking-wide text-slate-500">
+              Class Schedule Management System · TRAC BSIT
+            </p>
+            <p className="mt-2 text-slate-500 dark:text-slate-400">
               © {new Date().getFullYear()} {ORGANIZATION.college}. System developed for the BSIT academic scheduling context.
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              Developers:{' '}
+              <Link href="/developers" className="text-cyber-teal hover:text-cyber-cyan">
+                {DEVELOPERS.join(', ')}
+              </Link>
             </p>
           </div>
         </div>

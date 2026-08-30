@@ -192,10 +192,10 @@ export function ensureSeeded() {
       .get('BSIT-1A') as { id: number };
     db.prepare(
       'INSERT INTO students (student_id, first_name, last_name, email, section_id) VALUES (?, ?, ?, ?, ?)'
-    ).run('2022-0001', 'Kerr', 'Fairtex', 'kfairtex@trac.edu.ph', section2A.id);
+    ).run('2022-0001', 'Demo', 'Student', 'demo.student@trac.edu.ph', section2A.id);
     db.prepare(
       'INSERT INTO students (student_id, first_name, last_name, email, section_id) VALUES (?, ?, ?, ?, ?)'
-    ).run('2023-0001', 'Fatima', 'Ibrahim', 'fibrahim@trac.edu.ph', section1A.id);
+    ).run('2023-0001', 'Sample', 'Enrollee', 'sample.enrollee@trac.edu.ph', section1A.id);
   }
 
   const userCount = (db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number }).c;
@@ -307,7 +307,7 @@ export function ensureEvidenceSeeded(): void {
       const source = getSource(f.sourceId);
       insertVerification.run(
         f.id,
-        'developer',
+        'csms-developer-team',
         f.verifiedAt,
         'manual-review-of-source',
         1,
@@ -362,9 +362,9 @@ export function ensureEvidenceSeeded(): void {
     const insertSetting = db.prepare(
       `INSERT INTO system_settings (key, value, description, updated_by) VALUES (?, ?, ?, ?)`
     );
-    insertSetting.run('system_status', 'DEVELOPMENT', 'Per spec §47: not yet formally institutionally adopted.', 'developer');
-    insertSetting.run('data_environment', 'DEMO', 'Per spec §64: development fixtures, never authoritative.', 'developer');
-    insertSetting.run('verification_baseline', '2026-08-31', 'Date when source-of-truth baseline was established.', 'developer');
+    insertSetting.run('system_status', 'DEVELOPMENT', 'Per spec §47: not yet formally institutionally adopted.', 'csms-developer-team');
+    insertSetting.run('data_environment', 'DEMO', 'Per spec §64: development fixtures, never authoritative.', 'csms-developer-team');
+    insertSetting.run('verification_baseline', '2026-08-31', 'Date when source-of-truth baseline was established.', 'csms-developer-team');
   }
 
   evidenceSeeded = true;

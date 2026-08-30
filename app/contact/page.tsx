@@ -71,16 +71,20 @@ export default async function ContactPage() {
 
         <div className="border-t border-slate-800 pt-6">
           <h2 className="mb-3 text-lg font-semibold uppercase tracking-wide text-slate-300">
-            System Support
+            System Developers
           </h2>
           <p className="mb-3 text-xs text-slate-500">
-            For technical issues with this platform only — not an institutional contact.
-          </p>
-          <p>
-            Email: <a href="mailto:kerrfairtex@gmail.com" className="hover:text-cyber-cyan">kerrfairtex@gmail.com</a>
-          </p>
-          <p>
-            Phone: <a href="tel:09637130812" className="hover:text-cyber-cyan">0963 713 0812</a>
+            The Class Schedule Management System was developed by the
+            following students. See the{' '}
+            <a
+              href="/developers"
+              className="text-cyber-teal hover:text-cyber-cyan"
+            >
+              Developers
+            </a>{' '}
+            page for full attribution. This list represents the system
+            developers and does not constitute the official TRAC administration
+            or institutional contact directory.
           </p>
         </div>
 
