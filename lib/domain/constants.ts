@@ -24,5 +24,12 @@ export const ORGANIZATION = {
   shortName: 'TRAC',
   department: 'Bachelor of Science in Information Technology',
   departmentCode: 'BSIT',
-  location: 'Bongao, Tawi-Tawi, Philippines',
+  // Canonical location per institutional source (TRAC official website):
+  // "finally transferred to its present site in Barangay, Nalil, Bongao, Tawi-Tawi"
+  location: 'Nalil, Bongao, Tawi-Tawi, Philippines',
+  // Additional institutional facts verified from the TRAC official website.
+  // See lib/evidence/institutional-facts.ts for source-of-truth records.
+  institute: 'Institute of Computing Studies',
+  legalFoundation: 'Batas Pambansa Blg. 384 (April 8, 1983)',
+  systemStatus: 'DEVELOPMENT' as const, // §47: not formally institutionally adopted
 } as const;

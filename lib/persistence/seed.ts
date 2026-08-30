@@ -5,6 +5,18 @@ import { DAYS, TIME_SLOTS, ORGANIZATION } from '@/lib/domain/constants';
 
 let seeded = false;
 
+/**
+ * Spec §63/§64: distinguish project/sample data from institutional data.
+ * All seed entries below are DEMO. They must NOT be presented as institutional
+ * facts and must NOT appear on the public schedule until VERIFIED.
+ *
+ * data_environment is a per-deployment flag:
+ *   DEMO      — development fixtures, never authoritative
+ *   VERIFIED  — backed by registrar/HR records
+ *   PRODUCTION — fully authorized
+ */
+const DATA_ENVIRONMENT: 'DEMO' | 'VERIFIED' | 'PRODUCTION' = 'DEMO';
+
 function getEnvPassword(envKey: string, fallback: string): string {
   const value = process.env[envKey];
   if (value && value.length >= 8) return value;
@@ -183,6 +195,12 @@ export function ensureSeeded() {
   const userCount = (db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number }).c;
   const seedDefaultUsers = process.env.SEED_DEFAULT_USERS !== '0';
   if (userCount === 0 && seedDefaultUsers) {
+    // Spec §63/§65: these seed users are DEMO records. They MUST be cleared
+    // from production before deployment to a verified environment.
+    console.warn(
+      `[SEED] Seeding DEMO accounts in ${DATA_ENVIRONMENT} environment. ` +
+        'These MUST be removed before production deployment per spec §65.'
+    );
     createUser({ username: 'admin', password: getEnvPassword('ADMIN_PASSWORD', 'admin123'), role: 'admin' });
 
     const faculty = db.prepare('SELECT id, employee_id FROM faculty').all() as {
