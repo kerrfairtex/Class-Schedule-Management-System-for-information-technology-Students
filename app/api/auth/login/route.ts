@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticate, toSessionUser } from '@/lib/modules/mod-01-auth/service';
 import { setSession, getSession } from '@/lib/modules/mod-01-auth/session';
+import { issueCsrfToken } from '@/lib/security/csrf';
 import z from 'zod';
 
 const LoginSchema = z.object({
@@ -92,11 +93,25 @@ export async function POST(request: Request) {
       student: '/student/dashboard',
     };
 
+    const response = NextResponse.json(
+      {
+        success: true,
+        role: user.role,
+        redirect: redirectMap[user.role],
+      },
+      { headers }
+    );
+
+    // Issue a CSRF token alongside the session cookie. The client must
+    // echo this token in x-csrf-token on every state-changing request.
+    const csrfToken = await issueCsrfToken(response);
+
     return NextResponse.json(
       {
         success: true,
         role: user.role,
         redirect: redirectMap[user.role],
+        csrfToken,
       },
       { headers }
     );

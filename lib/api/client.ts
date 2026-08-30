@@ -1,9 +1,35 @@
 import type { Schedule, ScheduleInput } from '@/lib/domain/types';
 
+let csrfToken: string | null = null;
+
+function readCsrfCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  // We cannot read HttpOnly cookies from document.cookie. The server
+  // returns the token in the login response body, so callers must pass
+  // it via setCsrfToken() before invoking POSTs.
+  return csrfToken;
+}
+
+export function setCsrfToken(token: string | null): void {
+  csrfToken = token;
+}
+
+export function getCsrfToken(): string | null {
+  return csrfToken;
+}
+
 export async function apiPost<T>(url: string, body: Record<string, unknown>): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  const token = readCsrfCookie();
+  if (token) {
+    headers['x-csrf-token'] = token;
+  }
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'same-origin',
     body: JSON.stringify(body),
   });
   const data = await res.json();
@@ -12,7 +38,7 @@ export async function apiPost<T>(url: string, body: Record<string, unknown>): Pr
 }
 
 export async function apiGet<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  const res = await fetch(url, { credentials: 'same-origin' });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data as T;

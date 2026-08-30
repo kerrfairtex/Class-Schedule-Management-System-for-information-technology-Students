@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/modules/mod-01-auth/session';
 import { authorize } from '@/lib/modules/mod-01-auth/service';
+import { requireCsrf } from '@/lib/security/csrf';
 import {
   getDashboardStats,
   getFaculty,
@@ -165,6 +166,11 @@ export async function POST(request: Request) {
   if (!authorize(session, ['admin'])) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // CSRF protection: every state-changing request must echo the
+  // token issued at login in the x-csrf-token header (matching cookie).
+  const csrfFail = await requireCsrf(request);
+  if (csrfFail) return csrfFail;
 
   // Capture request context for audit (spec section 36)
   const ip =
