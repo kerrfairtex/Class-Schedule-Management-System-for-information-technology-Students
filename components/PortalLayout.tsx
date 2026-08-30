@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore, useCallback } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, LayoutDashboard, Users, BookOpen, GraduationCap, Building2, Calendar, AlertTriangle, Activity, Server, Database } from 'lucide-react';
 import { ORGANIZATION } from '@/lib/domain/constants';
@@ -44,6 +44,21 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
   'schedule': <Calendar className="h-4 w-4" />,
 };
 
+function subscribeSidebar(_role: string) {
+  // No external subscriptions needed — sidebar state is local React state.
+  // We only need a stable subscribe that never invokes the listener.
+  return () => {};
+}
+
+function getSidebarSnapshot(role: string): string {
+  if (typeof window === 'undefined') return 'false';
+  return window.localStorage.getItem(`sidebar-collapsed-${role}`) ?? 'false';
+}
+
+function getServerSidebarSnapshot(): string {
+  return 'false';
+}
+
 export function PortalLayout({
   role,
   name,
@@ -53,16 +68,12 @@ export function PortalLayout({
   children,
   telemetry,
 }: PortalLayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem(`sidebar-collapsed-${role}`);
-    if (saved !== null) {
-      setSidebarCollapsed(JSON.parse(saved));
-    }
-  }, [role]);
+  const stored = useSyncExternalStore(
+    useCallback(() => subscribeSidebar(role), [role]),
+    () => getSidebarSnapshot(role),
+    getServerSidebarSnapshot
+  );
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(stored === 'true');
 
   const toggleSidebar = () => {
     const next = !sidebarCollapsed;
@@ -85,7 +96,6 @@ export function PortalLayout({
         links={links.map(l => ({ ...l, moduleId: l.moduleId || getModuleId(l.href) }))}
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}
-        mounted={mounted}
       />
       <div className="flex-1 flex flex-col min-w-0 ml-72 transition-all duration-300 lg:ml-72" style={sidebarCollapsed ? { marginLeft: '5rem' } : {}}>
         <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-40">
@@ -108,17 +118,16 @@ export function PortalLayout({
 }
 
 interface PortalSidebarProps {
-  role: string;
+  role: 'admin' | 'faculty' | 'student';
   name: string;
   subtitle?: string;
   details?: { label: string; value: string }[];
-  links: (NavLink & { moduleId: string })[];
+  links: { href: string; label: string; icon?: React.ReactNode; active?: boolean; moduleId?: string }[];
   collapsed: boolean;
   onToggle: () => void;
-  mounted: boolean;
 }
 
-function PortalSidebar({ role, name, subtitle, details, links, collapsed, onToggle, mounted }: PortalSidebarProps) {
+function PortalSidebar({ role, name, subtitle, details, links, collapsed, onToggle }: PortalSidebarProps) {
   const healthColors = {
     healthy: 'text-emerald-400',
     warning: 'text-amber-400',
@@ -152,15 +161,14 @@ function PortalSidebar({ role, name, subtitle, details, links, collapsed, onTogg
             {subtitle && <p className="text-sm text-slate-500 truncate">{subtitle}</p>}
           </div>
         )}
-        {mounted && (
-          <button
-            onClick={onToggle}
-            className="btn-icon flex-shrink-0"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
-        )}
+        <button
+          onClick={onToggle}
+          className="btn-icon flex-shrink-0"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          suppressHydrationWarning
+        >
+          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        </button>
       </div>
 
       {!collapsed && details && details.length > 0 && (

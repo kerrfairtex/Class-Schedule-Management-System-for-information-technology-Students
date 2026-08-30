@@ -1,12 +1,9 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Calendar, GraduationCap, Shield, Users, MapPin, BookOpen, Building2 } from 'lucide-react';
 import { ORGANIZATION } from '../lib/domain/constants';
 import { useEffect } from 'react';
-
-// Import images
-import heroImage from '@/assets/images/FB_IMG_1786666792795.jpg';
-import featureImage from '@/assets/images/Screenshot_20260814-082147~3.jpg';
 
 export default function HomePage() {
   useEffect(() => {
@@ -76,10 +73,13 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative bg-slate-50 dark:bg-midnight/90">
         <div className="absolute inset-0" aria-hidden="true">
-          <img 
-            src={heroImage.src} 
-            alt="Tawi-Tawi Regional Agricultural College campus" 
-            className="object-cover w-full h-full"
+          <Image
+            src="/images/hero-campus.jpg"
+            alt="Tawi-Tawi Regional Agricultural College campus"
+            fill
+            sizes="100vw"
+            className="object-cover"
+            priority
             data-aos="fade"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-slate-50/30 to-slate-50/60 dark:from-midnight/80 dark:to-midnight/60"></div>
@@ -221,9 +221,12 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="hidden lg:block">
-              <img 
-                src={featureImage.src} 
-                alt="BSIT Department faculty and students collaborating" 
+              <Image
+                src="/images/bsit-collaboration.jpg"
+                alt="BSIT Department faculty and students collaborating"
+                width={600}
+                height={400}
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="rounded-xl shadow-lg"
                 data-aos="fade-right"
                 data-aos-delay="100"

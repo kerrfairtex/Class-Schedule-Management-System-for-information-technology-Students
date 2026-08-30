@@ -18,13 +18,10 @@ export default function StudentSchedulePage() {
   const [searchResults, setSearchResults] = useState<Schedule[]>([]);
   const [searchLabel, setSearchLabel] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
-  const [showSearch, setShowSearch] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('search') === '1') {
-      setShowSearch(true);
-    }
-  }, []);
+  const [showSearch, setShowSearch] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('search') === '1';
+  });
 
   useEffect(() => {
     fetch('/api/student')

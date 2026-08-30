@@ -169,7 +169,11 @@ export function useScheduleBoardData(sectionId?: number | null) {
   }, [sectionId]);
 
   useEffect(() => {
-    refresh();
+    // Defer to a microtask so the initial setState calls don't run synchronously
+    // inside the effect body (react-hooks/set-state-in-effect).
+    queueMicrotask(() => {
+      refresh();
+    });
   }, [refresh]);
 
   return { schedules, timeSlots, refresh };

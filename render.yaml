@@ -1,43 +1,23 @@
-# Exported from Render on 2026-08-14T04:00:47Z             version: "1"
-projects:
-- name: My project                                           environments:
-  - name: production
-    services:
-    - type: web
-      name: Class-Schedule-Management-System-for-informati>
-      runtime: nod
-      repo: https://github.com/kerrfairtex/Class-Schedule->
-      envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_PUBLISHABLE_KEY
-        sync: false
-      - key: SUPABASE_SECRET_KEY
-        sync: false
-      - key: SUPABASE_JWKS_URL
-        sync: false
-      - key: NEXT_PUBLIC_SUPABASE_URL
-        sync: false
-      - key: PROJECT_PUBLISHABLE_KEY
-        sync: false
-      - key: PROJECT_ID
-        sync: false
-      - key: DB_OAUTH_URL
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_DATABASE
-        sync: false
-      - key: DB_PORT
-        sync: false
-      - key: DB_HOST
-        sync: false
-      buildCommand: npm install; npm run build
-      startCommand: node .next/standalone/server.js
-      autoDeployTrigger: commit
-      previews:
-        generation: automatic
+services:
+  - type: web
+    name: csms-trac-bsit
+    runtime: node
+    plan: free
+    repo: https://github.com/kerrfairtex/Class-Schedule-Management-System-for-information-technology-Students
+    branch: main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CSMS_DATA_DIR
+        value: /data/csms-data
+    buildCommand: npm ci && npm run build
+    startCommand: node .next/standalone/server.js
+    autoDeployTrigger: commit
+    disk:
+      name: csms-data
+      mountPath: /data/csms-data
+      sizeGB: 1
+    previews:
+      generation: automatic
