@@ -19,6 +19,11 @@ function baseInput() {
   };
 }
 
+/** Helper: collect all conflict messages (blocking + non-blocking) for assertions. */
+function messages(result: ReturnType<typeof detectConflicts>): string[] {
+  return [...result.blockingConflicts, ...result.nonBlockingConflicts].map((c) => c.message);
+}
+
 describe('MOD-04 Conflict Engine', () => {
   beforeEach(() => {
     ({ db, fixtures } = createTestDb());
@@ -31,14 +36,15 @@ describe('MOD-04 Conflict Engine', () => {
   it('allows a valid schedule with no conflicts', () => {
     const result = detectConflicts(baseInput());
     expect(result.hasConflict).toBe(false);
-    expect(result.conflicts).toHaveLength(0);
+    expect(result.hasBlockingConflict).toBe(false);
+    expect(messages(result)).toHaveLength(0);
   });
 
   it('detects faculty double-booking', () => {
     createSchedule(baseInput());
     const result = detectConflicts(baseInput());
-    expect(result.hasConflict).toBe(true);
-    expect(result.conflicts).toContain('Faculty is already assigned to another class at this time');
+    expect(result.hasBlockingConflict).toBe(true);
+    expect(messages(result)).toContain('Faculty is already assigned to another class at this time');
   });
 
   it('detects room double-booking', () => {
@@ -49,8 +55,8 @@ describe('MOD-04 Conflict Engine', () => {
       subject_id: fixtures.subjectId,
       faculty_id: fixtures.facultyId,
     });
-    expect(result.hasConflict).toBe(true);
-    expect(result.conflicts).toContain('Room is already booked at this time');
+    expect(result.hasBlockingConflict).toBe(true);
+    expect(messages(result)).toContain('Room is already booked at this time');
   });
 
   it('detects section double-booking', () => {
@@ -60,24 +66,27 @@ describe('MOD-04 Conflict Engine', () => {
       faculty_id: fixtures.facultyId,
       room_id: fixtures.roomId,
     });
-    expect(result.hasConflict).toBe(true);
-    expect(result.conflicts).toContain('Section already has a class at this time');
+    expect(result.hasBlockingConflict).toBe(true);
+    expect(messages(result)).toContain('Section already has a class at this time');
   });
 
-  it('detects faculty unavailability', () => {
+  it('detects faculty unavailability (non-blocking)', () => {
     db.prepare(
       'INSERT INTO faculty_availability (faculty_id, time_slot_id, is_available) VALUES (?, ?, 0)'
     ).run(fixtures.facultyId, fixtures.timeSlotId);
 
     const result = detectConflicts(baseInput());
+    // Per spec §33: availability is NON-blocking
+    expect(result.hasBlockingConflict).toBe(false);
     expect(result.hasConflict).toBe(true);
-    expect(result.conflicts).toContain('Faculty is not available at this time slot');
+    expect(messages(result)).toContain('Faculty is not available at this time slot');
   });
 
   it('excludes current schedule when validating a move', () => {
     const schedule = createSchedule(baseInput());
     const result = validateScheduleMove(schedule.id, fixtures.timeSlotId2);
     expect(result.hasConflict).toBe(false);
+    expect(result.hasBlockingConflict).toBe(false);
   });
 
   it('rejects move that causes faculty conflict', () => {
@@ -88,7 +97,7 @@ describe('MOD-04 Conflict Engine', () => {
     });
 
     const result = validateScheduleMove(second.id, fixtures.timeSlotId);
-    expect(result.hasConflict).toBe(true);
+    expect(result.hasBlockingConflict).toBe(true);
   });
 });
 

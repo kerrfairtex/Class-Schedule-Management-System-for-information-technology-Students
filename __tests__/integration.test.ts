@@ -43,7 +43,7 @@ describe('Integration: Auth + Scheduling workflow', () => {
     expect(created.id).toBeGreaterThan(0);
 
     const conflict = detectConflicts(input);
-    expect(conflict.hasConflict).toBe(true);
+    expect(conflict.hasBlockingConflict || conflict.hasConflict).toBe(true);
 
     const facultySchedules = getSchedulesByFaculty(fixtures.facultyId, fixtures.semesterId);
     expect(facultySchedules).toHaveLength(1);
@@ -62,7 +62,10 @@ describe('Integration: Auth + Scheduling workflow', () => {
     expect(sectionSchedules[0].subject_code).toBe('IT 101');
   });
 
-  it('enforces faculty availability across scheduling pipeline', () => {
+  it('tolerates non-blocking availability warnings per spec §33', () => {
+    // Spec §33: faculty availability is NON-blocking. Availability warnings
+    // should NOT throw. The schedule is created but a non-blocking
+    // conflict is recorded (visible in /admin/conflicts for advisory).
     getDb()
       .prepare(
         'INSERT INTO faculty_availability (faculty_id, time_slot_id, is_available) VALUES (?, ?, 0)'
@@ -78,7 +81,7 @@ describe('Integration: Auth + Scheduling workflow', () => {
       semester_id: fixtures.semesterId,
     };
 
-    expect(() => createSchedule(input)).toThrow(/not available/);
+    expect(() => createSchedule(input)).not.toThrow();
   });
 });
 

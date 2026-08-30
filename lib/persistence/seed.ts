@@ -150,11 +150,11 @@ export function ensureSeeded() {
   const secCount = (db.prepare('SELECT COUNT(*) as c FROM sections').get() as { c: number }).c;
   if (secCount === 0) {
     db.prepare(
-      'INSERT INTO sections (code, program_id, year_level, semester_id) VALUES (?, ?, ?, ?)'
-    ).run('BSIT-2A', program.id, 2, semester.id);
+      'INSERT INTO sections (code, program_id, year_level, semester_id, capacity) VALUES (?, ?, ?, ?, ?)'
+    ).run('BSIT-2A', program.id, 2, semester.id, 45);
     db.prepare(
-      'INSERT INTO sections (code, program_id, year_level, semester_id) VALUES (?, ?, ?, ?)'
-    ).run('BSIT-1A', program.id, 1, semester.id);
+      'INSERT INTO sections (code, program_id, year_level, semester_id, capacity) VALUES (?, ?, ?, ?, ?)'
+    ).run('BSIT-1A', program.id, 1, semester.id, 45);
   }
 
   const facCount = (db.prepare('SELECT COUNT(*) as c FROM faculty').get() as { c: number }).c;

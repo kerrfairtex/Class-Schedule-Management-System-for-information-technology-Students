@@ -1,5 +1,5 @@
 import { getDb, withTransaction } from '@/lib/persistence/db';
-import { detectConflicts, validateScheduleMove } from '@/lib/modules/mod-04-conflict-engine/validator';
+import { detectConflicts, validateScheduleMove, validateForPublish } from '@/lib/modules/mod-04-conflict-engine/validator';
 import type { Schedule, ScheduleInput } from '@/lib/domain/types';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
 
@@ -45,7 +45,9 @@ export function getSchedulesByFaculty(facultyId: number, semesterId: number): Sc
 
 export function createSchedule(input: ScheduleInput, userId?: number): Schedule {
   const conflict = detectConflicts(input);
-  if (conflict.hasConflict) throw new Error(conflict.conflicts.join('; '));
+  if (conflict.hasBlockingConflict) {
+    throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
+  }
 
   const db = getDb();
   const result = db
@@ -74,7 +76,9 @@ export function updateScheduleTimeSlot(
   userId?: number
 ): Schedule {
   const conflict = validateScheduleMove(scheduleId, timeSlotId);
-  if (conflict.hasConflict) throw new Error(conflict.conflicts.join('; '));
+  if (conflict.hasBlockingConflict) {
+    throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
+  }
 
   const db = getDb();
   db.prepare(
@@ -89,6 +93,112 @@ export function deleteSchedule(scheduleId: number, userId?: number) {
   const db = getDb();
   db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
   logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
+}
+
+/**
+ * Spec section 32–34: schedule status workflow.
+ *
+ * Allowed transitions:
+ *   (none)  → DRAFT          (createSchedule)
+ *   DRAFT   → PENDING_REVIEW (submitForReview)
+ *   PENDING_REVIEW → DRAFT  (recallToDraft)
+ *   PENDING_REVIEW → APPROVED (approve)
+ *   APPROVED → DRAFT        (revokeApproval)
+ *   APPROVED → PUBLISHED    (publish — BLOCKED if any blocking conflict)
+ *   PUBLISHED → CANCELLED   (cancel)
+ *   any     → ARCHIVED       (archive)
+ *
+ * Per spec section 34, transitions to PUBLISHED MUST be validated against
+ * blocking conflicts. If any blocking conflict exists, the transition
+ * returns { ok: false, conflicts } and the schedule is left APPROVED.
+ */
+
+export type ScheduleStatus =
+  | 'DRAFT'
+  | 'PENDING_REVIEW'
+  | 'APPROVED'
+  | 'PUBLISHED'
+  | 'CANCELLED'
+  | 'ARCHIVED';
+
+const ALLOWED_TRANSITIONS: Record<ScheduleStatus, ScheduleStatus[]> = {
+  DRAFT: ['PENDING_REVIEW', 'ARCHIVED'],
+  PENDING_REVIEW: ['DRAFT', 'APPROVED', 'ARCHIVED'],
+  APPROVED: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
+  PUBLISHED: ['CANCELLED', 'ARCHIVED'],
+  CANCELLED: ['ARCHIVED'],
+  ARCHIVED: [],
+};
+
+export interface TransitionResult {
+  ok: boolean;
+  fromStatus?: ScheduleStatus;
+  toStatus?: ScheduleStatus;
+  message?: string;
+  blockingConflicts?: import('@/lib/domain/types').Conflict[];
+}
+
+function currentStatus(scheduleId: number): ScheduleStatus | null {
+  const db = getDb();
+  const row = db
+    .prepare('SELECT status FROM schedules WHERE id = ?')
+    .get(scheduleId) as { status: ScheduleStatus } | undefined;
+  return row?.status ?? null;
+}
+
+export function transitionSchedule(
+  scheduleId: number,
+  toStatus: ScheduleStatus,
+  userId?: number,
+  userName?: string
+): TransitionResult {
+  const fromStatus = currentStatus(scheduleId);
+  if (!fromStatus) {
+    return { ok: false, message: 'Schedule not found' };
+  }
+  const allowed = ALLOWED_TRANSITIONS[fromStatus] ?? [];
+  if (!allowed.includes(toStatus)) {
+    return {
+      ok: false,
+      fromStatus,
+      message: `Illegal transition: ${fromStatus} → ${toStatus}`,
+    };
+  }
+
+  // Spec section 34: PUBLISH requires no blocking conflicts
+  if (toStatus === 'PUBLISHED') {
+    const v = validateForPublish(scheduleId);
+    if (v.hasBlockingConflict) {
+      return {
+        ok: false,
+        fromStatus,
+        message: 'Cannot publish: blocking conflicts exist',
+        blockingConflicts: v.blockingConflicts,
+      };
+    }
+  }
+
+  const db = getDb();
+  const setPublishedAt = toStatus === 'PUBLISHED' ? ', published_at = CURRENT_TIMESTAMP' : '';
+  const setApprover = toStatus === 'APPROVED' || toStatus === 'PUBLISHED'
+    ? `, approved_by = ${userName ? `'${userName.replace(/'/g, "''")}'` : 'NULL'}`
+    : '';
+
+  db.prepare(
+    `UPDATE schedules
+     SET status = ?, updated_at = CURRENT_TIMESTAMP ${setPublishedAt} ${setApprover}
+     WHERE id = ?`
+  ).run(toStatus, scheduleId);
+
+  logAudit(
+    userId ?? null,
+    `${toStatus}`,
+    'schedule',
+    scheduleId,
+    `${fromStatus} → ${toStatus}`
+  );
+
+  return { ok: true, fromStatus, toStatus };
 }
 
 export function generateSchedulesForSection(
@@ -166,7 +276,9 @@ export function generateSchedulesForSection(
               semester_id: semesterId,
             };
             const conflict = detectConflicts(input);
-            if (!conflict.hasConflict) {
+            // Per spec §33/§34: blocking conflicts prevent creation; non-blocking
+            // (e.g. availability) are tolerated.
+            if (!conflict.hasBlockingConflict) {
               createSchedule(input, userId);
               created++;
               assigned = true;

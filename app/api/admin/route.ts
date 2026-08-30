@@ -29,6 +29,7 @@ import {
   updateScheduleTimeSlot,
   deleteSchedule,
   generateSchedulesForSection,
+  transitionSchedule,
 } from '@/lib/modules/mod-03-schedule-engine/service';
 import { createBackup } from '@/lib/modules/mod-08-database-service/backup';
 import { getAuditLogs } from '@/lib/modules/mod-08-database-service/audit';
@@ -55,6 +56,7 @@ const AdminPostSchema = z.object({
     'generate-schedules',
     'backup',
     'set-availability',
+    'transition-schedule',
   ]),
   data: z.unknown().optional(),
   password: z.string().optional(),
@@ -350,6 +352,32 @@ export async function POST(request: Request) {
         const a = validated.data;
         setFacultyAvailability(a.facultyId, a.timeSlotId, a.isAvailable, session!.id);
         return NextResponse.json({ success: true });
+      }
+      case 'transition-schedule': {
+        const transitionSchema = z.object({
+          scheduleId: z.number(),
+          toStatus: z.enum([
+            'DRAFT',
+            'PENDING_REVIEW',
+            'APPROVED',
+            'PUBLISHED',
+            'CANCELLED',
+            'ARCHIVED',
+          ]),
+        });
+        const validated = transitionSchema.safeParse(body);
+        if (!validated.success) return invalidBody('Invalid transition payload');
+        const t = validated.data;
+        const result = transitionSchedule(
+          t.scheduleId,
+          t.toStatus,
+          session!.id,
+          session!.username
+        );
+        if (!result.ok) {
+          return NextResponse.json(result, { status: 409 });
+        }
+        return NextResponse.json(result);
       }
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

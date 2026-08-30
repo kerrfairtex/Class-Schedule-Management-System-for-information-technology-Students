@@ -142,9 +142,31 @@ export interface ScheduleInput {
   semester_id: number;
 }
 
+/**
+ * Conflict categories per spec section 33.
+ * - faculty     — one faculty assigned to two classes at the same time (BLOCKING)
+ * - room        — one room assigned to two classes at the same time (BLOCKING)
+ * - section     — one section assigned to two classes at the same time (BLOCKING)
+ * - time        — overlapping schedule intervals (BLOCKING)
+ * - capacity    — section capacity exceeds room capacity (BLOCKING)
+ * - availability — assignment outside permitted faculty/room availability (NON-BLOCKING)
+ */
+export type ConflictKind = 'faculty' | 'room' | 'section' | 'time' | 'capacity' | 'availability';
+
+export interface Conflict {
+  kind: ConflictKind;
+  message: string;
+  blocking: boolean;
+  conflictingScheduleId?: number;
+}
+
 export interface ConflictResult {
   hasConflict: boolean;
-  conflicts: string[];
+  blockingConflicts: Conflict[];
+  nonBlockingConflicts: Conflict[];
+  /** True iff any BLOCKING conflict exists. Per spec section 34, schedules
+   *  with blocking conflicts cannot transition to PUBLISHED. */
+  hasBlockingConflict: boolean;
 }
 
 export interface SessionUser {

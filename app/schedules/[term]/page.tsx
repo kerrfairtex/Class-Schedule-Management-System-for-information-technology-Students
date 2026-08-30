@@ -23,12 +23,14 @@ export default async function TermSchedules({ params }: PageProps) {
     .prepare(`SELECT id, name, is_active FROM semesters WHERE academic_year_id = ?`)
     .all(yearId) as Array<{ id: number; name: string; is_active: number }>;
 
-  // Spec §35: only PUBLISHED schedules
+  // Spec §35: only PUBLISHED schedules. Spec §63: only data_environment IN
+  // (VERIFIED, PRODUCTION) — DEMO records must never appear in public schedules.
   const published = db
     .prepare(
       `SELECT s.id, sub.code as subject_code, sub.name as subject_name,
               f.first_name || ' ' || f.last_name as faculty_name,
-              r.code as room_code, ts.start_time, ts.end_time, ts.day_of_week
+              r.code as room_code, ts.start_time, ts.end_time, ts.day_of_week,
+              s.status, s.data_environment
        FROM schedules s
        JOIN subjects sub ON sub.id = s.subject_id
        JOIN faculty f ON f.id = s.faculty_id
@@ -36,6 +38,7 @@ export default async function TermSchedules({ params }: PageProps) {
        JOIN time_slots ts ON ts.id = s.time_slot_id
        WHERE s.semester_id IN (${semesters.map((s) => s.id).join(',') || 'NULL'})
          AND s.status = 'PUBLISHED'
+         AND s.data_environment IN ('VERIFIED','PRODUCTION')
        ORDER BY ts.day_of_week, ts.start_time`
     )
     .all() as Array<{
@@ -47,6 +50,8 @@ export default async function TermSchedules({ params }: PageProps) {
       start_time: string;
       end_time: string;
       day_of_week: string;
+      status: string;
+      data_environment: string;
     }>;
 
   return (

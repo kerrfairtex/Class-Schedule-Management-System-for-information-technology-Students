@@ -104,7 +104,8 @@ export function initSchema(database: Database.Database) {
       code TEXT UNIQUE NOT NULL,
       program_id INTEGER NOT NULL REFERENCES programs(id),
       year_level INTEGER NOT NULL,
-      semester_id INTEGER NOT NULL REFERENCES semesters(id)
+      semester_id INTEGER NOT NULL REFERENCES semesters(id),
+      capacity INTEGER NOT NULL DEFAULT 40
     );
 
     CREATE TABLE IF NOT EXISTS faculty (
@@ -314,6 +315,7 @@ export function initSchema(database: Database.Database) {
     { table: 'rooms', column: 'data_environment', sql: "ALTER TABLE rooms ADD COLUMN data_environment TEXT NOT NULL DEFAULT 'DEMO'" },
     { table: 'subjects', column: 'data_environment', sql: "ALTER TABLE subjects ADD COLUMN data_environment TEXT NOT NULL DEFAULT 'DEMO'" },
     { table: 'sections', column: 'data_environment', sql: "ALTER TABLE sections ADD COLUMN data_environment TEXT NOT NULL DEFAULT 'DEMO'" },
+    { table: 'sections', column: 'capacity', sql: "ALTER TABLE sections ADD COLUMN capacity INTEGER NOT NULL DEFAULT 40" },
     { table: 'schedules', column: 'data_environment', sql: "ALTER TABLE schedules ADD COLUMN data_environment TEXT NOT NULL DEFAULT 'DEMO'" },
     { table: 'schedules', column: 'status', sql: "ALTER TABLE schedules ADD COLUMN status TEXT NOT NULL DEFAULT 'DRAFT' CHECK(status IN ('DRAFT','PENDING_REVIEW','APPROVED','PUBLISHED','CANCELLED','ARCHIVED'))" },
     { table: 'schedules', column: 'published_at', sql: "ALTER TABLE schedules ADD COLUMN published_at TEXT" },
