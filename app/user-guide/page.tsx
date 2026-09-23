@@ -11,10 +11,12 @@ export const metadata = {
 };
 
 export default function UserGuidePage() {
-  const md = fs.readFileSync(
+  const raw = fs.readFileSync(
     path.join(process.cwd(), "docs", "USER_GUIDE.md"),
     "utf-8"
   );
+  const lines = raw.split("\n");
+  const md = lines.slice(3).join("\n");
   const html = renderMarkdown(md);
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
