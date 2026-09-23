@@ -446,6 +446,7 @@ export default function HomePage() {
               <Link href="/about/evidence" className="block text-sm hover:text-cyber-cyan transition-colors">Evidence</Link>
               <Link href="/contact" className="block text-sm hover:text-cyber-cyan transition-colors">Contact</Link>
               <Link href="/user-guidelines" className="block text-sm hover:text-cyber-cyan transition-colors">User Guidelines</Link>
+              <Link href="/user-guide" className="block text-sm hover:text-cyber-cyan transition-colors">User Guide</Link>
             </div>
             <div className="space-y-2">
               <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">Portals</h3>

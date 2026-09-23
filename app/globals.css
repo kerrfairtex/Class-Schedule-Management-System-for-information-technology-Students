@@ -471,3 +471,58 @@
   .stagger-5 { animation-delay: 250ms; }
   .stagger-6 { animation-delay: 300ms; }
 }
+/* User Guide page (rendered markdown) */
+.user-guide h3 {
+  @apply mb-8 mt-14 text-3xl font-bold text-slate-100 border-b border-slate-700 pb-4;
+}
+.user-guide h4 {
+  @apply mb-3 mt-10 text-xl font-semibold text-cyber-teal;
+}
+.user-guide p {
+  @apply mb-4 text-slate-300 leading-relaxed;
+}
+.user-guide ul {
+  @apply mb-6 space-y-2 list-disc list-inside;
+}
+.user-guide ol {
+  @apply mb-6 space-y-2 list-decimal list-inside;
+}
+.user-guide li {
+  @apply text-slate-300 leading-relaxed;
+}
+.user-guide hr {
+  @apply my-10 border-slate-800;
+}
+.user-guide code {
+  @apply text-cyber-teal px-1.5 py-0.5 rounded bg-slate-800/50 text-sm font-mono;
+}
+.user-guide pre {
+  @apply mb-6 p-4 rounded-lg bg-slate-900/60 border border-slate-700/50 overflow-x-auto text-sm;
+}
+.user-guide pre code {
+  @apply bg-transparent p-0 text-slate-100;
+}
+.user-guide a {
+  @apply text-cyber-teal hover:text-cyber-cyan underline underline-offset-2;
+}
+.user-guide .table-wrap {
+  @apply my-6 overflow-x-auto;
+}
+.user-guide table {
+  @apply min-w-full border border-slate-700 rounded-lg overflow-hidden text-sm;
+}
+.user-guide thead {
+  @apply bg-slate-800/50;
+}
+.user-guide th {
+  @apply px-4 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider border-b border-slate-700;
+}
+.user-guide td {
+  @apply px-4 py-2 text-slate-300 border-b border-slate-700/50 align-top;
+}
+.user-guide tr:last-child td {
+  @apply border-b-0;
+}
+.user-guide strong {
+  @apply font-semibold text-slate-100;
+}
