@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getSession, setSession } from '@/lib/modules/mod-01-auth/session';
+import { getSession } from '@/lib/modules/mod-01-auth/session';
 import { verifyPassword, getUserById } from '@/lib/modules/mod-01-auth/service';
 import { changePassword } from '@/lib/modules/mod-01-auth/session';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
+import { SESSION_COOKIE } from '@/lib/modules/mod-01-auth/session';
+import * as crypto from 'crypto';
 import z from 'zod';
 
 const ChangePasswordSchema = z.object({
@@ -10,6 +12,19 @@ const ChangePasswordSchema = z.object({
   newPassword: z.string().min(8),
   confirmPassword: z.string().min(8),
 });
+
+const SESSION_SECRET = process.env.SESSION_SECRET;
+const isProduction = process.env.NODE_ENV === 'production';
+
+function sign(payload: string): string {
+  if (!SESSION_SECRET) {
+    if (isProduction) throw new Error('SESSION_SECRET is required in production');
+    return payload;
+  }
+  const hmac = crypto.createHmac('sha256', SESSION_SECRET);
+  const signature = hmac.update(payload).digest('base64url');
+  return `${payload}|${signature}`;
+}
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -52,9 +67,19 @@ export async function POST(request: Request) {
   try {
     await changePassword(session.id, newPassword);
     logAudit(session.id, 'CHANGE_PASSWORD', 'user', session.id);
-    // Refresh session to clear mustChangePassword flag
-    await setSession({ ...session, mustChangePassword: false });
-    return NextResponse.json({ success: true });
+    
+    // Set the updated session cookie directly on the response
+    const updatedSession = { ...session, mustChangePassword: false };
+    const payload = JSON.stringify(updatedSession);
+    const response = NextResponse.json({ success: true });
+    response.cookies.set(SESSION_COOKIE, sign(payload), {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 8,
+      path: '/',
+    });
+    return response;
   } catch (err) {
     return NextResponse.json({ error: 'Failed to change password' }, { status: 500 });
   }

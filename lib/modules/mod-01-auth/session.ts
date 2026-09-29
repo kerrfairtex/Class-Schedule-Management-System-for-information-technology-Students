@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import type { SessionUser } from '@/lib/domain/types';
 import * as crypto from 'crypto';
 
-const SESSION_COOKIE = 'csms_session';
+export const SESSION_COOKIE = 'csms_session';
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const isProduction = process.env.NODE_ENV === 'production';
 
