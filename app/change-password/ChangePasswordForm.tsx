@@ -64,19 +64,21 @@ export function ChangePasswordForm({ mustChange }: ChangePasswordFormProps) {
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1">
-          Current Password
-        </label>
-        <input
-          type="password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          className="input-field"
-          required
-          autoComplete="current-password"
-        />
-      </div>
+      {!mustChange && (
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">
+            Current Password
+          </label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="input-field"
+            required
+            autoComplete="current-password"
+          />
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-slate-300 mb-1">

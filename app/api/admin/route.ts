@@ -394,7 +394,7 @@ export async function POST(request: Request) {
         const r = validated.data;
         const targetUser = getDb().prepare('SELECT id FROM users WHERE username = ?').get(r.username) as { id: number } | undefined;
         if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        await changePassword(targetUser.id, r.newPassword);
+        await changePassword(targetUser.id, r.newPassword, true);
         logAudit(session!.id, 'RESET_PASSWORD', 'user', targetUser.id);
         return NextResponse.json({ success: true });
       }

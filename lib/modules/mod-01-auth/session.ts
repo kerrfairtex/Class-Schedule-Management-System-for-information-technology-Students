@@ -76,12 +76,13 @@ export function requireSession(session: SessionUser | null): SessionUser {
   return session;
 }
 
-export async function changePassword(userId: number, newPassword: string): Promise<void> {
+export async function changePassword(userId: number, newPassword: string, setMustChange: boolean = false): Promise<void> {
   const { getDb } = await import('@/lib/persistence/db');
   const { hashPassword } = await import('@/lib/modules/mod-01-auth/service');
   const db = getDb();
   const hash = hashPassword(newPassword);
+  const flag = setMustChange ? 1 : 0;
   db.prepare(
-    'UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-  ).run(hash, userId);
+    'UPDATE users SET password_hash = ?, must_change_password = ? WHERE id = ?'
+  ).run(hash, flag, userId);
 }

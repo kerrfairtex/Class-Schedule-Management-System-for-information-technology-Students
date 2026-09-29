@@ -5,7 +5,7 @@ export default function LoginPage() {
   return (
     <LoginForm
       title="CSMS Login"
-      subtitle={`${ORGANIZATION.shortName} — ${ORGANIZATION.departmentCode} Department`}
+      subtitle={`${ORGANIZATION.shortName} ${ORGANIZATION.departmentCode} Department`}
     />
   );
 }
