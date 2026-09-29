@@ -36,6 +36,7 @@ import { getAuditLogs, logAudit } from '@/lib/modules/mod-08-database-service/au
 import { createUser } from '@/lib/modules/mod-01-auth/service';
 import { getDb } from '@/lib/persistence/db';
 import { changePassword } from '@/lib/modules/mod-01-auth/session';
+import { generateRandomPassword } from '@/lib/modules/mod-01-auth/service';
 import {
   getFacultyList,
   getAvailabilityGrid,
@@ -158,9 +159,25 @@ export async function GET(request: Request) {
       if (!facultyId) return NextResponse.json({ error: 'facultyId required' }, { status: 400 });
       return NextResponse.json(getAvailabilityGrid(facultyId));
     }
+    case 'users':
+      return NextResponse.json(getUsers());
     default:
       return NextResponse.json({ error: 'Unknown resource' }, { status: 400 });
   }
+}
+
+function getUsers() {
+  const db = getDb();
+  return db.prepare(`
+    SELECT u.id, u.username, u.role, u.is_active, u.must_change_password,
+           CASE
+             WHEN u.role = 'faculty' THEN (SELECT employee_id FROM faculty WHERE id = u.faculty_id)
+             WHEN u.role = 'student' THEN (SELECT student_id FROM students WHERE id = u.student_id)
+             ELSE NULL
+           END AS external_id
+    FROM users u
+    ORDER BY u.role, u.username
+  `).all();
 }
 
 export async function POST(request: Request) {
@@ -387,16 +404,17 @@ export async function POST(request: Request) {
       case 'reset-password': {
         const resetSchema = z.object({
           username: z.string().min(1),
-          newPassword: z.string().min(8),
+          newPassword: z.string().min(8).optional(),
         });
         const validated = resetSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid reset payload');
         const r = validated.data;
         const targetUser = getDb().prepare('SELECT id FROM users WHERE username = ?').get(r.username) as { id: number } | undefined;
         if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        await changePassword(targetUser.id, r.newPassword, true);
+        const newPassword = r.newPassword || generateRandomPassword();
+        await changePassword(targetUser.id, newPassword, true);
         logAudit(session!.id, 'RESET_PASSWORD', 'user', targetUser.id);
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, newPassword });
       }
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

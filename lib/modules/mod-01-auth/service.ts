@@ -82,3 +82,13 @@ export function toSessionUser(user: User): SessionUser {
 export function authorize(session: SessionUser | null, roles: RoleName[]): boolean {
   return !!session && roles.includes(session.role);
 }
+
+export function generateRandomPassword(length: number = 16): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
+  const bytes = require('crypto').randomBytes(length);
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars[bytes[i] % chars.length];
+  }
+  return result;
+}

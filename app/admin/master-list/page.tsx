@@ -6,7 +6,7 @@ import { PortalSidebar } from '@/components/Sidebar';
 import { MasterListForm } from '@/components/MasterListForm';
 import { ORGANIZATION } from '@/lib/domain/constants';
 
-type Tab = 'faculty' | 'students' | 'subjects' | 'sections' | 'rooms';
+type Tab = 'faculty' | 'students' | 'subjects' | 'sections' | 'rooms' | 'users';
 
 interface Meta {
   programs: { id: number; code: string }[];
@@ -32,6 +32,7 @@ export default function MasterListPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const loadData = useCallback(() => {
     fetch('/api/admin?resource=' + tab)
@@ -67,12 +68,34 @@ export default function MasterListPage() {
     setMessage(`Backup created: ${result.path}`);
   }
 
+  async function handleResetPassword() {
+    const select = document.getElementById('reset-username') as HTMLSelectElement;
+    const username = select.value;
+    if (!username) {
+      setResetMessage('Please select a user');
+      return;
+    }
+    const res = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reset-password', username }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      setResetMessage(`Password reset for ${username}. New password: ${result.newPassword}`);
+      loadData();
+    } else {
+      setResetMessage(`Error: ${result.error || 'Failed to reset password'}`);
+    }
+  }
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'faculty', label: 'Faculty' },
     { key: 'students', label: 'Students' },
     { key: 'subjects', label: 'Subjects' },
     { key: 'sections', label: 'Sections' },
     { key: 'rooms', label: 'Rooms' },
+    { key: 'users', label: 'Users' },
   ];
 
   const columns = getColumns(tab);
@@ -168,6 +191,28 @@ export default function MasterListPage() {
           </table>
         </div>
 
+        {tab === 'users' && (
+          <div className="mt-4">
+            <h3 className="text-sm font-medium mb-2">Reset Password</h3>
+            <div className="flex gap-2">
+              <select id="reset-username" className="input-field">
+                <option value="">Select user...</option>
+                {rows.map((row, i) => (
+                  <option key={i} value={row.Username}>{row.Username} ({row.Role})</option>
+                ))}
+              </select>
+              <button onClick={handleResetPassword} className="btn-secondary">
+                Reset Password
+              </button>
+            </div>
+            {resetMessage && (
+              <div className="mt-2 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+                {resetMessage}
+              </div>
+            )}
+          </div>
+        )}
+
         <p className="mt-2 text-xs text-slate-400">{rawData.length} record(s)</p>
       </main>
     </div>
@@ -186,6 +231,8 @@ function getColumns(tab: Tab): string[] {
       return ['Code', 'Year Level'];
     case 'rooms':
       return ['Building', 'Code', 'Name', 'Capacity'];
+    case 'users':
+      return ['Username', 'Role', 'External ID', 'Active', 'Must Change Password'];
     default:
       return [];
   }
@@ -218,6 +265,14 @@ function formatRows(tab: Tab, data: Record<string, unknown>[]): Record<string, u
           Code: item.code,
           Name: item.name,
           Capacity: item.capacity,
+        };
+      case 'users':
+        return {
+          Username: item.username,
+          Role: item.role,
+          'External ID': item.external_id || '',
+          Active: item.is_active ? 'Yes' : 'No',
+          'Must Change Password': item.must_change_password ? 'Yes' : 'No',
         };
       default:
         return item;
