@@ -198,7 +198,7 @@ export default function MasterListPage() {
               <select id="reset-username" className="input-field">
                 <option value="">Select user...</option>
                 {rows.map((row, i) => (
-                  <option key={i} value={row.Username}>{row.Username} ({row.Role})</option>
+                  <option key={i} value={String(row.Username)}>{String(row.Username)} ({String(row.Role)})</option>
                 ))}
               </select>
               <button onClick={handleResetPassword} className="btn-secondary">
