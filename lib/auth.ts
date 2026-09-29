@@ -1,1 +1,1 @@
-export { setSession, getSession, clearSession, requireSession } from '@/lib/modules/mod-01-auth/session';
+export { setSession, getSession, clearSession, requireSession, changePassword } from '@/lib/modules/mod-01-auth/session';

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC = ['/', '/login', '/about', '/about/evidence', '/schedules', '/programs', '/faculty', '/rooms', '/academic-calendar', '/contact'];
+const PUBLIC = ['/', '/login', '/about', '/about/evidence', '/schedules', '/programs', '/faculty', '/rooms', '/academic-calendar', '/contact', '/change-password'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -20,6 +20,19 @@ export function middleware(request: NextRequest) {
 
   if ((isAdminSubpage || isFacultyDashboard || isStudentDashboard) && !session) {
     return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // Enforce must_change_password unless disabled via env var
+  if (session && process.env.CSMS_DISABLE_MUST_CHANGE_PASSWORD !== '1') {
+    try {
+      const payload = session.value.split('|')[0];
+      const sessionData = JSON.parse(payload);
+      if (sessionData.mustChangePassword && pathname !== '/change-password') {
+        return NextResponse.redirect(new URL('/change-password', request.url));
+      }
+    } catch {
+      // Invalid session - let it through to be handled by the page
+    }
   }
 
   return NextResponse.next();

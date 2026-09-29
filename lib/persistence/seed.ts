@@ -207,7 +207,7 @@ export function ensureSeeded() {
       `[SEED] Seeding DEMO accounts in ${DATA_ENVIRONMENT} environment. ` +
         'These MUST be removed before production deployment per spec §65.'
     );
-    createUser({ username: 'admin', password: getEnvPassword('ADMIN_PASSWORD', 'admin123'), role: 'admin' });
+    createUser({ username: 'admin', password: getEnvPassword('ADMIN_PASSWORD', 'admin123'), role: 'admin', must_change_password: 1 });
 
     const faculty = db.prepare('SELECT id, employee_id FROM faculty').all() as {
       id: number;
@@ -219,6 +219,7 @@ export function ensureSeeded() {
         password: getEnvPassword('FACULTY_PASSWORD', 'faculty123'),
         role: 'faculty',
         faculty_id: f.id,
+        must_change_password: 1,
       });
     }
 
@@ -232,6 +233,7 @@ export function ensureSeeded() {
         password: getEnvPassword('STUDENT_PASSWORD', 'student123'),
         role: 'student',
         student_id: s.id,
+        must_change_password: 1,
       });
     }
   }

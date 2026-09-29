@@ -157,6 +157,7 @@ export function initSchema(database: Database.Database) {
       faculty_id INTEGER REFERENCES faculty(id),
       student_id INTEGER REFERENCES students(id),
       is_active INTEGER DEFAULT 1,
+      must_change_password INTEGER NOT NULL DEFAULT 0,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -318,6 +319,7 @@ export function initSchema(database: Database.Database) {
     { table: 'sections', column: 'capacity', sql: "ALTER TABLE sections ADD COLUMN capacity INTEGER NOT NULL DEFAULT 40" },
     { table: 'schedules', column: 'data_environment', sql: "ALTER TABLE schedules ADD COLUMN data_environment TEXT NOT NULL DEFAULT 'DEMO'" },
     { table: 'schedules', column: 'status', sql: "ALTER TABLE schedules ADD COLUMN status TEXT NOT NULL DEFAULT 'DRAFT' CHECK(status IN ('DRAFT','PENDING_REVIEW','APPROVED','PUBLISHED','CANCELLED','ARCHIVED'))" },
+    { table: 'users', column: 'must_change_password', sql: "ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0" },
     { table: 'schedules', column: 'published_at', sql: "ALTER TABLE schedules ADD COLUMN published_at TEXT" },
     { table: 'schedules', column: 'approved_by', sql: "ALTER TABLE schedules ADD COLUMN approved_by TEXT" },
   ];

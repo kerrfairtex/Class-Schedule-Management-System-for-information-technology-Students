@@ -8,6 +8,7 @@ export interface User {
   faculty_id: number | null;
   student_id: number | null;
   is_active: number;
+  must_change_password: number;
 }
 
 export interface Department {
@@ -176,6 +177,7 @@ export interface SessionUser {
   facultyId?: number;
   studentId?: number;
   name: string;
+  mustChangePassword?: boolean;
 }
 
 export interface AuditLog {

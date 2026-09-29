@@ -32,8 +32,10 @@ import {
   transitionSchedule,
 } from '@/lib/modules/mod-03-schedule-engine/service';
 import { createBackup } from '@/lib/modules/mod-08-database-service/backup';
-import { getAuditLogs } from '@/lib/modules/mod-08-database-service/audit';
+import { getAuditLogs, logAudit } from '@/lib/modules/mod-08-database-service/audit';
 import { createUser } from '@/lib/modules/mod-01-auth/service';
+import { getDb } from '@/lib/persistence/db';
+import { changePassword } from '@/lib/modules/mod-01-auth/session';
 import {
   getFacultyList,
   getAvailabilityGrid,
@@ -57,6 +59,7 @@ const AdminPostSchema = z.object({
     'backup',
     'set-availability',
     'transition-schedule',
+    'reset-password',
   ]),
   data: z.unknown().optional(),
   password: z.string().optional(),
@@ -204,6 +207,7 @@ export async function POST(request: Request) {
           password: password || 'faculty123',
           role: 'faculty',
           faculty_id: facultyId,
+          must_change_password: password ? 0 : 1,
         });
         return NextResponse.json({ success: true, id: facultyId });
       }
@@ -227,6 +231,7 @@ export async function POST(request: Request) {
           password: password || 'student123',
           role: 'student',
           student_id: studentId,
+          must_change_password: password ? 0 : 1,
         });
         return NextResponse.json({ success: true, id: studentId });
       }
@@ -378,6 +383,20 @@ export async function POST(request: Request) {
           return NextResponse.json(result, { status: 409 });
         }
         return NextResponse.json(result);
+      }
+      case 'reset-password': {
+        const resetSchema = z.object({
+          username: z.string().min(1),
+          newPassword: z.string().min(8),
+        });
+        const validated = resetSchema.safeParse(body);
+        if (!validated.success) return invalidBody('Invalid reset payload');
+        const r = validated.data;
+        const targetUser = getDb().prepare('SELECT id FROM users WHERE username = ?').get(r.username) as { id: number } | undefined;
+        if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        await changePassword(targetUser.id, r.newPassword);
+        logAudit(session!.id, 'RESET_PASSWORD', 'user', targetUser.id);
+        return NextResponse.json({ success: true });
       }
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

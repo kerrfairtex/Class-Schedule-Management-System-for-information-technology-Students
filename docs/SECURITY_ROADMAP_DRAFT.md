@@ -391,3 +391,166 @@ If the reseed fails:
 | `docs/UAT.md` | `admin123`, `faculty123`, `student123`, `fac-001`, `2022-0001` | UAT test credentials |
 
 These are all in the repository and would be visible to anyone with repo access. After reseed with strong passwords, these docs should be updated to remove the default passwords.
+
+
+---
+
+## 9. IMPLEMENTATION STATUS (2026-09-29)
+
+### Phase 1: Password Change Foundation — IMPLEMENTED, NOT DEPLOYED
+
+| Component | Status | File |
+|-----------|--------|------|
+| `must_change_password` column | IMPLEMENTED | `lib/persistence/db.ts` (schema + migration) |
+| `SessionUser.mustChangePassword` | IMPLEMENTED | `lib/domain/types.ts` |
+| `toSessionUser()` returns flag | IMPLEMENTED | `lib/modules/mod-01-auth/service.ts` |
+| `changePassword()` function | IMPLEMENTED | `lib/modules/mod-01-auth/session.ts` |
+| Middleware enforcement | IMPLEMENTED | `middleware.ts` |
+| `CSMS_DISABLE_MUST_CHANGE_PASSWORD` env var | IMPLEMENTED | `middleware.ts` (accepts `1` to disable) |
+| Seed sets `must_change_password=1` | IMPLEMENTED | `lib/persistence/seed.ts` |
+| Admin API `reset-password` action | IMPLEMENTED | `app/api/admin/route.ts` |
+| Admin API sets flag at creation | IMPLEMENTED | `app/api/admin/route.ts` |
+| Emergency reset script | IMPLEMENTED | `scripts/reset-passwords.ts` |
+
+### Phase 2: Self-Service Password Change — IMPLEMENTED, NOT DEPLOYED
+
+| Component | Status | File |
+|-----------|--------|------|
+| `POST /api/auth/change-password` | IMPLEMENTED | `app/api/auth/change-password/route.ts` |
+| Change password UI page | IMPLEMENTED | `app/change-password/page.tsx` |
+| Change password form component | IMPLEMENTED | `app/change-password/ChangePasswordForm.tsx` |
+| Rate limiting (reuses login pattern) | IMPLEMENTED | `app/api/auth/change-password/route.ts` |
+| Audit logging | IMPLEMENTED | `app/api/auth/change-password/route.ts` |
+
+### Phase 3: Random Initial Passwords — NOT STARTED
+
+Blocked by Phase 1 and Phase 2 deployment verification.
+
+### CSS Fix — VERIFIED
+
+`components/ui/card.tsx:15` — replaced `[--card-spacing:--spacing(4)]` with `[--card-spacing:var(--spacing-4)]`. Build passes.
+
+### Test Results — PARTIAL
+
+| Check | Result |
+|-------|--------|
+| `npm run lint` | PASS |
+| `npm run type-check` | PASS |
+| `npm run build` | PASS |
+| `npm test` | FAIL — environment issue (`@rolldown/binding-wasm32-wasi` not found) |
+| AUTH-01 through AUTH-14 | NOT TESTED — dev server cannot start (see below) |
+
+### Dev Server Status — BLOCKED
+
+The dev server fails to start due to a CSS parsing error in the build cache. The actual source files are clean. This blocks runtime verification of all authentication flows.
+
+---
+
+## 10. DATABASE SAFETY
+
+### A. Current Schema Evidence
+
+From `lib/persistence/db.ts` `initSchema()`:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('super_admin', 'admin', 'scheduler', 'faculty', 'student', 'public')),
+  faculty_id INTEGER REFERENCES faculty(id),
+  student_id INTEGER REFERENCES students(id),
+  is_active INTEGER DEFAULT 1,
+  must_change_password INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### B. Migration SQL
+
+```sql
+-- Add column to new databases
+ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0;
+```
+
+### C. Rollback SQL
+
+```sql
+-- Restore pre-migration backup
+-- 1. Stop the app
+-- 2. Copy backup file over csms.db
+-- 3. Restart the app
+```
+
+### D. Backup Procedure
+
+1. Log in as admin
+2. POST `/api/admin` with `action: "backup"`
+3. Response includes `path` to backup file
+4. Download from Render persistent disk
+
+### E. Verification Query
+
+```sql
+SELECT username, role, is_active, must_change_password FROM users;
+```
+
+### F. Recovery Procedure
+
+1. Stop the app
+2. Restore backup file over `csms.db`
+3. Restart the app
+4. Verify admin login works
+
+---
+
+## 11. AUTHENTICATION IMPLEMENTATION
+
+### Login
+
+Normal login behavior unchanged. Rate limiting unchanged (5 attempts / 15 minutes per IP).
+
+### Password Change
+
+- `POST /api/auth/change-password` — authenticated only
+- Requires `currentPassword`, `newPassword` (min 8 chars), `confirmPassword`
+- Verifies current password with bcryptjs
+- Hashes new password with `SALT_ROUNDS = 10`
+- Sets `must_change_password = 0`
+- Session remains valid (not invalidated)
+- Audit logged
+
+### Admin Reset
+
+- `POST /api/admin` with `action: "reset-password"` — admin only
+- Requires `username` and `newPassword` (min 8 chars)
+- Sets `must_change_password = 1` on target account
+- Audit logged
+
+### Rate Limiting
+
+Existing in-memory rate limiter unchanged. Per-IP, not per-username. On Render, all users may share one bucket (NOT VERIFIED by test).
+
+---
+
+## 12. REMAINING BLOCKERS
+
+1. **Dev server cannot start** — CSS parsing error in build cache blocks runtime verification
+2. **Tests cannot run** — `@rolldown/binding-wasm32-wasi` not found in environment
+3. **Two admin accounts not verified** — lockout safety check not performed
+4. **Phase 1 not deployed** — migration not applied to production
+5. **Phase 2 not deployed** — change-password endpoint not live
+6. **Phase 3 not started** — blocked by Phase 1/2 deployment
+
+---
+
+## 13. DEPLOYMENT STEPS (NOT EXECUTED)
+
+1. Fix dev server CSS issue (build cache corruption)
+2. Start dev server locally
+3. Test all authentication flows in browser
+4. Create second admin account
+5. Apply migration to production
+6. Deploy Phase 1 and Phase 2
+7. Test on live URL
+8. Update documentation

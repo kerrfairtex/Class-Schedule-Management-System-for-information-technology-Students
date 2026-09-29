@@ -32,17 +32,19 @@ export function createUser(data: {
   role: RoleName;
   faculty_id?: number;
   student_id?: number;
+  must_change_password?: number;
 }) {
   const db = getDb();
   db.prepare(
-    `INSERT INTO users (username, password_hash, role, faculty_id, student_id)
-     VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password)
+     VALUES (?, ?, ?, ?, ?, ?)`
   ).run(
     data.username,
     hashPassword(data.password),
     data.role,
     data.faculty_id ?? null,
-    data.student_id ?? null
+    data.student_id ?? null,
+    data.must_change_password ?? 0
   );
 }
 
@@ -73,6 +75,7 @@ export function toSessionUser(user: User): SessionUser {
     facultyId: user.faculty_id ?? undefined,
     studentId: user.student_id ?? undefined,
     name,
+    mustChangePassword: user.must_change_password === 1,
   };
 }
 

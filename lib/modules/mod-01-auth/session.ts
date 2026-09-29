@@ -75,3 +75,13 @@ export function requireSession(session: SessionUser | null): SessionUser {
   if (!session) throw new Error('Unauthorized');
   return session;
 }
+
+export async function changePassword(userId: number, newPassword: string): Promise<void> {
+  const { getDb } = await import('@/lib/persistence/db');
+  const { hashPassword } = await import('@/lib/modules/mod-01-auth/service');
+  const db = getDb();
+  const hash = hashPassword(newPassword);
+  db.prepare(
+    'UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+  ).run(hash, userId);
+}
