@@ -13,7 +13,7 @@ services:
       - key: CSMS_DATA_DIR
         value: /data/csms-data
       - key: DATABASE_URL
-        value: postgresql://postgres.ebyepweqwihdvjecrufk:4n=AgYHXO?%ESEKv@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+        value: postgresql://postgres.ebyepweqwihdvjecrufk:4n=AgYHXO?%ESEKv@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&options=search_path%3Dcsms
     buildCommand: npm ci && npm run build
     startCommand: node .next/standalone/server.js
     autoDeployTrigger: commit
