@@ -44,7 +44,7 @@ async function main() {
   const newPassword = generateSecurePassword(16);
   const hash = hashPassword(newPassword);
   
-  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?')
     .run(hash, user.id);
   
   logAudit(null, 'EMERGENCY_RESET', 'user', user.id, `Password reset for ${username}`);

@@ -8,6 +8,17 @@ const LoginSchema = z.object({
   password: z.string().min(1),
 });
 
+// Explicit demo account allowlist — only these usernames bypass the normal IP rate limiter.
+// Do NOT add roles or other criteria here. This is an exact username allowlist.
+const DEMO_USERNAMES = new Set<string>([
+  'admin',
+  'fac-001',
+  'fac-002',
+  'fac-003',
+  '2022-0001',
+  '2023-0001',
+]);
+
 // Simple in-memory rate limiter (use Redis in production)
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
@@ -50,34 +61,58 @@ setInterval(() => {
 }, 60 * 1000); // Every minute
 
 export async function POST(request: Request) {
-  const ip = getClientIP(request);
-  const rateLimit = checkRateLimit(ip);
-
-  // Set rate limit headers
-  const headers = {
-    'X-RateLimit-Limit': RATE_LIMIT_MAX.toString(),
-    'X-RateLimit-Remaining': rateLimit.remaining.toString(),
-    'X-RateLimit-Reset': Math.ceil(rateLimit.resetAt / 1000).toString(),
-  };
-
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      {
-        error: 'Too many login attempts. Please try again later.',
-        retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
-      },
-      { status: 429, headers }
-    );
-  }
-
+  // Parse body first to get username for demo-account check
+  let username: string;
+  let password: string;
   try {
     const body = await request.json();
     const parsed = LoginSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request' }, { status: 400, headers });
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
+    username = parsed.data.username.trim().toLowerCase();
+    password = parsed.data.password;
+  } catch {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  }
 
-    const { username, password } = parsed.data;
+  // Demo accounts bypass the normal IP-based rate limiter entirely.
+  // The rate limiter is still applied to all other usernames.
+  const isDemoAccount = DEMO_USERNAMES.has(username);
+
+  const ip = getClientIP(request);
+
+  // For non-demo accounts, check and apply rate limit
+  if (!isDemoAccount) {
+    const rateLimit = checkRateLimit(ip);
+
+    // Set rate limit headers
+    const headers = {
+      'X-RateLimit-Limit': RATE_LIMIT_MAX.toString(),
+      'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+      'X-RateLimit-Reset': Math.ceil(rateLimit.resetAt / 1000).toString(),
+    };
+
+    // Apply rate limit ONLY for non-demo accounts
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Too many login attempts. Please try again later.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        { status: 429, headers }
+      );
+    }
+  }
+
+  // For demo accounts, set headers with unlimited values
+  const headers = {
+    'X-RateLimit-Limit': RATE_LIMIT_MAX.toString(),
+    'X-RateLimit-Remaining': isDemoAccount ? '999' : RATE_LIMIT_MAX.toString(),
+    'X-RateLimit-Reset': Math.ceil((Date.now() + RATE_LIMIT_WINDOW) / 1000).toString(),
+  };
+
+  try {
     const user = authenticate(username, password);
     if (!user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401, headers });

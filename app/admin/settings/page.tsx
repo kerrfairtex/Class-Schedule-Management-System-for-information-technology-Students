@@ -15,7 +15,7 @@ export default async function AdminSettingsPage() {
 
   const tables = db
     .prepare(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
+      `SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename NOT LIKE 'pg_%' ORDER BY tablename`
     )
     .all() as Array<{ name: string }>;
 

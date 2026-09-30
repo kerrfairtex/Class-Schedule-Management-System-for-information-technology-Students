@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const PUBLIC = ['/', '/login', '/about', '/about/evidence', '/schedules', '/programs', '/faculty', '/rooms', '/academic-calendar', '/contact', '/change-password'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC.includes(pathname)) {

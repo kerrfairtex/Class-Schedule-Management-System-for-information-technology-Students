@@ -1,5 +1,5 @@
 import { getDb } from '@/lib/persistence/db';
-import { createUser } from '@/lib/modules/mod-01-auth/service';
+import { createUser, hashPassword } from '@/lib/modules/mod-01-auth/service';
 import { ensureTimeSlots } from '@/lib/modules/mod-02-master-list/service';
 import { DAYS, TIME_SLOTS, ORGANIZATION } from '@/lib/domain/constants';
 import {
@@ -198,43 +198,66 @@ export function ensureSeeded() {
     ).run('2023-0001', 'Sample', 'Enrollee', 'sample.enrollee@trac.edu.ph', section1A.id);
   }
 
-  const userCount = (db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number }).c;
+  // Demo user definitions — these are the ONLY accounts that bypass the login rate limiter.
+  // Defined here to keep allowlist and seed logic in sync.
+  const DEMO_ACCOUNTS = [
+    { username: 'admin', role: 'admin' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'ADMIN_PASSWORD', passwordFallback: 'admin123' },
+    { username: 'fac-001', role: 'faculty' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
+    { username: 'fac-002', role: 'faculty' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
+    { username: 'fac-003', role: 'faculty' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
+    { username: '2022-0001', role: 'student' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
+    { username: '2023-0001', role: 'student' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
+  ] as const;
+
   const seedDefaultUsers = process.env.SEED_DEFAULT_USERS !== '0';
-  if (userCount === 0 && seedDefaultUsers) {
+  if (seedDefaultUsers) {
     // Spec §63/§65: these seed users are DEMO records. They MUST be cleared
     // from production before deployment to a verified environment.
     console.warn(
-      `[SEED] Seeding DEMO accounts in ${DATA_ENVIRONMENT} environment. ` +
+      `[SEED] Seeding/synchronizing DEMO accounts in ${DATA_ENVIRONMENT} environment. ` +
         'These MUST be removed before production deployment per spec §65.'
     );
-    createUser({ username: 'admin', password: getEnvPassword('ADMIN_PASSWORD', 'admin123'), role: 'admin', must_change_password: 1 });
 
+    // Resolve faculty_id and student_id for demo accounts from the database
     const faculty = db.prepare('SELECT id, employee_id FROM faculty').all() as {
       id: number;
       employee_id: string;
     }[];
-    for (const f of faculty) {
-      createUser({
-        username: f.employee_id.toLowerCase(),
-        password: getEnvPassword('FACULTY_PASSWORD', 'faculty123'),
-        role: 'faculty',
-        faculty_id: f.id,
-        must_change_password: 1,
-      });
-    }
+    const facultyByEmployeeId = new Map(faculty.map(f => [f.employee_id.toLowerCase(), f.id]));
 
     const students = db.prepare('SELECT id, student_id FROM students').all() as {
       id: number;
       student_id: string;
     }[];
-    for (const s of students) {
-      createUser({
-        username: s.student_id,
-        password: getEnvPassword('STUDENT_PASSWORD', 'student123'),
-        role: 'student',
-        student_id: s.id,
-        must_change_password: 1,
-      });
+    const studentsByStudentId = new Map(students.map(s => [s.student_id, s.id]));
+
+    for (const account of DEMO_ACCOUNTS) {
+      const password = getEnvPassword(account.passwordEnv, account.passwordFallback);
+      const passwordHash = hashPassword(password);
+
+      let resolvedFacultyId: number | undefined;
+      let resolvedStudentId: number | undefined;
+
+      if (account.role === 'faculty') {
+        resolvedFacultyId = facultyByEmployeeId.get(account.username);
+      } else if (account.role === 'student') {
+        resolvedStudentId = studentsByStudentId.get(account.username);
+      }
+
+      const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(account.username) as { id: number } | undefined;
+
+      if (existingUser) {
+        // Update existing demo user's password hash and must_change_password flag
+        db.prepare(
+          'UPDATE users SET password_hash = ?, must_change_password = ?, faculty_id = ?, student_id = ? WHERE id = ?'
+        ).run(passwordHash, 1, resolvedFacultyId ?? null, resolvedStudentId ?? null, existingUser.id);
+      } else {
+        // Create new demo user
+        db.prepare(
+          `INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password)
+           VALUES (?, ?, ?, ?, ?, ?)`
+        ).run(account.username, passwordHash, account.role, resolvedFacultyId ?? null, resolvedStudentId ?? null, 1);
+      }
     }
   }
 
