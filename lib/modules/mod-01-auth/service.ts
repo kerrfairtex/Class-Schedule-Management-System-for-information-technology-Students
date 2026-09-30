@@ -12,8 +12,8 @@ export function verifyPassword(password: string, hash: string): boolean {
   return bcrypt.compareSync(password, hash);
 }
 
-export function authenticate(username: string, password: string): User | null {
-  const db = getDb();
+export async function authenticate(username: string, password: string): Promise<User | null> {
+  const db = await getDb();
   const user = db
     .prepare('SELECT * FROM users WHERE username = ? AND is_active = 1')
     .get(username) as User | undefined;
@@ -22,7 +22,7 @@ export function authenticate(username: string, password: string): User | null {
 }
 
 export function getUserById(id: number): User | null {
-  const db = getDb();
+  const db = await getDb();
   return (db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User) || null;
 }
 
@@ -34,7 +34,7 @@ export function createUser(data: {
   student_id?: number;
   must_change_password?: number;
 }) {
-  const db = getDb();
+  const db = await getDb();
   db.prepare(
     `INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password)
      VALUES (?, ?, ?, ?, ?, ?)`
@@ -49,7 +49,7 @@ export function createUser(data: {
 }
 
 export function toSessionUser(user: User): SessionUser {
-  const db = getDb();
+  const db = await getDb();
   let name = user.username;
 
   if (user.role === 'faculty' && user.faculty_id) {
