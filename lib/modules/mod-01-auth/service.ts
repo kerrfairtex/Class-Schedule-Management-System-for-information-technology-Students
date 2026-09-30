@@ -21,12 +21,12 @@ export async function authenticate(username: string, password: string): Promise<
   return user;
 }
 
-export function getUserById(id: number): User | null {
+export async function getUserById(id: number): User | null {
   const db = await getDb();
   return (db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User) || null;
 }
 
-export function createUser(data: {
+export async function createUser(data: {
   username: string;
   password: string;
   role: RoleName;
@@ -48,7 +48,7 @@ export function createUser(data: {
   );
 }
 
-export function toSessionUser(user: User): SessionUser {
+export async function toSessionUser(user: User): SessionUser {
   const db = await getDb();
   let name = user.username;
 
