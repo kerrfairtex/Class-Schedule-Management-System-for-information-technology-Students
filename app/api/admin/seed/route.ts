@@ -4,9 +4,14 @@ import bcrypt from 'bcryptjs';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
-export async function POST() {
+export async function POST(request: Request) {
   if (!DATABASE_URL) {
     return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 500 });
+  }
+
+  const seedToken = process.env.SEED_TOKEN;
+  if (seedToken && request.headers.get('x-seed-token') !== seedToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const client = new Client({ connectionString: DATABASE_URL });
@@ -146,10 +151,10 @@ export async function POST() {
       const passwordHash = bcrypt.hashSync(user.password, 10);
       await client.query(`
         INSERT INTO csms.users (username, password_hash, role, faculty_id, student_id, must_change_password)
-        VALUES ($1, $2, $3, $4, $5, 1)
+        VALUES ($1, $2, $3, $4, $5, 0)
         ON CONFLICT (username) DO UPDATE SET
           password_hash = EXCLUDED.password_hash,
-          must_change_password = 1,
+          must_change_password = 0,
           faculty_id = EXCLUDED.faculty_id,
           student_id = EXCLUDED.student_id
       `, [user.username, passwordHash, user.role, user.faculty_id, user.student_id]);
