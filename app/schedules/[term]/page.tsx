@@ -13,19 +13,19 @@ export default async function TermSchedules({ params }: PageProps) {
   const yearId = Number(term);
   if (!Number.isFinite(yearId)) notFound();
 
-  const db = getDb();
-  const year = db
+  const db = await getDb();
+  const year = await db
     .prepare(`SELECT id, label, is_active FROM academic_years WHERE id = ?`)
     .get(yearId) as { id: number; label: string; is_active: number } | undefined;
   if (!year) notFound();
 
-  const semesters = db
+  const semesters = await db
     .prepare(`SELECT id, name, is_active FROM semesters WHERE academic_year_id = ?`)
     .all(yearId) as Array<{ id: number; name: string; is_active: number }>;
 
   // Spec §35: only PUBLISHED schedules. Spec §63: only data_environment IN
   // (VERIFIED, PRODUCTION) — DEMO records must never appear in public schedules.
-  const published = db
+  const published = await db
     .prepare(
       `SELECT s.id, sub.code as subject_code, sub.name as subject_name,
               f.first_name || ' ' || f.last_name as faculty_name,

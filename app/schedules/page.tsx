@@ -15,9 +15,9 @@ interface TermRow {
 }
 
 export default async function SchedulesPage() {
-  const db = getDb();
+  const db = await getDb();
   // List active/current academic terms
-  const terms = db
+  const terms = await db
     .prepare(
       `SELECT ay.id as ay_id, ay.label, ay.is_active as ay_active,
               s.id as sem_id, s.name as sem_name, s.is_active as sem_active
@@ -42,7 +42,7 @@ export default async function SchedulesPage() {
 
   // Per spec §35: public schedule = PUBLISHED status only.
   // Currently no schedules exist in seed (none published), so we show 0.
-  const published = db
+  const published = await db
     .prepare(`SELECT COUNT(*) as c FROM schedules WHERE status = 'PUBLISHED'`)
     .get() as { c: number };
 

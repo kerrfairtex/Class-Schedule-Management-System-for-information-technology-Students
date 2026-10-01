@@ -8,12 +8,12 @@ export const metadata = {
 };
 
 export default async function AdminSettingsPage() {
-  const db = getDb();
-  const settings = db
+  const db = await getDb();
+  const settings = await db
     .prepare(`SELECT key, value, description, updated_at FROM system_settings ORDER BY key`)
     .all() as Array<{ key: string; value: string; description: string | null; updated_at: string }>;
 
-  const tables = db
+  const tables = await db
     .prepare(
       `SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename NOT LIKE 'pg_%' ORDER BY tablename`
     )

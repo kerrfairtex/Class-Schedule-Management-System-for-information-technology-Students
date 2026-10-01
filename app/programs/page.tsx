@@ -8,8 +8,8 @@ export const metadata = {
 };
 
 export default async function ProgramsPage() {
-  const db = getDb();
-  const programs = db
+  const db = await getDb();
+  const programs = await db
     .prepare(
       `SELECT p.id, p.code, p.name, d.code as dept_code, d.name as dept_name,
               (SELECT COUNT(*) FROM sections s WHERE s.program_id = p.id) as section_count,

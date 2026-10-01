@@ -10,12 +10,12 @@ export const metadata = {
 
 export default async function AdminConflictsPage() {
   const db = await getDb();
-  const activeSemester = db
+  const activeSemester = await db
     .prepare(`SELECT id, name FROM semesters WHERE is_active = 1`)
     .get() as { id: number; name: string } | undefined;
 
   const conflicts = activeSemester
-    ? detectAllConflictsInSemester(activeSemester.id)
+    ? await detectAllConflictsInSemester(activeSemester.id)
     : [];
 
   // Hydrate details for display
@@ -35,8 +35,8 @@ export default async function AdminConflictsPage() {
     }>;
   };
 
-  const details: Detail[] = conflicts.map((c) => {
-    const row = db
+  const details: Detail[] = await Promise.all(conflicts.map(async (c) => {
+    const row = await db
       .prepare(
         `SELECT s.id, ts.day_of_week, ts.start_time, ts.end_time,
                 sub.code as subject_code, sec.code as section_code,
@@ -70,7 +70,7 @@ export default async function AdminConflictsPage() {
       room: row.room_code,
       conflicts: c.conflicts,
     };
-  });
+  }));
 
   return (
     <div className="min-h-screen bg-midnight text-slate-100">

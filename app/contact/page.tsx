@@ -16,8 +16,8 @@ interface ContactRow {
 }
 
 export default async function ContactPage() {
-  const db = getDb();
-  const contacts = db
+  const db = await getDb();
+  const contacts = await db
     .prepare(
       `SELECT office, contact_type, value, data_environment, verified_at
        FROM institution_contacts

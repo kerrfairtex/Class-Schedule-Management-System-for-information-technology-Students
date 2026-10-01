@@ -26,8 +26,8 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default async function AdminSchedulesPage() {
-  const db = getDb();
-  const activeSemester = db
+  const db = await getDb();
+  const activeSemester = await db
     .prepare(`SELECT id, name FROM semesters WHERE is_active = 1`)
     .get() as { id: number; name: string } | undefined;
 

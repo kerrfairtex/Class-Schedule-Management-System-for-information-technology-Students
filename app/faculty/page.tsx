@@ -8,8 +8,8 @@ export const metadata = {
 };
 
 export default async function FacultyPage() {
-  const db = getDb();
-  const faculty = db
+  const db = await getDb();
+  const faculty = await db
     .prepare(
       `SELECT f.id, f.employee_id, f.first_name, f.last_name, f.email, f.phone,
               f.data_environment,

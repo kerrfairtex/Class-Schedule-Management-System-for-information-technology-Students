@@ -8,8 +8,8 @@ export const metadata = {
 };
 
 export default async function RoomsPage() {
-  const db = getDb();
-  const rooms = db
+  const db = await getDb();
+  const rooms = await db
     .prepare(
       `SELECT r.id, r.code, r.name, r.capacity, r.data_environment,
               b.code as building_code, b.name as building_name

@@ -30,8 +30,8 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default async function AdminEvidencePage() {
-  const db = getDb();
-  const facts = db
+  const db = await getDb();
+  const facts = await db
     .prepare(
       `SELECT id, category, key, value, status, confidence, verified_at, review_due_at, source_id
        FROM institutional_facts
@@ -52,7 +52,7 @@ export default async function AdminEvidencePage() {
   const byStatus: Record<string, number> = {};
   for (const f of facts) byStatus[f.status] = (byStatus[f.status] ?? 0) + 1;
 
-  const overdue = db
+  const overdue = await db
     .prepare(
       `SELECT COUNT(*) as c FROM institutional_facts
        WHERE review_due_at IS NOT NULL AND review_due_at < date('now')`
