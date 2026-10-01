@@ -82,7 +82,7 @@ export async function changePassword(userId: number, newPassword: string, setMus
   const db = await getDb();
   const hash = hashPassword(newPassword);
   const flag = setMustChange ? 1 : 0;
-  db.prepare(
+  await db.prepare(
     'UPDATE users SET password_hash = ?, must_change_password = ? WHERE id = ?'
   ).run(hash, flag, userId);
 }
