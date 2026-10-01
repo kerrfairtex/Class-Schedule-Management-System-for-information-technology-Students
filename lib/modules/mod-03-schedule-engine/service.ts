@@ -18,15 +18,15 @@ const SCHEDULE_SELECT = `
   JOIN time_slots ts ON ts.id = s.time_slot_id
 `;
 
-export function getSchedulesBySemester(semesterId: number): Schedule[] {
-  const db = getDb();
+export async function getSchedulesBySemester(semesterId: number): Promise<Schedule[]> {
+  const db = await getDb();
   return db
     .prepare(`${SCHEDULE_SELECT} WHERE s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`)
     .all(semesterId) as Schedule[];
 }
 
-export function getSchedulesBySection(sectionId: number, semesterId: number): Schedule[] {
-  const db = getDb();
+export async function getSchedulesBySection(sectionId: number, semesterId: number): Promise<Schedule[]> {
+  const db = await getDb();
   return db
     .prepare(
       `${SCHEDULE_SELECT} WHERE s.section_id = ? AND s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`
@@ -34,8 +34,8 @@ export function getSchedulesBySection(sectionId: number, semesterId: number): Sc
     .all(sectionId, semesterId) as Schedule[];
 }
 
-export function getSchedulesByFaculty(facultyId: number, semesterId: number): Schedule[] {
-  const db = getDb();
+export async function getSchedulesByFaculty(facultyId: number, semesterId: number): Promise<Schedule[]> {
+  const db = await getDb();
   return db
     .prepare(
       `${SCHEDULE_SELECT} WHERE s.faculty_id = ? AND s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`
@@ -43,13 +43,13 @@ export function getSchedulesByFaculty(facultyId: number, semesterId: number): Sc
     .all(facultyId, semesterId) as Schedule[];
 }
 
-export function createSchedule(input: ScheduleInput, userId?: number): Schedule {
+export async function createSchedule(input: ScheduleInput, userId?: number): Promise<Schedule> {
   const conflict = detectConflicts(input);
   if (conflict.hasBlockingConflict) {
     throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
-  const db = getDb();
+  const db = await getDb();
   const result = db
     .prepare(
       `INSERT INTO schedules (section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id)
@@ -70,17 +70,17 @@ export function createSchedule(input: ScheduleInput, userId?: number): Schedule 
     .get(result.lastInsertRowid) as Schedule;
 }
 
-export function updateScheduleTimeSlot(
+export async function updateScheduleTimeSlot(
   scheduleId: number,
   timeSlotId: number,
   userId?: number
-): Schedule {
+): Promise<Schedule> {
   const conflict = validateScheduleMove(scheduleId, timeSlotId);
   if (conflict.hasBlockingConflict) {
     throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
-  const db = getDb();
+  const db = await getDb();
   db.prepare(
     'UPDATE schedules SET time_slot_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
   ).run(timeSlotId, scheduleId);
@@ -89,8 +89,8 @@ export function updateScheduleTimeSlot(
   return db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(scheduleId) as Schedule;
 }
 
-export function deleteSchedule(scheduleId: number, userId?: number) {
-  const db = getDb();
+export async function deleteSchedule(scheduleId: number, userId?: number) {
+  const db = await getDb();
   db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
   logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
 }
@@ -138,21 +138,21 @@ export interface TransitionResult {
   blockingConflicts?: import('@/lib/domain/types').Conflict[];
 }
 
-function currentStatus(scheduleId: number): ScheduleStatus | null {
-  const db = getDb();
+async function currentStatus(scheduleId: number): Promise<ScheduleStatus | null> {
+  const db = await getDb();
   const row = db
     .prepare('SELECT status FROM schedules WHERE id = ?')
     .get(scheduleId) as { status: ScheduleStatus } | undefined;
   return row?.status ?? null;
 }
 
-export function transitionSchedule(
+export async function transitionSchedule(
   scheduleId: number,
   toStatus: ScheduleStatus,
   userId?: number,
   userName?: string
-): TransitionResult {
-  const fromStatus = currentStatus(scheduleId);
+): Promise<TransitionResult> {
+  const fromStatus = await currentStatus(scheduleId);
   if (!fromStatus) {
     return { ok: false, message: 'Schedule not found' };
   }
@@ -178,7 +178,7 @@ export function transitionSchedule(
     }
   }
 
-  const db = getDb();
+  const db = await getDb();
   const setPublishedAt = toStatus === 'PUBLISHED' ? ', published_at = CURRENT_TIMESTAMP' : '';
   const setApprover = toStatus === 'APPROVED' || toStatus === 'PUBLISHED'
     ? `, approved_by = ${userName ? `'${userName.replace(/'/g, "''")}'` : 'NULL'}`
@@ -201,12 +201,12 @@ export function transitionSchedule(
   return { ok: true, fromStatus, toStatus };
 }
 
-export function generateSchedulesForSection(
+export async function generateSchedulesForSection(
   sectionId: number,
   semesterId: number,
   userId?: number
-): { created: number; errors: string[] } {
-  const db = getDb();
+): Promise<{ created: number; errors: string[] }> {
+  const db = await getDb();
   const section = db
     .prepare('SELECT * FROM sections WHERE id = ?')
     .get(sectionId) as { program_id: number; year_level: number } | undefined;
@@ -241,7 +241,7 @@ export function generateSchedulesForSection(
   let created = 0;
   const errors: string[] = [];
 
-  return withTransaction(() => {
+  return withTransaction(async () => {
     for (const subject of subjects) {
       const existing = db
         .prepare(
@@ -279,7 +279,7 @@ export function generateSchedulesForSection(
             // Per spec §33/§34: blocking conflicts prevent creation; non-blocking
             // (e.g. availability) are tolerated.
             if (!conflict.hasBlockingConflict) {
-              createSchedule(input, userId);
+              await createSchedule(input, userId);
               created++;
               assigned = true;
               break;

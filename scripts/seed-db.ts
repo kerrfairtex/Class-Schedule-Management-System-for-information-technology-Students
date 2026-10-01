@@ -4,7 +4,7 @@ import { ensureTimeSlots } from '@/lib/modules/mod-02-master-list/service';
 import { ORGANIZATION } from '@/lib/domain/constants';
 
 async function seedDatabase() {
-  const db = getDb();
+  const db = await getDb();
   await initSchema(db);
   
   // Helper to await database operations

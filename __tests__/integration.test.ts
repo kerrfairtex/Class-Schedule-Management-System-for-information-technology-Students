@@ -66,7 +66,7 @@ describe('Integration: Auth + Scheduling workflow', () => {
     // Spec §33: faculty availability is NON-blocking. Availability warnings
     // should NOT throw. The schedule is created but a non-blocking
     // conflict is recorded (visible in /admin/conflicts for advisory).
-    getDb()
+    await getDb()
       .prepare(
         'INSERT INTO faculty_availability (faculty_id, time_slot_id, is_available) VALUES (?, ?, 0)'
       )

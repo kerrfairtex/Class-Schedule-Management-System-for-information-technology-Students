@@ -9,11 +9,11 @@ import type { Conflict, ConflictResult, ScheduleInput } from '@/lib/domain/types
  * Existing callers that read `conflicts: string[]` (legacy) are supported
  * by the `__legacyConflicts` property below for one release cycle.
  */
-export function detectConflicts(
+export async function detectConflicts(
   input: ScheduleInput,
   excludeScheduleId?: number
-): ConflictResult {
-  const db = getDb();
+): Promise<ConflictResult> {
+  const db = await getDb();
   const blocking: Conflict[] = [];
   const nonBlocking: Conflict[] = [];
   const exclude = excludeScheduleId ? 'AND id != ?' : '';
@@ -116,11 +116,11 @@ export function detectConflicts(
   };
 }
 
-export function validateScheduleMove(
+export async function validateScheduleMove(
   scheduleId: number,
   newTimeSlotId: number
-): ConflictResult {
-  const db = getDb();
+): Promise<ConflictResult> {
+  const db = await getDb();
   const schedule = db
     .prepare('SELECT * FROM schedules WHERE id = ?')
     .get(scheduleId) as (ScheduleInput & { id: number }) | undefined;
@@ -152,11 +152,11 @@ export function validateScheduleMove(
  * Detect all blocking conflicts across the entire schedule set for a given
  * semester. Used by /admin/conflicts and the publish-time validator.
  */
-export function detectAllConflictsInSemester(semesterId: number): Array<{
+export async function detectAllConflictsInSemester(semesterId: number): Promise<Array<{
   scheduleId: number;
   conflicts: Conflict[];
-}> {
-  const db = getDb();
+}>> {
+  const db = await getDb();
   const schedules = db
     .prepare(
       `SELECT id, section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id
@@ -168,7 +168,7 @@ export function detectAllConflictsInSemester(semesterId: number): Array<{
 
   const out: Array<{ scheduleId: number; conflicts: Conflict[] }> = [];
   for (const s of schedules) {
-    const r = detectConflicts(s, s.id);
+    const r = await detectConflicts(s, s.id);
     if (r.blockingConflicts.length > 0) {
       out.push({ scheduleId: s.id, conflicts: r.blockingConflicts });
     }
@@ -181,8 +181,8 @@ export function detectAllConflictsInSemester(semesterId: number): Array<{
  * conflict exists. Returns the validation result so the caller can surface
  * the conflicts in the UI.
  */
-export function validateForPublish(scheduleId: number): ConflictResult {
-  const db = getDb();
+export async function validateForPublish(scheduleId: number): Promise<ConflictResult> {
+  const db = await getDb();
   const schedule = db
     .prepare('SELECT * FROM schedules WHERE id = ?')
     .get(scheduleId) as (ScheduleInput & { id: number }) | undefined;

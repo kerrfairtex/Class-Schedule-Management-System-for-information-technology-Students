@@ -166,8 +166,8 @@ export async function GET(request: Request) {
   }
 }
 
-function getUsers() {
-  const db = getDb();
+async function getUsers() {
+  const db = await getDb();
   return db.prepare(`
     SELECT u.id, u.username, u.role, u.is_active, u.must_change_password,
            CASE
@@ -409,7 +409,7 @@ export async function POST(request: Request) {
         const validated = resetSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid reset payload');
         const r = validated.data;
-        const targetUser = getDb().prepare('SELECT id FROM users WHERE username = ?').get(r.username) as { id: number } | undefined;
+        const targetUser = await getDb().prepare('SELECT id FROM users WHERE username = ?').get(r.username) as { id: number } | undefined;
         if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
         const newPassword = r.newPassword || generateRandomPassword();
         await changePassword(targetUser.id, newPassword, true);

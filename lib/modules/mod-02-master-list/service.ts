@@ -17,29 +17,30 @@ import { DAYS, TIME_SLOTS } from '@/lib/domain/constants';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
 
 // Departments & Programs
-export function getDepartments(): Department[] {
-  return getDb().prepare('SELECT * FROM departments ORDER BY code').all() as Department[];
+export async function getDepartments(): Promise<Department[]> {
+  const db = await getDb();
+  return db.prepare('SELECT * FROM departments ORDER BY code').all() as Department[];
 }
 
-export function getPrograms(): Program[] {
-  return getDb().prepare('SELECT * FROM programs ORDER BY code').all() as Program[];
+export async function getPrograms(): Promise<Program[]> {
+  const db = await getDb();
+  return db.prepare('SELECT * FROM programs ORDER BY code').all() as Program[];
 }
 
 // Academic Years & Semesters
-export function getAcademicYears(): AcademicYear[] {
-  return getDb().prepare('SELECT * FROM academic_years ORDER BY label DESC').all() as AcademicYear[];
+export async function getAcademicYears(): Promise<AcademicYear[]> {
+  const db = await getDb();
+  return db.prepare('SELECT * FROM academic_years ORDER BY label DESC').all() as AcademicYear[];
 }
 
-export function getActiveAcademicYear(): AcademicYear | null {
-  return (
-    (getDb()
-      .prepare('SELECT * FROM academic_years WHERE is_active = 1 LIMIT 1')
-      .get() as AcademicYear) || null
-  );
+export async function getActiveAcademicYear(): Promise<AcademicYear | null> {
+  const db = await getDb();
+  const ay = db.prepare('SELECT * FROM academic_years WHERE is_active = 1 LIMIT 1').get() as AcademicYear | undefined;
+  return ay ?? null;
 }
 
-export function getSemesters(academicYearId?: number): Semester[] {
-  const db = getDb();
+export async function getSemesters(academicYearId?: number): Promise<Semester[]> {
+  const db = await getDb();
   if (academicYearId) {
     return db
       .prepare('SELECT * FROM semesters WHERE academic_year_id = ? ORDER BY name')
@@ -48,26 +49,27 @@ export function getSemesters(academicYearId?: number): Semester[] {
   return db.prepare('SELECT * FROM semesters ORDER BY name').all() as Semester[];
 }
 
-export function getActiveSemester(): Semester | null {
-  return (
-    (getDb().prepare('SELECT * FROM semesters WHERE is_active = 1 LIMIT 1').get() as Semester) ||
-    null
-  );
+export async function getActiveSemester(): Promise<Semester | null> {
+  const db = await getDb();
+  const sem = db.prepare('SELECT * FROM semesters WHERE is_active = 1 LIMIT 1').get() as Semester | undefined;
+  return sem ?? null;
 }
 
 // Buildings & Rooms
-export function getBuildings(): Building[] {
-  return getDb().prepare('SELECT * FROM buildings ORDER BY code').all() as Building[];
+export async function getBuildings(): Promise<Building[]> {
+  const db = await getDb();
+  return db.prepare('SELECT * FROM buildings ORDER BY code').all() as Building[];
 }
 
-export function createBuilding(code: string, name: string, userId?: number) {
-  const db = getDb();
+export async function createBuilding(code: string, name: string, userId?: number) {
+  const db = await getDb();
   const result = db.prepare('INSERT INTO buildings (code, name) VALUES (?, ?)').run(code, name);
   logAudit(userId ?? null, 'CREATE', 'building', Number(result.lastInsertRowid));
 }
 
-export function getRooms(): Room[] {
-  return getDb()
+export async function getRooms(): Promise<Room[]> {
+  const db = await getDb();
+  return db
     .prepare(
       `SELECT r.*, b.code AS building_code, b.name AS building_name
        FROM rooms r JOIN buildings b ON b.id = r.building_id ORDER BY b.code, r.code`
@@ -75,14 +77,14 @@ export function getRooms(): Room[] {
     .all() as Room[];
 }
 
-export function createRoom(
+export async function createRoom(
   buildingId: number,
   code: string,
   name: string,
   capacity: number,
   userId?: number
 ) {
-  const db = getDb();
+  const db = await getDb();
   const result = db
     .prepare('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)')
     .run(buildingId, code, name, capacity);
@@ -90,26 +92,27 @@ export function createRoom(
 }
 
 // Subjects & Curriculum
-export function getSubjects(): Subject[] {
-  return getDb().prepare('SELECT * FROM subjects ORDER BY code').all() as Subject[];
+export async function getSubjects(): Promise<Subject[]> {
+  const db = await getDb();
+  return db.prepare('SELECT * FROM subjects ORDER BY code').all() as Subject[];
 }
 
-export function createSubject(
+export async function createSubject(
   code: string,
   name: string,
   creditHours: number,
   programId: number,
   userId?: number
 ) {
-  const db = getDb();
+  const db = await getDb();
   const result = db
     .prepare('INSERT INTO subjects (code, name, credit_hours, program_id) VALUES (?, ?, ?, ?)')
     .run(code, name, creditHours, programId);
   logAudit(userId ?? null, 'CREATE', 'subject', Number(result.lastInsertRowid));
 }
 
-export function getCurriculum(programId?: number): Curriculum[] {
-  const db = getDb();
+export async function getCurriculum(programId?: number): Promise<Curriculum[]> {
+  const db = await getDb();
   const sql = `
     SELECT c.*, s.code AS subject_code, s.name AS subject_name
     FROM curriculum c JOIN subjects s ON s.id = c.subject_id
@@ -121,14 +124,14 @@ export function getCurriculum(programId?: number): Curriculum[] {
     : db.prepare(sql).all()) as Curriculum[];
 }
 
-export function addCurriculumEntry(
+export async function addCurriculumEntry(
   programId: number,
   subjectId: number,
   yearLevel: number,
   semesterNumber: number,
   userId?: number
 ) {
-  const db = getDb();
+  const db = await getDb();
   const result = db
     .prepare(
       `INSERT INTO curriculum (program_id, subject_id, year_level, semester_number)
@@ -139,8 +142,8 @@ export function addCurriculumEntry(
 }
 
 // Sections
-export function getSections(semesterId?: number): Section[] {
-  const db = getDb();
+export async function getSections(semesterId?: number): Promise<Section[]> {
+  const db = await getDb();
   if (semesterId) {
     return db
       .prepare('SELECT * FROM sections WHERE semester_id = ? ORDER BY code')
@@ -149,14 +152,14 @@ export function getSections(semesterId?: number): Section[] {
   return db.prepare('SELECT * FROM sections ORDER BY code').all() as Section[];
 }
 
-export function createSection(
+export async function createSection(
   code: string,
   programId: number,
   yearLevel: number,
   semesterId: number,
   userId?: number
 ) {
-  const db = getDb();
+  const db = await getDb();
   const result = db
     .prepare(
       'INSERT INTO sections (code, program_id, year_level, semester_id) VALUES (?, ?, ?, ?)'
@@ -166,18 +169,19 @@ export function createSection(
 }
 
 // Faculty
-export function getFaculty(): Faculty[] {
-  return getDb()
+export async function getFaculty(): Promise<Faculty[]> {
+  const db = await getDb();
+  return db
     .prepare('SELECT * FROM faculty ORDER BY last_name, first_name')
     .all() as Faculty[];
 }
 
-export function createFaculty(
+export async function createFaculty(
   data: Omit<Faculty, 'id'>,
   subjectIds: number[],
   userId?: number
 ) {
-  const db = getDb();
+  const db = await getDb();
   const result = db
     .prepare(
       `INSERT INTO faculty (employee_id, first_name, last_name, email, phone, department_id)
@@ -203,8 +207,9 @@ export function createFaculty(
 }
 
 // Students
-export function getStudents(): Student[] {
-  return getDb()
+export async function getStudents(): Promise<Student[]> {
+  const db = await getDb();
+  return db
     .prepare(
       `SELECT s.*, sec.code AS section_code
        FROM students s JOIN sections sec ON sec.id = s.section_id
@@ -213,11 +218,11 @@ export function getStudents(): Student[] {
     .all() as Student[];
 }
 
-export function createStudent(
+export async function createStudent(
   data: Omit<Student, 'id' | 'section_code'>,
   userId?: number
 ) {
-  const db = getDb();
+  const db = await getDb();
   const result = db
     .prepare(
       `INSERT INTO students (student_id, first_name, last_name, email, section_id)
@@ -229,14 +234,15 @@ export function createStudent(
 }
 
 // Time Slots
-export function getTimeSlots(): TimeSlot[] {
-  return getDb()
+export async function getTimeSlots(): Promise<TimeSlot[]> {
+  const db = await getDb();
+  return db
     .prepare('SELECT * FROM time_slots ORDER BY day_of_week, start_time')
     .all() as TimeSlot[];
 }
 
-export function ensureTimeSlots() {
-  const db = getDb();
+export async function ensureTimeSlots() {
+  const db = await getDb();
   const count = (db.prepare('SELECT COUNT(*) as c FROM time_slots').get() as { c: number }).c;
   if (count > 0) return;
 
@@ -250,8 +256,8 @@ export function ensureTimeSlots() {
   }
 }
 
-export function getDashboardStats() {
-  const db = getDb();
+export async function getDashboardStats() {
+  const db = await getDb();
   return {
     faculty: (db.prepare('SELECT COUNT(*) as c FROM faculty').get() as { c: number }).c,
     students: (db.prepare('SELECT COUNT(*) as c FROM students').get() as { c: number }).c,

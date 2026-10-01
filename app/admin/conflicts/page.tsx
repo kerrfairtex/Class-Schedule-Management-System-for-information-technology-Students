@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function AdminConflictsPage() {
-  const db = getDb();
+  const db = await getDb();
   const activeSemester = db
     .prepare(`SELECT id, name FROM semesters WHERE is_active = 1`)
     .get() as { id: number; name: string } | undefined;

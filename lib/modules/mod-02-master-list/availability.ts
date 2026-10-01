@@ -13,8 +13,8 @@ export interface FacultyAvailabilityRow {
   is_available: number;
 }
 
-export function getFacultyAvailability(facultyId?: number): FacultyAvailabilityRow[] {
-  const db = getDb();
+export async function getFacultyAvailability(facultyId?: number): Promise<FacultyAvailabilityRow[]> {
+  const db = await getDb();
   const sql = `
     SELECT
       f.id AS faculty_id,
@@ -35,13 +35,13 @@ export function getFacultyAvailability(facultyId?: number): FacultyAvailabilityR
   return (facultyId ? db.prepare(sql).all(facultyId) : db.prepare(sql).all()) as FacultyAvailabilityRow[];
 }
 
-export function setFacultyAvailability(
+export async function setFacultyAvailability(
   facultyId: number,
   timeSlotId: number,
   isAvailable: boolean,
   userId?: number
 ) {
-  const db = getDb();
+  const db = await getDb();
   const existing = db
     .prepare('SELECT id FROM faculty_availability WHERE faculty_id = ? AND time_slot_id = ?')
     .get(facultyId, timeSlotId);
@@ -67,14 +67,15 @@ export function setFacultyAvailability(
   );
 }
 
-export function getFacultyList(): Pick<Faculty, 'id' | 'employee_id' | 'first_name' | 'last_name'>[] {
-  return getDb()
+export async function getFacultyList(): Promise<Pick<Faculty, 'id' | 'employee_id' | 'first_name' | 'last_name'>[]> {
+  const db = await getDb();
+  return db
     .prepare('SELECT id, employee_id, first_name, last_name FROM faculty ORDER BY last_name')
     .all() as Pick<Faculty, 'id' | 'employee_id' | 'first_name' | 'last_name'>[];
 }
 
-export function getAvailabilityGrid(facultyId: number) {
-  const db = getDb();
+export async function getAvailabilityGrid(facultyId: number) {
+  const db = await getDb();
   const slots = db
     .prepare('SELECT * FROM time_slots ORDER BY day_of_week, start_time')
     .all() as TimeSlot[];

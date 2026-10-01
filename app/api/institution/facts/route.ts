@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const db = getDb();
+    const db = await getDb();
     const facts = db
       .prepare(
         `SELECT id, category, key, value, value_type, status, confidence,

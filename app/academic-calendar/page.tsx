@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function AcademicCalendarPage() {
-  const db = getDb();
+  const db = await getDb();
   const years = db
     .prepare(
       `SELECT id, label, start_date, end_date, is_active

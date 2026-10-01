@@ -33,7 +33,7 @@ async function main() {
 
   const username = args[0];
   
-  const db = getDb();
+  const db = await getDb();
   const user = db.prepare('SELECT id, username, role FROM users WHERE username = ?').get(username) as { id: number; username: string; role: string } | undefined;
   
   if (!user) {

@@ -79,7 +79,7 @@ export function requireSession(session: SessionUser | null): SessionUser {
 export async function changePassword(userId: number, newPassword: string, setMustChange: boolean = false): Promise<void> {
   const { getDb } = await import('@/lib/persistence/db');
   const { hashPassword } = await import('@/lib/modules/mod-01-auth/service');
-  const db = getDb();
+  const db = await getDb();
   const hash = hashPassword(newPassword);
   const flag = setMustChange ? 1 : 0;
   db.prepare(

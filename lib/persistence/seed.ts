@@ -29,9 +29,9 @@ function getEnvPassword(envKey: string, fallback: string): string {
   return fallback;
 }
 
-export function ensureSeeded() {
+export async function ensureSeeded() {
   if (seeded) return;
-  const db = getDb();
+  const db = await getDb();
 
   const deptCount = (db.prepare('SELECT COUNT(*) as c FROM departments').get() as { c: number }).c;
   if (deptCount === 0) {
@@ -277,7 +277,7 @@ export function ensureSeeded() {
  */
 export function ensureEvidenceSeeded(): void {
   if (evidenceSeeded) return;
-  const db = getDb();
+  const db = await getDb();
 
   const sourcesCount = (db.prepare('SELECT COUNT(*) as c FROM sources').get() as { c: number }).c;
   if (sourcesCount === 0) {

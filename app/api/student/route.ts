@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   }
 
   if (session?.role === 'student' && session.studentId) {
-    const db = getDb();
+    const db = await getDb();
     const student = db
       .prepare('SELECT s.*, sec.code AS section_code FROM students s JOIN sections sec ON sec.id = s.section_id WHERE s.id = ?')
       .get(session.studentId) as { section_id: number; section_code: string };
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   if (sectionCode) {
-    const db = getDb();
+    const db = await getDb();
     const section = db
       .prepare('SELECT * FROM sections WHERE code = ?')
       .get(sectionCode) as { id: number } | undefined;

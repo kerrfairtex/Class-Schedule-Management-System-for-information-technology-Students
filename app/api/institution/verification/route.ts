@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const db = getDb();
+    const db = await getDb();
 
     // Aggregate counts (spec §66 dashboard)
     const factsByStatus = db

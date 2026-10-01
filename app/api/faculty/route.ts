@@ -14,7 +14,7 @@ export async function GET() {
   const semester = getActiveSemester();
   if (!semester) return NextResponse.json({ schedules: [], faculty: null });
 
-  const db = getDb();
+  const db = await getDb();
   const faculty = db
     .prepare('SELECT * FROM faculty WHERE id = ?')
     .get(session.facultyId);
