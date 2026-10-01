@@ -38,6 +38,11 @@
   "exclude": [
     "node_modules",
     "ui",
-    "components/ui"
+    "components/ui",
+    "__tests__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "lib/persistence/test-db.ts",
+    "vitest.config.ts"
   ]
 }
