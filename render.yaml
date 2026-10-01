@@ -13,7 +13,9 @@ services:
       - key: CSMS_DATA_DIR
         value: /data/csms-data
       - key: DATABASE_URL
-        value: postgresql://postgres:4n=AgYHXO?%ESEKv@db.hoaimqynxhvyobcfqvfb.supabase.co:5432/postgres?options=search_path%3Dcsms
+        fromDatabase:
+          name: csms-db
+          property: connectionString
     buildCommand: npm ci && npm run build
     startCommand: node .next/standalone/server.js
     autoDeployTrigger: commit
@@ -23,3 +25,10 @@ services:
       sizeGB: 1
     previews:
       generation: automatic
+
+databases:
+  - name: csms-db
+    databaseName: csms
+    user: csms_user
+    plan: free
+    region: oregon
