@@ -250,13 +250,13 @@ export async function ensureSeeded() {
         // Update existing demo user's password hash and must_change_password flag
         db.prepare(
           'UPDATE users SET password_hash = ?, must_change_password = ?, faculty_id = ?, student_id = ? WHERE id = ?'
-        ).run(passwordHash, 1, resolvedFacultyId ?? null, resolvedStudentId ?? null, existingUser.id);
+        ).run(passwordHash, 0, resolvedFacultyId ?? null, resolvedStudentId ?? null, existingUser.id);
       } else {
         // Create new demo user
         db.prepare(
           `INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password)
            VALUES (?, ?, ?, ?, ?, ?)`
-        ).run(account.username, passwordHash, account.role, resolvedFacultyId ?? null, resolvedStudentId ?? null, 1);
+        ).run(account.username, passwordHash, account.role, resolvedFacultyId ?? null, resolvedStudentId ?? null, 0);
       }
     }
   }

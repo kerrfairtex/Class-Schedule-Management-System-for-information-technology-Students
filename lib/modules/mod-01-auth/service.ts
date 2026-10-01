@@ -16,14 +16,18 @@ export async function authenticate(username: string, password: string): Promise<
   const db = await getDb();
   const user = db
     .prepare('SELECT * FROM users WHERE username = ? AND is_active = 1')
-    .get(username) as User | undefined;
-  if (!user || !verifyPassword(password, user.password_hash)) return null;
-  return user;
+    .get(username) as Promise<User | undefined>;
+  // .get() may be async on the PostgreSQL adapter; await it.
+  const resolvedUser = await user;
+
+  if (!resolvedUser || !verifyPassword(password, resolvedUser.password_hash)) return null;
+  return resolvedUser;
 }
 
 export async function getUserById(id: number): User | null {
   const db = await getDb();
-  return (db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User) || null;
+  const row = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as Promise<User | undefined>;
+  return (await row) || null;
 }
 
 export async function createUser(data: {
@@ -53,16 +57,16 @@ export async function toSessionUser(user: User): SessionUser {
   let name = user.username;
 
   if (user.role === 'faculty' && user.faculty_id) {
-    const f = db
+    const f = await (db
       .prepare('SELECT first_name, last_name FROM faculty WHERE id = ?')
-      .get(user.faculty_id) as { first_name: string; last_name: string } | undefined;
+      .get(user.faculty_id) as Promise<{ first_name: string; last_name: string } | undefined>);
     if (f) name = `${f.first_name} ${f.last_name}`;
   }
 
   if (user.role === 'student' && user.student_id) {
-    const s = db
+    const s = await (db
       .prepare('SELECT first_name, last_name FROM students WHERE id = ?')
-      .get(user.student_id) as { first_name: string; last_name: string } | undefined;
+      .get(user.student_id) as Promise<{ first_name: string; last_name: string } | undefined>);
     if (s) name = `${s.first_name} ${s.last_name}`;
   }
 

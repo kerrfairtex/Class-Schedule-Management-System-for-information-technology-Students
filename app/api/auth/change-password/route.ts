@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Passwords do not match' }, { status: 400 });
   }
 
-  const user = getUserById(session.id);
+  const user = await getUserById(session.id);
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
