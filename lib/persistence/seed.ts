@@ -275,7 +275,7 @@ export async function ensureSeeded() {
  * Current institutional mission, Current institutional vision, Four-fold
  * institutional thrust, Official institutional contact channels."
  */
-export function ensureEvidenceSeeded(): void {
+export async function ensureEvidenceSeeded(): Promise<void> {
   if (evidenceSeeded) return;
   const db = await getDb();
 

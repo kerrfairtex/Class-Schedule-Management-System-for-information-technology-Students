@@ -10,9 +10,9 @@ export async function POST(request: Request) {
   }
 
   const seedToken = process.env.SEED_TOKEN;
-  // Fail closed: require a matching x-seed-token header in ALL environments
-  // unless SEED_TOKEN is explicitly set to 'disable' for local dev.
-  if (seedToken !== 'disable' && request.headers.get('x-seed-token') !== seedToken) {
+  // Fail closed: if SEED_TOKEN is set, require matching x-seed-token header.
+  // If SEED_TOKEN is unset, deny in all environments.
+  if (!seedToken || request.headers.get('x-seed-token') !== seedToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
