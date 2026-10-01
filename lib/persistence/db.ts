@@ -21,6 +21,16 @@ export function resetDb() {
   db = null;
 }
 
+/**
+ * Convert SQLite '?' placeholders to PostgreSQL '$1', '$2', ... ordinals.
+ * A counter is required because String.replace's callback 2nd arg is the
+ * match *index* (offset), not a sequential ordinal.
+ */
+function toPgSql(sql: string): string {
+  let n = 0;
+  return sql.replace(/\?/g, () => '$' + (++n));
+}
+
 // Lazy connect: DATABASE_URL read ONLY inside getDb(); not at import time.
 export async function getDb(): Promise<any> {
   if (!db) {
@@ -39,17 +49,20 @@ export async function getDb(): Promise<any> {
         const facade = {
           prepare: (sql: string) => ({
             get: async (...params: any[]) => {
-              const pgSql = sql.replace(/\?/g, (m: string, i: number) => '$' + (i + 1));
+              const pgSql = toPgSql(sql);
+
               const res = await client.query(pgSql, params);
               return res.rows[0] || null;
             },
             all: async (...params: any[]) => {
-              const pgSql = sql.replace(/\?/g, (m: string, i: number) => '$' + (i + 1));
+              const pgSql = toPgSql(sql);
+
               const res = await client.query(pgSql, params);
               return res.rows;
             },
             run: async (...params: any[]) => {
-              const pgSql = sql.replace(/\?/g, (m: string, i: number) => '$' + (i + 1));
+              const pgSql = toPgSql(sql);
+
               const res = await client.query(pgSql, params);
               return {
                 lastID: res.rows?.[0]?.id || null,
