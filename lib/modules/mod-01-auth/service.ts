@@ -17,7 +17,7 @@ export async function authenticate(username: string, password: string): Promise<
   const user = db
     .prepare('SELECT * FROM users WHERE username = ? AND is_active = 1')
     .get(username) as Promise<User | undefined>;
-  // .get() may be async on the PostgreSQL adapter; await it.
+  // .get() returns a Promise on the PostgreSQL adapter; await it for both backends.
   const resolvedUser = await user;
 
   if (!resolvedUser || !verifyPassword(password, resolvedUser.password_hash)) return null;
@@ -39,7 +39,7 @@ export async function createUser(data: {
   must_change_password?: number;
 }) {
   const db = await getDb();
-  db.prepare(
+  await db.prepare(
     `INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password)
      VALUES (?, ?, ?, ?, ?, ?)`
   ).run(
