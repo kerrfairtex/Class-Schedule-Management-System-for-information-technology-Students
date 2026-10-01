@@ -105,7 +105,7 @@ export async function GET(request: Request) {
     case 'subjects':
       return NextResponse.json(getSubjects());
     case 'sections': {
-      const semester = getActiveSemester();
+      const semester = await getActiveSemester();
       return NextResponse.json(semester ? getSections(semester.id) : []);
     }
     case 'rooms':
@@ -117,7 +117,7 @@ export async function GET(request: Request) {
     case 'semester':
       return NextResponse.json(getActiveSemester());
     case 'schedules': {
-      const semester = getActiveSemester();
+      const semester = await getActiveSemester();
       if (!semester) return NextResponse.json([]);
       const sectionId = searchParams.get('sectionId');
       if (sectionId) {
@@ -130,7 +130,7 @@ export async function GET(request: Request) {
     case 'time-slots':
       return NextResponse.json(getTimeSlots());
     case 'schedule-options': {
-      const semester = getActiveSemester();
+      const semester = await getActiveSemester();
       return NextResponse.json({
         sections: semester ? getSections(semester.id) : [],
         subjects: getSubjects(),
@@ -144,8 +144,8 @@ export async function GET(request: Request) {
       return NextResponse.json({
         programs: getPrograms(),
         departments: getDepartments(),
-        sections: (() => {
-          const semester = getActiveSemester();
+        sections: (async () => {
+          const semester = await getActiveSemester();
           return semester ? getSections(semester.id) : [];
         })(),
         buildings: getBuildings(),
@@ -168,7 +168,7 @@ export async function GET(request: Request) {
 
 async function getUsers() {
   const db = await getDb();
-  return db.prepare(`
+  return await db.prepare(`
     SELECT u.id, u.username, u.role, u.is_active, u.must_change_password,
            CASE
              WHEN u.role = 'faculty' THEN (SELECT employee_id FROM faculty WHERE id = u.faculty_id)
@@ -218,8 +218,8 @@ export async function POST(request: Request) {
         const validated = facultySchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid faculty payload');
         const { data, subjectIds, password } = validated.data;
-        const facultyId = createFaculty(data, subjectIds, session!.id);
-        createUser({
+        const facultyId = await createFaculty(data, subjectIds, session!.id);
+        await createUser({
           username: data.employee_id.toLowerCase(),
           password: password || 'faculty123',
           role: 'faculty',
@@ -242,8 +242,8 @@ export async function POST(request: Request) {
         const validated = studentSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid student payload');
         const { data, password } = validated.data;
-        const studentId = createStudent(data, session!.id);
-        createUser({
+        const studentId = await createStudent(data, session!.id);
+        await createUser({
           username: data.student_id,
           password: password || 'student123',
           role: 'student',
@@ -356,7 +356,7 @@ export async function POST(request: Request) {
         });
         const validated = generateSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid generate payload');
-        const semester = getActiveSemester();
+        const semester = await getActiveSemester();
         if (!semester) return NextResponse.json({ error: 'No active semester' }, { status: 400 });
         const g = validated.data;
         return NextResponse.json(generateSchedulesForSection(g.sectionId, semester.id, session!.id));
@@ -390,7 +390,7 @@ export async function POST(request: Request) {
         const validated = transitionSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid transition payload');
         const t = validated.data;
-        const result = transitionSchedule(
+        const result = await transitionSchedule(
           t.scheduleId,
           t.toStatus,
           session!.id,
@@ -409,7 +409,8 @@ export async function POST(request: Request) {
         const validated = resetSchema.safeParse(body);
         if (!validated.success) return invalidBody('Invalid reset payload');
         const r = validated.data;
-        const targetUser = await getDb().prepare('SELECT id FROM users WHERE username = ?').get(r.username) as { id: number } | undefined;
+        const _adminDb = await getDb();
+        const targetUser = await _adminDb.prepare('SELECT id FROM users WHERE username = ?').get(r.username) as { id: number } | undefined;
         if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
         const newPassword = r.newPassword || generateRandomPassword();
         await changePassword(targetUser.id, newPassword, true);

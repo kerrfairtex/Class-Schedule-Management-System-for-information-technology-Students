@@ -20,14 +20,14 @@ const SCHEDULE_SELECT = `
 
 export async function getSchedulesBySemester(semesterId: number): Promise<Schedule[]> {
   const db = await getDb();
-  return db
+  return await db
     .prepare(`${SCHEDULE_SELECT} WHERE s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`)
     .all(semesterId) as Schedule[];
 }
 
 export async function getSchedulesBySection(sectionId: number, semesterId: number): Promise<Schedule[]> {
   const db = await getDb();
-  return db
+  return await db
     .prepare(
       `${SCHEDULE_SELECT} WHERE s.section_id = ? AND s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`
     )
@@ -36,7 +36,7 @@ export async function getSchedulesBySection(sectionId: number, semesterId: numbe
 
 export async function getSchedulesByFaculty(facultyId: number, semesterId: number): Promise<Schedule[]> {
   const db = await getDb();
-  return db
+  return await db
     .prepare(
       `${SCHEDULE_SELECT} WHERE s.faculty_id = ? AND s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`
     )
@@ -44,13 +44,13 @@ export async function getSchedulesByFaculty(facultyId: number, semesterId: numbe
 }
 
 export async function createSchedule(input: ScheduleInput, userId?: number): Promise<Schedule> {
-  const conflict = detectConflicts(input);
+  const conflict = await detectConflicts(input);
   if (conflict.hasBlockingConflict) {
     throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
   const db = await getDb();
-  const result = db
+  const result = await db
     .prepare(
       `INSERT INTO schedules (section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id)
        VALUES (?, ?, ?, ?, ?, ?)`
@@ -65,7 +65,7 @@ export async function createSchedule(input: ScheduleInput, userId?: number): Pro
     );
 
   logAudit(userId ?? null, 'CREATE', 'schedule', Number(result.lastInsertRowid), JSON.stringify(input));
-  return db
+  return await db
     .prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`)
     .get(result.lastInsertRowid) as Schedule;
 }
@@ -75,7 +75,7 @@ export async function updateScheduleTimeSlot(
   timeSlotId: number,
   userId?: number
 ): Promise<Schedule> {
-  const conflict = validateScheduleMove(scheduleId, timeSlotId);
+  const conflict = await validateScheduleMove(scheduleId, timeSlotId);
   if (conflict.hasBlockingConflict) {
     throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
@@ -86,12 +86,12 @@ export async function updateScheduleTimeSlot(
   ).run(timeSlotId, scheduleId);
 
   logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}`);
-  return db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(scheduleId) as Schedule;
+  return await db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(scheduleId) as Schedule;
 }
 
 export async function deleteSchedule(scheduleId: number, userId?: number) {
   const db = await getDb();
-  db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
+  await db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
   logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
 }
 
@@ -140,7 +140,7 @@ export interface TransitionResult {
 
 async function currentStatus(scheduleId: number): Promise<ScheduleStatus | null> {
   const db = await getDb();
-  const row = db
+  const row = await db
     .prepare('SELECT status FROM schedules WHERE id = ?')
     .get(scheduleId) as { status: ScheduleStatus } | undefined;
   return row?.status ?? null;
@@ -167,7 +167,7 @@ export async function transitionSchedule(
 
   // Spec section 34: PUBLISH requires no blocking conflicts
   if (toStatus === 'PUBLISHED') {
-    const v = validateForPublish(scheduleId);
+    const v = await validateForPublish(scheduleId);
     if (v.hasBlockingConflict) {
       return {
         ok: false,
@@ -207,17 +207,17 @@ export async function generateSchedulesForSection(
   userId?: number
 ): Promise<{ created: number; errors: string[] }> {
   const db = await getDb();
-  const section = db
+  const section = await db
     .prepare('SELECT * FROM sections WHERE id = ?')
     .get(sectionId) as { program_id: number; year_level: number } | undefined;
   if (!section) throw new Error('Section not found');
 
-  const semester = db
+  const semester = await db
     .prepare('SELECT name FROM semesters WHERE id = ?')
     .get(semesterId) as { name: string } | undefined;
   const semesterNumber = semester?.name.includes('1') ? 1 : 2;
 
-  const subjects = db
+  const subjects = await db
     .prepare(
       `SELECT c.subject_id, s.code, s.name, s.credit_hours
        FROM curriculum c JOIN subjects s ON s.id = c.subject_id
@@ -243,15 +243,15 @@ export async function generateSchedulesForSection(
 
   return withTransaction(async () => {
     for (const subject of subjects) {
-      const existing = db
-        .prepare(
+      const existing = await db
+    .prepare(
           'SELECT id FROM schedules WHERE section_id = ? AND subject_id = ? AND semester_id = ?'
         )
         .get(sectionId, subject.subject_id, semesterId);
       if (existing) continue;
 
-      const facultyList = db
-        .prepare(
+      const facultyList = await db
+    .prepare(
           `SELECT f.id FROM faculty f
            JOIN faculty_subjects fs ON fs.faculty_id = f.id
            WHERE fs.subject_id = ?`
@@ -275,7 +275,7 @@ export async function generateSchedulesForSection(
               time_slot_id: slot.id,
               semester_id: semesterId,
             };
-            const conflict = detectConflicts(input);
+            const conflict = await detectConflicts(input);
             // Per spec §33/§34: blocking conflicts prevent creation; non-blocking
             // (e.g. availability) are tolerated.
             if (!conflict.hasBlockingConflict) {

@@ -11,14 +11,14 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const semester = getActiveSemester();
+  const semester = await getActiveSemester();
   if (!semester) return NextResponse.json({ schedules: [], faculty: null });
 
   const db = await getDb();
-  const faculty = db
+  const faculty = await db
     .prepare('SELECT * FROM faculty WHERE id = ?')
     .get(session.facultyId);
 
-  const schedules = getSchedulesByFaculty(session.facultyId, semester.id);
+  const schedules = await getSchedulesByFaculty(session.facultyId, semester.id);
   return NextResponse.json({ faculty, schedules, semester });
 }
