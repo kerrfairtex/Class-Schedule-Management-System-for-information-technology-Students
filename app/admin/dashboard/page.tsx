@@ -11,12 +11,12 @@ export default async function AdminDashboardPage() {
   const session = await getSession();
   if (!session || session.role !== 'admin') redirect('/login');
 
-  const stats = getDashboardStats();
-  const semester = getActiveSemester();
-  const academicYear = getActiveAcademicYear();
+  const stats = await getDashboardStats();
+  const semester = await getActiveSemester();
+  const academicYear = await getActiveAcademicYear();
 
   // Count conflicts for telemetry
-  const schedules = getSchedulesBySemester(semester?.id || 0);
+  const schedules = await getSchedulesBySemester(semester?.id || 0);
   const conflicts = detectConflictsCount(schedules);
 
   const adminLinks = [
