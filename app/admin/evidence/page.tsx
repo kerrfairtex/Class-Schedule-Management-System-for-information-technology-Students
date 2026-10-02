@@ -55,7 +55,7 @@ export default async function AdminEvidencePage() {
   const overdue = await db
     .prepare(
       `SELECT COUNT(*) as c FROM institutional_facts
-       WHERE review_due_at IS NOT NULL AND review_due_at < date('now')`
+       WHERE review_due_at IS NOT NULL AND review_due_at < CURRENT_DATE::text`
     )
     .get() as { c: number };
 

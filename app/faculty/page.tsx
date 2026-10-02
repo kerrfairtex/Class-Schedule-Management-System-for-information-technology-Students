@@ -14,7 +14,7 @@ export default async function FacultyPage() {
       `SELECT f.id, f.employee_id, f.first_name, f.last_name, f.email, f.phone,
               f.data_environment,
               d.code as dept_code,
-              (SELECT GROUP_CONCAT(sub.code, ', ')
+              (SELECT string_agg(sub.code, ', ')
                  FROM faculty_subjects fs JOIN subjects sub ON sub.id = fs.subject_id
                  WHERE fs.faculty_id = f.id) as subjects
        FROM faculty f
