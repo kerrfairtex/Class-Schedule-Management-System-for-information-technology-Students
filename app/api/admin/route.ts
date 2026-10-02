@@ -97,70 +97,69 @@ export async function GET(request: Request) {
 
   switch (resource) {
     case 'stats':
-      return NextResponse.json(getDashboardStats());
+      return NextResponse.json(await getDashboardStats());
     case 'faculty':
-      return NextResponse.json(getFaculty());
+      return NextResponse.json(await getFaculty());
     case 'students':
-      return NextResponse.json(getStudents());
+      return NextResponse.json(await getStudents());
     case 'subjects':
-      return NextResponse.json(getSubjects());
+      return NextResponse.json(await getSubjects());
     case 'sections': {
       const semester = await getActiveSemester();
-      return NextResponse.json(semester ? getSections(semester.id) : []);
+      return NextResponse.json(semester ? await getSections(semester.id) : []);
     }
     case 'rooms':
-      return NextResponse.json(getRooms());
+      return NextResponse.json(await getRooms());
     case 'buildings':
-      return NextResponse.json(getBuildings());
+      return NextResponse.json(await getBuildings());
     case 'curriculum':
-      return NextResponse.json(getCurriculum());
+      return NextResponse.json(await getCurriculum());
     case 'semester':
-      return NextResponse.json(getActiveSemester());
+      return NextResponse.json(await getActiveSemester());
     case 'schedules': {
       const semester = await getActiveSemester();
       if (!semester) return NextResponse.json([]);
       const sectionId = searchParams.get('sectionId');
       if (sectionId) {
-        return NextResponse.json(getSchedulesBySection(Number(sectionId), semester.id));
+        return NextResponse.json(await getSchedulesBySection(Number(sectionId), semester.id));
       }
-      return NextResponse.json(getSchedulesBySemester(semester.id));
+      return NextResponse.json(await getSchedulesBySemester(semester.id));
     }
     case 'audit':
-      return NextResponse.json(getAuditLogs());
+      return NextResponse.json(await getAuditLogs());
     case 'time-slots':
-      return NextResponse.json(getTimeSlots());
+      return NextResponse.json(await getTimeSlots());
     case 'schedule-options': {
       const semester = await getActiveSemester();
       return NextResponse.json({
-        sections: semester ? getSections(semester.id) : [],
-        subjects: getSubjects(),
-        faculty: getFaculty(),
-        rooms: getRooms(),
-        timeSlots: getTimeSlots(),
+        sections: semester ? await getSections(semester.id) : [],
+        subjects: await getSubjects(),
+        faculty: await getFaculty(),
+        rooms: await getRooms(),
+        timeSlots: await getTimeSlots(),
         semester,
       });
     }
-    case 'meta':
+    case 'meta': {
+      const semester = await getActiveSemester();
       return NextResponse.json({
-        programs: getPrograms(),
-        departments: getDepartments(),
-        sections: (async () => {
-          const semester = await getActiveSemester();
-          return semester ? getSections(semester.id) : [];
-        })(),
-        buildings: getBuildings(),
-        subjects: getSubjects(),
-        semester: getActiveSemester(),
+        programs: await getPrograms(),
+        departments: await getDepartments(),
+        sections: semester ? await getSections(semester.id) : [],
+        buildings: await getBuildings(),
+        subjects: await getSubjects(),
+        semester,
       });
+    }
     case 'faculty-list':
-      return NextResponse.json(getFacultyList());
+      return NextResponse.json(await getFacultyList());
     case 'availability': {
       const facultyId = Number(searchParams.get('facultyId'));
       if (!facultyId) return NextResponse.json({ error: 'facultyId required' }, { status: 400 });
-      return NextResponse.json(getAvailabilityGrid(facultyId));
+      return NextResponse.json(await getAvailabilityGrid(facultyId));
     }
     case 'users':
-      return NextResponse.json(getUsers());
+      return NextResponse.json(await getUsers());
     default:
       return NextResponse.json({ error: 'Unknown resource' }, { status: 400 });
   }
