@@ -33,7 +33,7 @@ export default async function AdminEvidencePage() {
   const db = await getDb();
   const facts = await db
     .prepare(
-      `SELECT id, category, key, value, status, confidence, verified_at, review_due_at, source_id
+      `SELECT id, category, key, value, status, confidence, verified_at, review_due_at, NULL::text AS source_id
        FROM institutional_facts
        ORDER BY status, category, key`
     )
