@@ -258,12 +258,18 @@ export async function ensureTimeSlots() {
 
 export async function getDashboardStats() {
   const db = await getDb();
+  const facultyRow = await db.prepare('SELECT COUNT(*) as c FROM faculty').get() as { c: number } | null;
+  const studentsRow = await db.prepare('SELECT COUNT(*) as c FROM students').get() as { c: number } | null;
+  const subjectsRow = await db.prepare('SELECT COUNT(*) as c FROM subjects').get() as { c: number } | null;
+  const sectionsRow = await db.prepare('SELECT COUNT(*) as c FROM sections').get() as { c: number } | null;
+  const roomsRow = await db.prepare('SELECT COUNT(*) as c FROM rooms').get() as { c: number } | null;
+  const schedulesRow = await db.prepare('SELECT COUNT(*) as c FROM schedules').get() as { c: number } | null;
   return {
-    faculty: (db.prepare('SELECT COUNT(*) as c FROM faculty').get() as { c: number }).c,
-    students: (db.prepare('SELECT COUNT(*) as c FROM students').get() as { c: number }).c,
-    subjects: (db.prepare('SELECT COUNT(*) as c FROM subjects').get() as { c: number }).c,
-    sections: (db.prepare('SELECT COUNT(*) as c FROM sections').get() as { c: number }).c,
-    rooms: (db.prepare('SELECT COUNT(*) as c FROM rooms').get() as { c: number }).c,
-    schedules: (db.prepare('SELECT COUNT(*) as c FROM schedules').get() as { c: number }).c,
+    faculty: facultyRow?.c ?? 0,
+    students: studentsRow?.c ?? 0,
+    subjects: subjectsRow?.c ?? 0,
+    sections: sectionsRow?.c ?? 0,
+    rooms: roomsRow?.c ?? 0,
+    schedules: schedulesRow?.c ?? 0,
   };
 }
