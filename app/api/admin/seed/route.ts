@@ -3,7 +3,6 @@ import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
 
 const DATABASE_URL = process.env.DATABASE_URL;
-console.log('DBURL', JSON.stringify((DATABASE_URL||'').slice(0,14)), (DATABASE_URL||'').length);
 
 export async function POST(request: Request) {
   if (!DATABASE_URL) {
