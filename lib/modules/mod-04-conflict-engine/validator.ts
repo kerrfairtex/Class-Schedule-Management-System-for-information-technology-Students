@@ -22,7 +22,7 @@ export async function detectConflicts(
     : [input.time_slot_id, input.semester_id];
 
   // ── Faculty conflict (BLOCKING) — spec §33 ──────────────────────────
-  const facultyConflict = db
+  const facultyConflict = await db
     .prepare(
       `SELECT id FROM schedules
        WHERE faculty_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}`
@@ -38,7 +38,7 @@ export async function detectConflicts(
   }
 
   // ── Room conflict (BLOCKING) — spec §33 ─────────────────────────────
-  const roomConflict = db
+  const roomConflict = await db
     .prepare(
       `SELECT id FROM schedules
        WHERE room_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}`
@@ -54,7 +54,7 @@ export async function detectConflicts(
   }
 
   // ── Section conflict (BLOCKING) — spec §33 ──────────────────────────
-  const sectionConflict = db
+  const sectionConflict = await db
     .prepare(
       `SELECT id FROM schedules
        WHERE section_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}`
@@ -71,10 +71,10 @@ export async function detectConflicts(
 
   // ── Capacity conflict (BLOCKING) — spec §33 ─────────────────────────
   // Section capacity should not exceed room capacity.
-  const sectionRow = db
+  const sectionRow = await db
     .prepare('SELECT capacity FROM sections WHERE id = ?')
     .get(input.section_id) as { capacity: number | null } | undefined;
-  const roomRow = db
+  const roomRow = await db
     .prepare('SELECT capacity FROM rooms WHERE id = ?')
     .get(input.room_id) as { capacity: number | null } | undefined;
   if (
@@ -94,7 +94,7 @@ export async function detectConflicts(
 
   // ── Faculty availability (NON-BLOCKING) — spec §33 ──────────────────
   // Listed as a conflict but doesn't block publication — admin may override.
-  const availability = db
+  const availability = await db
     .prepare(
       `SELECT is_available FROM faculty_availability
        WHERE faculty_id = ? AND time_slot_id = ?`
@@ -121,7 +121,7 @@ export async function validateScheduleMove(
   newTimeSlotId: number
 ): Promise<ConflictResult> {
   const db = await getDb();
-  const schedule = db
+  const schedule = await db
     .prepare('SELECT * FROM schedules WHERE id = ?')
     .get(scheduleId) as (ScheduleInput & { id: number }) | undefined;
   if (!schedule) {
@@ -157,7 +157,7 @@ export async function detectAllConflictsInSemester(semesterId: number): Promise<
   conflicts: Conflict[];
 }>> {
   const db = await getDb();
-  const schedules = db
+  const schedules = await db
     .prepare(
       `SELECT id, section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id
        FROM schedules
@@ -183,7 +183,7 @@ export async function detectAllConflictsInSemester(semesterId: number): Promise<
  */
 export async function validateForPublish(scheduleId: number): Promise<ConflictResult> {
   const db = await getDb();
-  const schedule = db
+  const schedule = await db
     .prepare('SELECT * FROM schedules WHERE id = ?')
     .get(scheduleId) as (ScheduleInput & { id: number }) | undefined;
   if (!schedule) {

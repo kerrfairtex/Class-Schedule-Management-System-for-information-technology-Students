@@ -32,7 +32,7 @@ export default async function AdminSchedulesPage() {
     .get() as { id: number; name: string } | undefined;
 
   const schedules = activeSemester
-    ? (db
+    ? (await db
         .prepare(
           `SELECT s.id, s.status, s.published_at, s.approved_by,
                   sub.code as subject_code, sub.name as subject_name,
