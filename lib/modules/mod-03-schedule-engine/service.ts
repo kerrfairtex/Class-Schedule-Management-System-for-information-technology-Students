@@ -64,7 +64,7 @@ export async function createSchedule(input: ScheduleInput, userId?: number): Pro
       input.semester_id
     );
 
-  logAudit(userId ?? null, 'CREATE', 'schedule', Number(result.lastInsertRowid), JSON.stringify(input));
+  await logAudit(userId ?? null, 'CREATE', 'schedule', Number(result.lastInsertRowid), JSON.stringify(input));
   return await db
     .prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`)
     .get(result.lastInsertRowid) as Schedule;
@@ -85,14 +85,14 @@ export async function updateScheduleTimeSlot(
     'UPDATE schedules SET time_slot_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
   ).run(timeSlotId, scheduleId);
 
-  logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}`);
+  await logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}`);
   return await db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(scheduleId) as Schedule;
 }
 
 export async function deleteSchedule(scheduleId: number, userId?: number) {
   const db = await getDb();
   await db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
-  logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
+  await logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
 }
 
 /**
@@ -190,7 +190,7 @@ export async function transitionSchedule(
      WHERE id = ?`
   ).run(toStatus, scheduleId);
 
-  logAudit(
+  await logAudit(
     userId ?? null,
     `${toStatus}`,
     'schedule',

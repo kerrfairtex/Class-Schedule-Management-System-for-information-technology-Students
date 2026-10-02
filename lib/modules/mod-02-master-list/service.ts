@@ -64,7 +64,7 @@ export async function getBuildings(): Promise<Building[]> {
 export async function createBuilding(code: string, name: string, userId?: number) {
   const db = await getDb();
   const result = await db.prepare('INSERT INTO buildings (code, name) VALUES (?, ?)').run(code, name);
-  logAudit(userId ?? null, 'CREATE', 'building', Number(result.lastInsertRowid));
+  await logAudit(userId ?? null, 'CREATE', 'building', Number(result.lastInsertRowid));
 }
 
 export async function getRooms(): Promise<Room[]> {
@@ -88,7 +88,7 @@ export async function createRoom(
   const result = await db
     .prepare('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)')
     .run(buildingId, code, name, capacity);
-  logAudit(userId ?? null, 'CREATE', 'room', Number(result.lastInsertRowid));
+  await logAudit(userId ?? null, 'CREATE', 'room', Number(result.lastInsertRowid));
 }
 
 // Subjects & Curriculum
@@ -108,7 +108,7 @@ export async function createSubject(
   const result = await db
     .prepare('INSERT INTO subjects (code, name, credit_hours, program_id) VALUES (?, ?, ?, ?)')
     .run(code, name, creditHours, programId);
-  logAudit(userId ?? null, 'CREATE', 'subject', Number(result.lastInsertRowid));
+  await logAudit(userId ?? null, 'CREATE', 'subject', Number(result.lastInsertRowid));
 }
 
 export async function getCurriculum(programId?: number): Promise<Curriculum[]> {
@@ -138,7 +138,7 @@ export async function addCurriculumEntry(
        VALUES (?, ?, ?, ?)`
     )
     .run(programId, subjectId, yearLevel, semesterNumber);
-  logAudit(userId ?? null, 'CREATE', 'curriculum', Number(result.lastInsertRowid));
+  await logAudit(userId ?? null, 'CREATE', 'curriculum', Number(result.lastInsertRowid));
 }
 
 // Sections
@@ -165,7 +165,7 @@ export async function createSection(
       'INSERT INTO sections (code, program_id, year_level, semester_id) VALUES (?, ?, ?, ?)'
     )
     .run(code, programId, yearLevel, semesterId);
-  logAudit(userId ?? null, 'CREATE', 'section', Number(result.lastInsertRowid));
+  await logAudit(userId ?? null, 'CREATE', 'section', Number(result.lastInsertRowid));
 }
 
 // Faculty
@@ -202,7 +202,7 @@ export async function createFaculty(
   for (const subjectId of subjectIds) {
     insertSubject.run(facultyId, subjectId);
   }
-  logAudit(userId ?? null, 'CREATE', 'faculty', facultyId);
+  await logAudit(userId ?? null, 'CREATE', 'faculty', facultyId);
   return facultyId;
 }
 
@@ -229,7 +229,7 @@ export async function createStudent(
        VALUES (?, ?, ?, ?, ?)`
     )
     .run(data.student_id, data.first_name, data.last_name, data.email, data.section_id);
-  logAudit(userId ?? null, 'CREATE', 'student', Number(result.lastInsertRowid));
+  await logAudit(userId ?? null, 'CREATE', 'student', Number(result.lastInsertRowid));
   return Number(result.lastInsertRowid);
 }
 

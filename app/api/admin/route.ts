@@ -414,7 +414,7 @@ export async function POST(request: Request) {
         if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
         const newPassword = r.newPassword || generateRandomPassword();
         await changePassword(targetUser.id, newPassword, true);
-        logAudit(session!.id, 'RESET_PASSWORD', 'user', targetUser.id);
+        await logAudit(session!.id, 'RESET_PASSWORD', 'user', targetUser.id);
         return NextResponse.json({ success: true, newPassword });
       }
       default:

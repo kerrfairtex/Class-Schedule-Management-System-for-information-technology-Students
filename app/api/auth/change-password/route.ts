@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
   try {
     await changePassword(session.id, newPassword);
-    logAudit(session.id, 'CHANGE_PASSWORD', 'user', session.id);
+    await logAudit(session.id, 'CHANGE_PASSWORD', 'user', session.id);
     
     // Set the updated session cookie directly on the response
     const updatedSession = { ...session, mustChangePassword: false };
