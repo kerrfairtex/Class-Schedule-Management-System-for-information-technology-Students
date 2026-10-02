@@ -35,7 +35,7 @@ export async function getAcademicYears(): Promise<AcademicYear[]> {
 
 export async function getActiveAcademicYear(): Promise<AcademicYear | null> {
   const db = await getDb();
-  const ay = db.prepare('SELECT * FROM academic_years WHERE is_active = 1 LIMIT 1').get() as AcademicYear | undefined;
+  const ay = await db.prepare('SELECT * FROM academic_years WHERE is_active = 1 LIMIT 1').get() as AcademicYear | undefined;
   return ay ?? null;
 }
 
@@ -51,7 +51,7 @@ export async function getSemesters(academicYearId?: number): Promise<Semester[]>
 
 export async function getActiveSemester(): Promise<Semester | null> {
   const db = await getDb();
-  const sem = db.prepare('SELECT * FROM semesters WHERE is_active = 1 LIMIT 1').get() as Semester | undefined;
+  const sem = await db.prepare('SELECT * FROM semesters WHERE is_active = 1 LIMIT 1').get() as Semester | undefined;
   return sem ?? null;
 }
 
@@ -63,7 +63,7 @@ export async function getBuildings(): Promise<Building[]> {
 
 export async function createBuilding(code: string, name: string, userId?: number) {
   const db = await getDb();
-  const result = db.prepare('INSERT INTO buildings (code, name) VALUES (?, ?)').run(code, name);
+  const result = await db.prepare('INSERT INTO buildings (code, name) VALUES (?, ?)').run(code, name);
   logAudit(userId ?? null, 'CREATE', 'building', Number(result.lastInsertRowid));
 }
 
@@ -85,7 +85,7 @@ export async function createRoom(
   userId?: number
 ) {
   const db = await getDb();
-  const result = db
+  const result = await db
     .prepare('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)')
     .run(buildingId, code, name, capacity);
   logAudit(userId ?? null, 'CREATE', 'room', Number(result.lastInsertRowid));
@@ -105,7 +105,7 @@ export async function createSubject(
   userId?: number
 ) {
   const db = await getDb();
-  const result = db
+  const result = await db
     .prepare('INSERT INTO subjects (code, name, credit_hours, program_id) VALUES (?, ?, ?, ?)')
     .run(code, name, creditHours, programId);
   logAudit(userId ?? null, 'CREATE', 'subject', Number(result.lastInsertRowid));
@@ -132,7 +132,7 @@ export async function addCurriculumEntry(
   userId?: number
 ) {
   const db = await getDb();
-  const result = db
+  const result = await db
     .prepare(
       `INSERT INTO curriculum (program_id, subject_id, year_level, semester_number)
        VALUES (?, ?, ?, ?)`
@@ -160,7 +160,7 @@ export async function createSection(
   userId?: number
 ) {
   const db = await getDb();
-  const result = db
+  const result = await db
     .prepare(
       'INSERT INTO sections (code, program_id, year_level, semester_id) VALUES (?, ?, ?, ?)'
     )
@@ -182,7 +182,7 @@ export async function createFaculty(
   userId?: number
 ) {
   const db = await getDb();
-  const result = db
+  const result = await db
     .prepare(
       `INSERT INTO faculty (employee_id, first_name, last_name, email, phone, department_id)
        VALUES (?, ?, ?, ?, ?, ?)`
@@ -223,7 +223,7 @@ export async function createStudent(
   userId?: number
 ) {
   const db = await getDb();
-  const result = db
+  const result = await db
     .prepare(
       `INSERT INTO students (student_id, first_name, last_name, email, section_id)
        VALUES (?, ?, ?, ?, ?)`

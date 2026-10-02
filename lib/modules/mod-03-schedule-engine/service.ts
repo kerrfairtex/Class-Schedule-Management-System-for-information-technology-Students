@@ -81,7 +81,7 @@ export async function updateScheduleTimeSlot(
   }
 
   const db = await getDb();
-  db.prepare(
+  await db.prepare(
     'UPDATE schedules SET time_slot_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
   ).run(timeSlotId, scheduleId);
 
@@ -184,7 +184,7 @@ export async function transitionSchedule(
     ? `, approved_by = ${userName ? `'${userName.replace(/'/g, "''")}'` : 'NULL'}`
     : '';
 
-  db.prepare(
+  await db.prepare(
     `UPDATE schedules
      SET status = ?, updated_at = CURRENT_TIMESTAMP ${setPublishedAt} ${setApprover}
      WHERE id = ?`
@@ -230,10 +230,10 @@ export async function generateSchedulesForSection(
     credit_hours: number;
   }[];
 
-  const timeSlots = db.prepare('SELECT id FROM time_slots ORDER BY day_of_week, start_time').all() as {
+  const timeSlots = await db.prepare('SELECT id FROM time_slots ORDER BY day_of_week, start_time').all() as {
     id: number;
   }[];
-  const rooms = db.prepare('SELECT id, capacity FROM rooms ORDER BY capacity DESC').all() as {
+  const rooms = await db.prepare('SELECT id, capacity FROM rooms ORDER BY capacity DESC').all() as {
     id: number;
     capacity: number;
   }[];

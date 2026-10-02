@@ -8,7 +8,7 @@ export async function logAudit(
   details?: string
 ) {
   const db = await getDb();
-  db.prepare(
+  await db.prepare(
     `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
      VALUES (?, ?, ?, ?, ?)`
   ).run(userId, action, entityType ?? null, entityId ?? null, details ?? null);

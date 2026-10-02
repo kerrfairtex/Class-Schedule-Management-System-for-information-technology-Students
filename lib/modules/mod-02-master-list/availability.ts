@@ -42,23 +42,23 @@ export async function setFacultyAvailability(
   userId?: number
 ) {
   const db = await getDb();
-  const existing = db
+  const existing = await db
     .prepare('SELECT id FROM faculty_availability WHERE faculty_id = ? AND time_slot_id = ?')
     .get(facultyId, timeSlotId);
 
   if (existing) {
-    db.prepare('UPDATE faculty_availability SET is_available = ? WHERE faculty_id = ? AND time_slot_id = ?').run(
+    await db.prepare('UPDATE faculty_availability SET is_available = ? WHERE faculty_id = ? AND time_slot_id = ?').run(
       isAvailable ? 1 : 0,
       facultyId,
       timeSlotId
     );
   } else {
-    db.prepare(
+    await db.prepare(
       'INSERT INTO faculty_availability (faculty_id, time_slot_id, is_available) VALUES (?, ?, ?)'
     ).run(facultyId, timeSlotId, isAvailable ? 1 : 0);
   }
 
-  logAudit(
+  await logAudit(
     userId ?? null,
     'UPDATE',
     'faculty_availability',
@@ -76,11 +76,11 @@ export async function getFacultyList(): Promise<Pick<Faculty, 'id' | 'employee_i
 
 export async function getAvailabilityGrid(facultyId: number) {
   const db = await getDb();
-  const slots = db
+  const slots = await db
     .prepare('SELECT * FROM time_slots ORDER BY day_of_week, start_time')
     .all() as TimeSlot[];
 
-  const availability = db
+  const availability = await db
     .prepare('SELECT time_slot_id, is_available FROM faculty_availability WHERE faculty_id = ?')
     .all(facultyId) as { time_slot_id: number; is_available: number }[];
 
