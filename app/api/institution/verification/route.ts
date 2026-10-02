@@ -8,13 +8,13 @@ export async function GET() {
     const db = await getDb();
 
     // Aggregate counts (spec §66 dashboard)
-    const factsByStatus = db
+    const factsByStatus = await db
       .prepare(`SELECT status, COUNT(*) as c FROM institutional_facts GROUP BY status`)
       .all() as Array<{ status: string; c: number }>;
-    const sourcesByLevel = db
+    const sourcesByLevel = await db
       .prepare(`SELECT authority_level, COUNT(*) as c FROM sources GROUP BY authority_level`)
       .all() as Array<{ authority_level: number; c: number }>;
-    const total = db
+    const total = await db
       .prepare(`SELECT
         (SELECT COUNT(*) FROM institutional_facts) as facts,
         (SELECT COUNT(*) FROM sources) as sources,
@@ -22,7 +22,7 @@ export async function GET() {
       .get() as { facts: number; sources: number; review_overdue: number };
 
     // Last verification baseline (system setting)
-    const baseline = db
+    const baseline = await db
       .prepare(`SELECT value FROM system_settings WHERE key = 'verification_baseline'`)
       .get() as { value: string } | undefined;
 

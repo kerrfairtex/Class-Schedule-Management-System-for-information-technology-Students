@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const db = await getDb();
-    const sources = db
+    const sources = await db
       .prepare(
         `SELECT id, title, source_type, authority_level, publisher, url,
                 document_date, accessed_at, status, notes

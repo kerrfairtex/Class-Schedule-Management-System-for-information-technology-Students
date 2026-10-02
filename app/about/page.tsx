@@ -10,7 +10,7 @@ export const metadata = {
 export default async function AboutPage() {
   // Read institutional facts from DB
   const db = await getDb();
-  const facts = db
+  const facts = await db
     .prepare(
       `SELECT key, value, status FROM institutional_facts
        WHERE category IN ('institution','identity','organization','programs')
