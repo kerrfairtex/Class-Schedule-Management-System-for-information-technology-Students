@@ -67,9 +67,14 @@ export function MasterListForm({
   const editId = editing ? editing.id : null;
   const editValues = editing ? editing.values : {};
 
-  useEffect(() => {
+  // Clear stale field errors when the tab changes. Same render-time
+  // adjustment pattern as the page: React discards this render output and
+  // re-renders immediately, so no cascading render is scheduled.
+  const [lastTab, setLastTab] = useState(tab);
+  if (lastTab !== tab) {
+    setLastTab(tab);
     setFieldErrors({});
-  }, [tab]);
+  }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

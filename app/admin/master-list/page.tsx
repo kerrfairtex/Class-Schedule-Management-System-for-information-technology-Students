@@ -62,12 +62,17 @@ export default function MasterListPage() {
   }, []);
 
   // Switching tabs always closes the form and drops any edit selection.
-  useEffect(() => {
+  // This is the "adjust state during render" pattern: React re-renders the
+  // component immediately and discards the render output, so no cascading
+  // render is scheduled (unlike setState inside an effect).
+  const [lastTab, setLastTab] = useState<Tab>(tab);
+  if (lastTab !== tab) {
+    setLastTab(tab);
     setShowForm(false);
     setEditing(null);
     setMessage('');
     setError('');
-  }, [tab]);
+  }
 
   async function handleBackup() {
     const res = await fetch('/api/admin', {
