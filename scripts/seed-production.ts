@@ -1,4 +1,5 @@
 import { getDb, initSchema } from '@/lib/persistence/db';
+import { assertNotProductionDatabase } from '@/lib/guards/production-database';
 import { createUser, hashPassword } from '@/lib/modules/mod-01-auth/service';
 import { ensureTimeSlots } from '@/lib/modules/mod-02-master-list/service';
 import { DAYS, TIME_SLOTS, ORGANIZATION } from '@/lib/domain/constants';
@@ -13,6 +14,8 @@ function getEnvPassword(envKey: string, fallback: string): string {
 }
 
 async function main() {
+  // Refuse to write to the production database by accident.
+  assertNotProductionDatabase();
   const db = await getDb();
   
   // Initialize schema if needed

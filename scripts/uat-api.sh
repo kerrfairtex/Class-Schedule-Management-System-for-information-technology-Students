@@ -5,6 +5,27 @@ set -euo pipefail
 
 BASE="${1:-http://localhost:3000}"
 COOKIE_JAR=$(mktemp)
+
+# ---------------------------------------------------------------------------
+# Guard: this script CREATES and DELETES records through the admin API.
+# Running it against the live site would modify production data, so it
+# refuses a non-localhost target unless it is opted in deliberately.
+# ---------------------------------------------------------------------------
+ALLOW_FLAG="CSMS_ALLOW_PRODUCTION_WRITES"
+case "$BASE" in
+  http://localhost:*|http://127.0.0.1:*)
+    ;;
+  *)
+    if [ "${CSMS_ALLOW_PRODUCTION_WRITES:-0}" != "1" ]; then
+      echo "[guard] REFUSING TO RUN: this script creates and deletes records." >&2
+      echo "[guard] Target '$BASE' is not a local server." >&2
+      echo "[guard] Point it at http://localhost:3000, or set $ALLOW_FLAG=1" >&2
+      echo "[guard] if you deliberately want to run it against the live site." >&2
+      exit 2
+    fi
+    echo "[guard] $ALLOW_FLAG=1 - running against '$BASE' on purpose." >&2
+    ;;
+esac
 PASS=0
 FAIL=0
 
