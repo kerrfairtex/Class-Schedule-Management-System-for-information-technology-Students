@@ -69,63 +69,9 @@ import {
   type FieldErrors,
 } from '@/lib/modules/mod-02-master-list/validation';
 import z from 'zod';
+import { AdminPostSchema } from '@/lib/api/admin/action-schema';
 
-const AdminPostSchema = z.object({
-  action: z.enum([
-    'create-faculty',
-    'update-faculty',
-    'delete-faculty',
-    'create-student',
-    'update-student',
-    'delete-student',
-    'create-subject',
-    'update-subject',
-    'delete-subject',
-    'create-section',
-    'update-section',
-    'delete-section',
-    'create-room',
-    'update-room',
-    'delete-room',
-    'create-building',
-    'create-user',
-    'update-user',
-    'delete-user',
-    'add-curriculum',
-    'create-schedule',
-    'move-schedule',
-    'delete-schedule',
-    'generate-schedules',
-    'backup',
-    'set-availability',
-    'transition-schedule',
-    'reset-password',
-  ]),
-  data: z.unknown().optional(),
-  password: z.string().optional(),
-  subjectIds: z.array(z.number()).optional(),
-  id: z.number().optional(),
-  sectionId: z.number().optional(),
-  scheduleId: z.number().optional(),
-  timeSlotId: z.number().optional(),
-  facultyId: z.number().optional(),
-  isAvailable: z.boolean().optional(),
-  code: z.string().optional(),
-  name: z.string().optional(),
-  credit_hours: z.number().optional(),
-  program_id: z.number().optional(),
-  year_level: z.number().optional(),
-  semester_id: z.number().optional(),
-  building_id: z.number().optional(),
-  capacity: z.number().optional(),
-  subject_id: z.number().optional(),
-  semester_number: z.number().optional(),
-  username: z.string().optional(),
-  role: z.string().optional(),
-  is_active: z.number().optional(),
-  must_change_password: z.number().optional(),
-  student_id: z.number().optional(),
-});
+
 
 function invalidBody(message: string, fields?: FieldErrors) {
   return NextResponse.json({ error: message, fields: fields ?? {} }, { status: 400 });
@@ -318,11 +264,26 @@ export async function POST(request: Request) {
 
   const parsed = AdminPostSchema.safeParse(body);
   if (!parsed.success) {
-    return invalidBody('Invalid request');
+    // Report the exact fields that failed and why, instead of a bare
+    // "Invalid request" that gives the UI nothing to show the user.
+    const fields: FieldErrors = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path.length > 0 ? issue.path.join('.') : 'request';
+      if (!fields[key]) fields[key] = issue.message;
+    }
+    const summary =
+      Object.keys(fields).length > 0
+        ? `Invalid request: ${formatFieldErrors(fields)}`
+        : 'Invalid request';
+    return invalidBody(summary, fields);
   }
 
   const { action } = parsed.data;
-  const bodyRecord = body as Record<string, any>;
+  // Use the PARSED body: the zText transform has already coerced a numeric
+  // password to a string. `body` is the raw request body and would still
+  // carry the number, and bcryptjs.hashSync throws on a non-string
+  // ("Illegal arguments: number, string").
+  const bodyRecord = parsed.data as Record<string, any>;
 
   try {
     switch (action) {
@@ -331,7 +292,7 @@ export async function POST(request: Request) {
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
         const subjectIds = toIntArray(bodyRecord.subjectIds, 'subjectIds', errors);
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        const password = bodyRecord.password || 'faculty123';
+        const password = String(bodyRecord.password || 'faculty123');
         const facultyId = await createFaculty(data as any, subjectIds, session!.id);
         await createUser({
           username: String(data.employee_id).toLowerCase(),
@@ -364,7 +325,7 @@ export async function POST(request: Request) {
       case 'create-student': {
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'student');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        const password = bodyRecord.password || 'student123';
+        const password = String(bodyRecord.password || 'student123');
         const studentId = await createStudent(data as any, session!.id);
         // The login account is created with the same bcrypt hash the seed uses
         // (hashPassword, 10 rounds) so the new student can actually log in.
@@ -467,13 +428,13 @@ export async function POST(request: Request) {
       case 'create-user': {
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'user');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        const password = bodyRecord.password || 'student123';
-        if (String(password).length < 8) {
+        const password = String(bodyRecord.password || 'student123');
+        if (password.length < 8) {
           return fieldErrorResponse({ password: 'Password must be at least 8 characters' });
         }
         await createUser({
           username: data.username,
-          password: String(password),
+          password,
           role: data.role as any,
           faculty_id: data.faculty_id ?? undefined,
           student_id: data.student_id ?? undefined,

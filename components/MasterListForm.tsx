@@ -11,6 +11,10 @@ import {
   toIntArray,
   type FieldErrors,
 } from '@/lib/modules/mod-02-master-list/validation';
+import {
+  masterListAction,
+  type MasterListTab,
+} from '@/lib/modules/mod-02-master-list/actions';
 
 interface Meta {
   programs: { id: number; code: string }[];
@@ -21,7 +25,7 @@ interface Meta {
   semester: { id: number; name: string } | null;
 }
 
-type Tab = 'faculty' | 'students' | 'subjects' | 'sections' | 'rooms' | 'users';
+type Tab = MasterListTab;
 
 export interface EditingRecord {
   id: number;
@@ -29,7 +33,7 @@ export interface EditingRecord {
 }
 
 interface MasterListFormProps {
-  tab: string;
+  tab: MasterListTab;
   meta: Meta;
   /** When set, the form is in Edit mode for this row. */
   editing: EditingRecord | null;
@@ -171,10 +175,10 @@ export function MasterListForm({
     setFieldErrors({});
 
     if (isEdit) {
-      body.action = `update-${tab}`;
+      body.action = masterListAction(tab, 'update');
       body.id = editId;
     } else {
-      body.action = `create-${tab}`;
+      body.action = masterListAction(tab, 'create');
     }
 
     setLoading(true);

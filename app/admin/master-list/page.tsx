@@ -5,8 +5,12 @@ import { useRouter } from 'next/navigation';
 import { PortalSidebar } from '@/components/Sidebar';
 import { MasterListForm, type EditingRecord } from '@/components/MasterListForm';
 import { ORGANIZATION } from '@/lib/domain/constants';
+import {
+  masterListAction,
+  type MasterListTab,
+} from '@/lib/modules/mod-02-master-list/actions';
 
-type Tab = 'faculty' | 'students' | 'subjects' | 'sections' | 'rooms' | 'users';
+type Tab = MasterListTab;
 
 interface Meta {
   programs: { id: number; code: string }[];
@@ -154,7 +158,7 @@ export default function MasterListPage() {
       const res = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: `delete-${tab}`, id }),
+        body: JSON.stringify({ action: masterListAction(tab, 'delete'), id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete record');
