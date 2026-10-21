@@ -18,7 +18,7 @@ The production deployment is using the **shared database** (likely the RosarioSI
 
 **Current DATABASE_URL:** 
 ```
-postgresql://postgres.ebyepweqwihdvjecrufk:***@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?options=search_path%3Dcsms
+postgresql://postgres.[REDACTED_PROJECT_REF]:***@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?options=search_path%3Dcsms
 ```
 
 **Available Schemas in Production:**
