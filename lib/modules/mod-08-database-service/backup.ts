@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { backupDatabase, getDbPath, getDataDir, isPostgres, getDb } from '@/lib/persistence/db';
 
@@ -29,10 +30,24 @@ export async function createBackup(): Promise<string> {
 
 /** Logical export of every table in the `csms` schema. */
 async function createPostgresExport(db: any): Promise<string> {
-  const backupDir = path.join(getDataDir(), 'backups');
-  fs.mkdirSync(backupDir, { recursive: true });
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupPath = path.join(backupDir, `csms-backup-${timestamp}.json`);
+  const fileName = `csms-backup-${timestamp}.json`;
+
+  // The backup directory is created if missing. If CSMS_DATA_DIR points at a
+  // path the process cannot write to (Render's free tier has no persistent
+  // disk, so an arbitrary mount path is not writable), fall back to the OS
+  // temp dir rather than failing the whole backup.
+  let backupDir = path.join(getDataDir(), 'backups');
+  let backupPath = path.join(backupDir, fileName);
+  try {
+    fs.mkdirSync(backupDir, { recursive: true });
+    fs.accessSync(backupDir, fs.constants.W_OK);
+  } catch {
+    const fallbackDir = path.join(os.tmpdir(), 'csms-backups');
+    fs.mkdirSync(fallbackDir, { recursive: true });
+    backupDir = fallbackDir;
+    backupPath = path.join(fallbackDir, fileName);
+  }
 
   const tableRows = await db
     .prepare(
@@ -64,14 +79,29 @@ async function createPostgresExport(db: any): Promise<string> {
   return backupPath;
 }
 
+/** Every directory a backup file can live in, most preferred first. */
+function backupDirs(): string[] {
+  return [path.join(getDataDir(), 'backups'), path.join(os.tmpdir(), 'csms-backups')];
+}
+
+/** Locate a backup file by name across every candidate directory. */
+function findBackupFile(fileName: string): string | null {
+  for (const dir of backupDirs()) {
+    const candidate = path.join(dir, fileName);
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+  }
+  return null;
+}
+
 export function listBackups(): string[] {
-  const backupDir = path.join(getDataDir(), 'backups');
-  if (!fs.existsSync(backupDir)) return [];
-  return fs
-    .readdirSync(backupDir)
-    .filter((f) => f.endsWith('.db') || f.endsWith('.json'))
-    .sort()
-    .reverse();
+  const seen = new Set<string>();
+  for (const dir of backupDirs()) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir)) {
+      if (f.endsWith('.db') || f.endsWith('.json')) seen.add(f);
+    }
+  }
+  return [...seen].sort().reverse();
 }
 
 /**
@@ -86,10 +116,13 @@ export function resolveBackupPath(fileName: string): string | null {
   if (fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) return null;
   if (!/^[A-Za-z0-9._-]+$/.test(fileName)) return null;
 
-  const backupDir = path.join(getDataDir(), 'backups');
-  const resolved = path.resolve(backupDir, fileName);
-  // Defence in depth: the resolved path must still be inside backupDir.
-  if (resolved !== backupDir && !resolved.startsWith(backupDir + path.sep)) return null;
-  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
-  return resolved;
+  const found = findBackupFile(fileName);
+  if (!found) return null;
+  // Defence in depth: the resolved path must still be inside a backup dir.
+  for (const dir of backupDirs()) {
+    const root = path.resolve(dir);
+    const resolved = path.resolve(found);
+    if (resolved === root || resolved.startsWith(root + path.sep)) return resolved;
+  }
+  return null;
 }
