@@ -9,6 +9,21 @@
  * and a human-readable message.
  */
 
+/**
+ * An error whose message is already written for the user.
+ *
+ * `friendlyDbError` used to decide this with a regex on the message prefix,
+ * which silently swallowed any message that did not start with one of a
+ * fixed set of words. A domain error carries its own type instead, so the
+ * message always reaches the UI.
+ */
+export class DomainError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DomainError';
+  }
+}
+
 export class ValidationError extends Error {
   readonly field: string;
   readonly details: Record<string, string>;
@@ -240,8 +255,9 @@ export function friendlyDbError(err: unknown): string {
     return 'One of the values is too long for its field';
   }
   if (err instanceof ValidationError) return err.message;
-  // Domain rules (e.g. "Cannot delete a Section that still has students")
-  // are already user-facing; surface them verbatim.
+  // Domain rules (e.g. "Maria Santos is assigned to 5 schedules...") are
+  // already user-facing; surface them verbatim.
+  if (err instanceof DomainError) return err.message;
   if (err instanceof Error && /^(Cannot|Duplicate|That |The |Invalid )/.test(err.message)) {
     return err.message;
   }
