@@ -73,3 +73,23 @@ export function listBackups(): string[] {
     .sort()
     .reverse();
 }
+
+/**
+ * Resolve a backup file name to its absolute path.
+ *
+ * The name comes from the client, so it is validated: it must be a plain
+ * file name (no path separators, no '..') and it must resolve inside the
+ * backups directory. This prevents a path traversal read of the container.
+ */
+export function resolveBackupPath(fileName: string): string | null {
+  if (!fileName) return null;
+  if (fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) return null;
+  if (!/^[A-Za-z0-9._-]+$/.test(fileName)) return null;
+
+  const backupDir = path.join(getDataDir(), 'backups');
+  const resolved = path.resolve(backupDir, fileName);
+  // Defence in depth: the resolved path must still be inside backupDir.
+  if (resolved !== backupDir && !resolved.startsWith(backupDir + path.sep)) return null;
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
+  return resolved;
+}

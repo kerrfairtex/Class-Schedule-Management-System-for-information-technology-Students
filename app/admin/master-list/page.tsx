@@ -31,6 +31,7 @@ export default function MasterListPage() {
   const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [message, setMessage] = useState('');
+  const [backupFile, setBackupFile] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -86,6 +87,8 @@ export default function MasterListPage() {
       setMessage('');
       return;
     }
+    const fileName = String(result.path || '').split('/').pop() || null;
+    setBackupFile(fileName);
     setMessage(`Backup created: ${result.path}`);
     setError('');
   }
@@ -198,6 +201,15 @@ export default function MasterListPage() {
         {message && (
           <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
             {message}
+            {backupFile && (
+              <a
+                href={`/api/admin/backups?file=${encodeURIComponent(backupFile)}`}
+                className="ml-2 font-medium underline underline-offset-2"
+                download={backupFile}
+              >
+                Download
+              </a>
+            )}
           </div>
         )}
         {error && (
