@@ -5,7 +5,13 @@ import z from 'zod';
 
 const LoginSchema = z.object({
   username: z.string().min(1),
-  password: z.string().min(1),
+  // JSON has one number type, so a password like 224567777 arrives as a
+  // number from some clients. Coerce it to a string instead of rejecting
+  // it, so the password that was set can be used to log in.
+  password: z
+    .union([z.string(), z.number()])
+    .transform((v) => String(v))
+    .refine((v) => v.length > 0, 'Password is required'),
 });
 
 // Explicit demo account allowlist — only these usernames bypass the normal IP rate limiter.
@@ -68,7 +74,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = LoginSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+      const fields: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path.length > 0 ? issue.path.join('.') : 'request';
+        if (!fields[key]) fields[key] = issue.message;
+      }
+      return NextResponse.json(
+        { error: 'Invalid request', fields },
+        { status: 400 }
+      );
     }
     username = parsed.data.username.trim().toLowerCase();
     password = parsed.data.password;

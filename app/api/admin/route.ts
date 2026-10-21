@@ -73,6 +73,21 @@ import { AdminPostSchema } from '@/lib/api/admin/action-schema';
 
 
 
+/**
+ * Make a zod issue message readable in a UI banner.
+ *
+ * The default enum message lists every accepted value, which is several
+ * hundred characters of noise in a red banner. The field name plus the
+ * received value is what the user actually needs.
+ */
+function friendlyIssueMessage(field: string, message: string): string {
+  const enumMatch = /Invalid enum value\. Expected '(.*)', received '(.*)'/.exec(message);
+  if (enumMatch) {
+    return `Invalid value for ${field}: '${enumMatch[2]}'. Expected one of: ${enumMatch[1].split(' | ').join(', ')}`;
+  }
+  return `${field}: ${message}`;
+}
+
 function invalidBody(message: string, fields?: FieldErrors) {
   return NextResponse.json({ error: message, fields: fields ?? {} }, { status: 400 });
 }
@@ -269,7 +284,7 @@ export async function POST(request: Request) {
     const fields: FieldErrors = {};
     for (const issue of parsed.error.issues) {
       const key = issue.path.length > 0 ? issue.path.join('.') : 'request';
-      if (!fields[key]) fields[key] = issue.message;
+      if (!fields[key]) fields[key] = friendlyIssueMessage(key, issue.message);
     }
     const summary =
       Object.keys(fields).length > 0
