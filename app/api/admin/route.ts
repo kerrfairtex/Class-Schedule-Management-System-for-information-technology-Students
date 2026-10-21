@@ -279,7 +279,9 @@ function coerceMasterListPayload(
     }
     case 'user': {
       const raw = body.data ?? {};
-      data.username = toText(raw.username, 'username', errors, { max: 120 });
+      // Stored lowercase: the login route lowercases the submitted username.
+      const rawUsername = toText(raw.username, 'username', errors, { max: 120 });
+      data.username = rawUsername === undefined ? undefined : rawUsername.toLowerCase();
       const role = toText(raw.role, 'role', errors, { max: 20 });
       if (role !== undefined && !['admin', 'faculty', 'student'].includes(role)) {
         errors.role = 'Role must be admin, faculty or student';
@@ -367,7 +369,8 @@ export async function POST(request: Request) {
         // The login account is created with the same bcrypt hash the seed uses
         // (hashPassword, 10 rounds) so the new student can actually log in.
         await createUser({
-          username: String(data.student_id),
+          // Stored lowercase: the login route lowercases the submitted username.
+          username: String(data.student_id).toLowerCase(),
           password,
           role: 'student',
           student_id: studentId ?? undefined,
