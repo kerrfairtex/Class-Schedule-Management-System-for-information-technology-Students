@@ -64,10 +64,14 @@ export async function createSchedule(input: ScheduleInput, userId?: number): Pro
       input.semester_id
     );
 
-  await logAudit(userId ?? null, 'CREATE', 'schedule', Number(result.lastInsertRowid), JSON.stringify(input));
+  // The PostgreSQL facade returns the generated id in `lastID` /
+  // `lastInsertRowid`; reading only `lastInsertRowid` yielded undefined on
+  // PostgreSQL, which became NaN and failed against int4 columns.
+  const insertedId = result.lastInsertRowid ?? result.lastID;
+  await logAudit(userId ?? null, 'CREATE', 'schedule', insertedId ?? null, JSON.stringify(input));
   return await db
     .prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`)
-    .get(result.lastInsertRowid) as Schedule;
+    .get(insertedId) as Schedule;
 }
 
 export async function updateScheduleTimeSlot(

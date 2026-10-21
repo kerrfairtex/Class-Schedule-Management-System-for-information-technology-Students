@@ -170,9 +170,9 @@ export async function ensureSeeded() {
     const subjects = db.prepare('SELECT id, code FROM subjects').all() as { id: number; code: string }[];
     const insertFS = db.prepare('INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES (?, ?)');
     const facultySubjects: Record<number, string[]> = {
-      [Number(f1.lastInsertRowid)]: ['IT 111', 'IT 112'],
-      [Number(f2.lastInsertRowid)]: ['IT 121', 'IT 122', 'IT 211'],
-      [Number(f3.lastInsertRowid)]: ['IT 212', 'IT 221', 'IT 222'],
+      [Number(f1.lastInsertRowid ?? f1.lastID)]: ['IT 111', 'IT 112'],
+      [Number(f2.lastInsertRowid ?? f2.lastID)]: ['IT 121', 'IT 122', 'IT 211'],
+      [Number(f3.lastInsertRowid ?? f3.lastID)]: ['IT 212', 'IT 221', 'IT 222'],
     };
     for (const [facId, codes] of Object.entries(facultySubjects)) {
       for (const code of codes) {

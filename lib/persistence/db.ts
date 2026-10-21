@@ -4,11 +4,22 @@
 import fs from 'fs';
 import path from 'path';
 
-function getDataDir(): string {
+export function getDataDir(): string {
   if (process.env.CSMS_DATA_DIR) {
     return path.resolve(process.env.CSMS_DATA_DIR);
   }
   return path.join(process.cwd(), 'data');
+}
+
+/** True when the active adapter is the PostgreSQL facade. */
+export function isPostgres(database: any): boolean {
+  if (!database) return false;
+  if (database.__isPostgres === true) return true;
+  if (database.__isPostgres === false) return false;
+  return (
+    typeof database.prepare === 'function' &&
+    database.prepare.toString().includes('client.query')
+  );
 }
 
 let db: any = null;
@@ -61,11 +72,25 @@ export async function getDb(): Promise<any> {
               return res.rows;
             },
             run: async (...params: any[]) => {
+              // The PostgreSQL adapter must return the generated primary key.
+              // `client.query` without RETURNING yields an empty row set, so the
+              // id was always undefined here — callers reading
+              // `result.lastInsertRowid` got undefined, and `Number(undefined)`
+              // produced NaN, which then failed against int4 columns with
+              // 'invalid input syntax for type integer: "NaN"'.
+              // Append RETURNING id for INSERT statements so the facade can
+              // expose both `lastID` and the better-sqlite3-style
+              // `lastInsertRowid`.
               const pgSql = toPgSql(sql);
+              // RETURNING * (not RETURNING id) so tables without an `id` column
+              // (e.g. faculty_subjects) do not raise "column id does not exist".
+              const withReturning = /^\s*insert\b/i.test(pgSql) ? `${pgSql} RETURNING *` : pgSql;
 
-              const res = await client.query(pgSql, params);
+              const res = await client.query(withReturning, params);
+              const insertedId = res.rows?.[0]?.id ?? null;
               return {
-                lastID: res.rows?.[0]?.id || null,
+                lastID: insertedId,
+                lastInsertRowid: insertedId,
                 changes: res.rowCount || 0,
               };
             },
@@ -75,6 +100,7 @@ export async function getDb(): Promise<any> {
           },
           pragma: () => { /* PostgreSQL adapter: no PRAGMA; no-op */ },
         };
+        (facade as any).__isPostgres = true;
         db = facade;
       } catch (e: any) {
         throw new Error('PostgreSQL adapter initialization failed. Ensure DATABASE_URL is set and pg package is installed. Error: ' + e.message);
@@ -106,9 +132,7 @@ export function getDbPath(): string {
 }
 
 export function initSchema(database: any) {
-  const isPostgres = typeof database.exec === 'function' && 
-    typeof database.prepare === 'function' &&
-    database.prepare.toString().includes('client.query');
+  const usePostgres = isPostgres(database);
   
   const sqliteSql = `
 CREATE TABLE IF NOT EXISTS roles (
@@ -386,13 +410,11 @@ CREATE INDEX IF NOT EXISTS idx_schedules_section ON schedules(section_id, time_s
 CREATE INDEX IF NOT EXISTS idx_schedules_semester ON schedules(semester_id);
   `;
 
-  database.exec(isPostgres ? pgSql : sqliteSql);
+  database.exec(usePostgres ? pgSql : sqliteSql);
 }
 
 export function backupDatabase(destinationPath: string) {
-  const isPostgres = typeof (getDb() as any).exec === 'function' && 
-    (getDb() as any).exec.toString().includes('client.query');
-  if (isPostgres) {
+  if (isPostgres(getDb())) {
     throw new Error('PostgreSQL adapter: backupDatabase not implemented. Use database-level backup (e.g., pg_dump, Supabase backups) or implement logical export separately.');
   }
   const dataDir = getDataDir();
@@ -402,11 +424,8 @@ export function backupDatabase(destinationPath: string) {
 
 export async function withTransaction<T>(fn: (database: any) => Promise<T>): Promise<T> {
   const database = await getDb();
-  const isPostgres = typeof database.exec === 'function' && 
-    typeof database.prepare === 'function' &&
-    database.prepare.toString().includes('client.query');
-  
-  if (isPostgres) {
+
+  if (isPostgres(database)) {
     await database.exec('BEGIN');
     try {
       const result = await fn(database);
@@ -419,7 +438,10 @@ export async function withTransaction<T>(fn: (database: any) => Promise<T>): Pro
   } else {
     database.exec('BEGIN');
     try {
-      const result = fn(database);
+      // NOTE: fn must be awaited before COMMIT. The previous version called
+      // `fn(database)` without awaiting, so COMMIT ran before the async body
+      // finished its statements.
+      const result = await fn(database);
       database.exec('COMMIT');
       return result;
     } catch (e: any) {
