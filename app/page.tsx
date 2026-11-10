@@ -48,6 +48,7 @@ export default function HomePage() {
               </div>
             </Link>
             <div className="hidden md:flex items-center space-x-6">
+              <Link href="/schedules" className="text-slate-400 hover:text-cyber-cyan transition-colors">Schedules</Link>
               <Link href="/about" className="text-slate-400 hover:text-cyber-cyan transition-colors">
                 About
               </Link>
@@ -59,6 +60,7 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="md:hidden flex items-center gap-3">
+              <Link href="/schedules" className="text-slate-400 hover:text-cyber-cyan transition-colors">Schedules</Link>
               <Link href="/about" className="text-slate-400 hover:text-cyber-cyan transition-colors">
                 About
               </Link>
