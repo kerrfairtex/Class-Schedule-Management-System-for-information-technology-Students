@@ -13,18 +13,18 @@ if (!DATABASE_URL) {
 
 async function seedRenderDatabase() {
   console.log('Connecting to Render PostgreSQL...');
-  
+
   const client = new Client({ connectionString: DATABASE_URL });
-  
+
   try {
     await client.connect();
     console.log('Connected to database');
-    
+
     // Create csms schema
     await client.query('CREATE SCHEMA IF NOT EXISTS csms');
     await client.query('SET search_path TO csms');
     console.log('Set search_path to csms');
-    
+
     // Create all CSMS tables
     const tables = [
       `CREATE TABLE IF NOT EXISTS csms.roles (
@@ -166,36 +166,36 @@ async function seedRenderDatabase() {
       `CREATE INDEX IF NOT EXISTS idx_schedules_section ON csms.schedules(section_id, time_slot_id)`,
       `CREATE INDEX IF NOT EXISTS idx_schedules_semester ON csms.schedules(semester_id)`,
     ];
-    
+
     for (const table of tables) {
       await client.query(table);
     }
     console.log('Created all CSMS tables');
-    
+
     // Seed basic data
     console.log('Seeding basic data...');
-    
+
     // Department
     await client.query(`INSERT INTO csms.departments (code, name) VALUES ('BSIT', 'Bachelor of Science in Information Technology') ON CONFLICT (code) DO NOTHING`);
     const deptResult = await client.query(`SELECT id FROM csms.departments WHERE code = 'BSIT'`);
     const deptId = deptResult.rows[0].id;
-    
+
     // Program
     await client.query(`INSERT INTO csms.programs (department_id, code, name) VALUES ($1, 'BSIT', 'Bachelor of Science in Information Technology') ON CONFLICT (code) DO NOTHING`, [deptId]);
     const progResult = await client.query(`SELECT id FROM csms.programs WHERE code = 'BSIT'`);
     const progId = progResult.rows[0].id;
-    
+
     // Academic year
     await client.query(`INSERT INTO csms.academic_years (label, start_date, end_date, is_active) VALUES ('2025-2026', '2025-08-01', '2026-05-31', 1) ON CONFLICT DO NOTHING`);
     const ayResult = await client.query(`SELECT id FROM csms.academic_years WHERE is_active = 1`);
     const ayId = ayResult.rows[0].id;
-    
+
     // Semesters
     await client.query(`INSERT INTO csms.semesters (academic_year_id, name, is_active) VALUES ($1, '1st Semester', 1) ON CONFLICT DO NOTHING`, [ayId]);
     await client.query(`INSERT INTO csms.semesters (academic_year_id, name, is_active) VALUES ($1, '2nd Semester', 0) ON CONFLICT DO NOTHING`, [ayId]);
     const semResult = await client.query(`SELECT id FROM csms.semesters WHERE is_active = 1`);
     const semId = semResult.rows[0].id;
-    
+
     // Buildings
     await client.query(`INSERT INTO csms.buildings (code, name) VALUES ('ITB', 'IT Building') ON CONFLICT (code) DO NOTHING`);
     await client.query(`INSERT INTO csms.buildings (code, name) VALUES ('LAB', 'Computer Laboratory') ON CONFLICT (code) DO NOTHING`);
@@ -203,13 +203,13 @@ async function seedRenderDatabase() {
     const labResult = await client.query(`SELECT id FROM csms.buildings WHERE code = 'LAB'`);
     const itbId = itbResult.rows[0].id;
     const labId = labResult.rows[0].id;
-    
+
     // Rooms
     await client.query(`INSERT INTO csms.rooms (building_id, code, name, capacity) VALUES ($1, 'IT-101', 'IT Lecture Room 1', 50) ON CONFLICT (building_id, code) DO NOTHING`, [itbId]);
     await client.query(`INSERT INTO csms.rooms (building_id, code, name, capacity) VALUES ($1, 'IT-102', 'IT Lecture Room 2', 45) ON CONFLICT (building_id, code) DO NOTHING`, [itbId]);
     await client.query(`INSERT INTO csms.rooms (building_id, code, name, capacity) VALUES ($1, 'LAB-1', 'Computer Lab 1', 40) ON CONFLICT (building_id, code) DO NOTHING`, [labId]);
     await client.query(`INSERT INTO csms.rooms (building_id, code, name, capacity) VALUES ($1, 'LAB-2', 'Computer Lab 2', 35) ON CONFLICT (building_id, code) DO NOTHING`, [labId]);
-    
+
     // Time slots
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const times = [
@@ -222,7 +222,7 @@ async function seedRenderDatabase() {
         await client.query(`INSERT INTO csms.time_slots (day_of_week, start_time, end_time) VALUES ($1, $2, $3) ON CONFLICT (day_of_week, start_time) DO NOTHING`, [day, start, end]);
       }
     }
-    
+
     // Subjects
     const subjects = [
       ['IT 111', 'Introduction to Computing', 3],
@@ -237,7 +237,7 @@ async function seedRenderDatabase() {
     for (const [code, name, credits] of subjects) {
       await client.query(`INSERT INTO csms.subjects (code, name, credit_hours, program_id) VALUES ($1, $2, $3, $4) ON CONFLICT (code) DO NOTHING`, [code, name, credits, progId]);
     }
-    
+
     // Curriculum
     const mapping = {
       'IT 111': [1, 1], 'IT 112': [1, 1], 'IT 121': [1, 2], 'IT 122': [1, 2],
@@ -249,7 +249,7 @@ async function seedRenderDatabase() {
         await client.query(`INSERT INTO csms.curriculum (program_id, subject_id, year_level, semester_number) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`, [progId, subResult.rows[0].id, yr, sem]);
       }
     }
-    
+
     // Sections
     await client.query(`INSERT INTO csms.sections (code, program_id, year_level, semester_id, capacity) VALUES ('BSIT-2A', $1, 2, $2, 45) ON CONFLICT (code) DO NOTHING`, [progId, semId]);
     await client.query(`INSERT INTO csms.sections (code, program_id, year_level, semester_id, capacity) VALUES ('BSIT-1A', $1, 1, $2, 45) ON CONFLICT (code) DO NOTHING`, [progId, semId]);
@@ -257,7 +257,7 @@ async function seedRenderDatabase() {
     const sec1aResult = await client.query(`SELECT id FROM csms.sections WHERE code = 'BSIT-1A'`);
     const sec2aId = sec2aResult.rows[0].id;
     const sec1aId = sec1aResult.rows[0].id;
-    
+
     // Faculty
     await client.query(`INSERT INTO csms.faculty (employee_id, first_name, last_name, email, phone, department_id) VALUES ('FAC-001', 'Maria', 'Santos', 'msantos@trac.edu.ph', '09171234567', $1) ON CONFLICT (employee_id) DO NOTHING`, [deptId]);
     await client.query(`INSERT INTO csms.faculty (employee_id, first_name, last_name, email, phone, department_id) VALUES ('FAC-002', 'Juan', 'Delgado', 'jdelgado@trac.edu.ph', '09181234567', $1) ON CONFLICT (employee_id) DO NOTHING`, [deptId]);
@@ -268,7 +268,7 @@ async function seedRenderDatabase() {
     const f1Id = f1Result.rows[0].id;
     const f2Id = f2Result.rows[0].id;
     const f3Id = f3Result.rows[0].id;
-    
+
     // Faculty subjects
     const facultySubjects = {
       [f1Id]: ['IT 111', 'IT 112'],
@@ -283,7 +283,7 @@ async function seedRenderDatabase() {
         }
       }
     }
-    
+
     // Students
     await client.query(`INSERT INTO csms.students (student_id, first_name, last_name, email, section_id) VALUES ('2022-0001', 'Demo', 'Student', 'demo.student@trac.edu.ph', $1) ON CONFLICT (student_id) DO NOTHING`, [sec2aId]);
     await client.query(`INSERT INTO csms.students (student_id, first_name, last_name, email, section_id) VALUES ('2023-0001', 'Sample', 'Enrollee', 'sample.enrollee@trac.edu.ph', $1) ON CONFLICT (student_id) DO NOTHING`, [sec1aId]);
@@ -291,19 +291,29 @@ async function seedRenderDatabase() {
     const s2Result = await client.query(`SELECT id FROM csms.students WHERE student_id = '2023-0001'`);
     const s1Id = s1Result.rows[0].id;
     const s2Id = s2Result.rows[0].id;
-    
-    // Demo users
+
+    // Demo users - passwords come from env vars with production guard
     const demoUsers = [
-      { username: 'admin', role: 'admin', faculty_id: null, student_id: null, password: 'admin123' },
-      { username: 'fac-001', role: 'faculty', faculty_id: f1Id, student_id: null, password: 'faculty123' },
-      { username: 'fac-002', role: 'faculty', faculty_id: f2Id, student_id: null, password: 'faculty123' },
-      { username: 'fac-003', role: 'faculty', faculty_id: f3Id, student_id: null, password: 'faculty123' },
-      { username: '2022-0001', role: 'student', faculty_id: null, student_id: s1Id, password: 'student123' },
-      { username: '2023-0001', role: 'student', faculty_id: null, student_id: s2Id, password: 'student123' },
+      { username: 'admin', role: 'admin' as const, faculty_id: null, student_id: null, passwordEnv: 'ADMIN_PASSWORD' },
+      { username: 'fac-001', role: 'faculty' as const, faculty_id: f1Id, student_id: null, passwordEnv: 'FACULTY_PASSWORD' },
+      { username: 'fac-002', role: 'faculty' as const, faculty_id: f2Id, student_id: null, passwordEnv: 'FACULTY_PASSWORD' },
+      { username: 'fac-003', role: 'faculty' as const, faculty_id: f3Id, student_id: null, passwordEnv: 'FACULTY_PASSWORD' },
+      { username: '2022-0001', role: 'student' as const, faculty_id: null, student_id: s1Id, passwordEnv: 'STUDENT_PASSWORD' },
+      { username: '2023-0001', role: 'student' as const, faculty_id: null, student_id: s2Id, passwordEnv: 'STUDENT_PASSWORD' },
     ];
-    
+
+    // Validate passwords exist (production guard)
+    const REQUIRED_PASSWORDS = ['ADMIN_PASSWORD', 'FACULTY_PASSWORD', 'STUDENT_PASSWORD'];
+    for (const key of REQUIRED_PASSWORDS) {
+      if (!process.env[key]) {
+        console.error(`[SEED] Missing required env var: ${key}. Set it before running seed-render-db.`);
+        process.exit(1);
+      }
+    }
+
     for (const user of demoUsers) {
-      const passwordHash = bcrypt.hashSync(user.password, 10);
+      // @ts-expect-error - bcryptSync exists in this context
+      const passwordHash = bcrypt.hashSync(process.env[user.passwordEnv], 10);
       await client.query(`
         INSERT INTO csms.users (username, password_hash, role, faculty_id, student_id, must_change_password)
         VALUES ($1, $2, $3, $4, $5, 1)
@@ -314,16 +324,16 @@ async function seedRenderDatabase() {
           student_id = EXCLUDED.student_id
       `, [user.username, passwordHash, user.role, user.faculty_id, user.student_id]);
     }
-    
+
     console.log('✅ Database seeded successfully!');
-    
+
     // Verify
     const usersResult = await client.query(`SELECT username, role FROM csms.users WHERE username IN ('admin', 'fac-001', 'fac-002', 'fac-003', '2022-0001', '2023-0001')`);
     console.log(`Verified ${usersResult.rows.length} demo users:`);
     for (const u of usersResult.rows) {
       console.log(`  - ${u.username}: ${u.role}`);
     }
-    
+
   } catch (error) {
     console.error('❌ Seed failed:', error);
     process.exit(1);

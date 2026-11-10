@@ -10,6 +10,9 @@ const DATA_ENVIRONMENT: 'DEMO' | 'VERIFIED' | 'PRODUCTION' = 'DEMO';
 function getEnvPassword(envKey: string, fallback: string): string {
   const value = process.env[envKey];
   if (value && value.length >= 8) return value;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`[SEED] Missing required env var: ${envKey}. Set it in .env.local before running seed-production. Fallbacks are not allowed in production.`);
+  }
   return fallback;
 }
 
@@ -17,10 +20,10 @@ async function main() {
   // Refuse to write to the production database by accident.
   assertNotProductionDatabase();
   const db = await getDb();
-  
+
   // Initialize schema if needed
   initSchema(db);
-  
+
   // Departments
   const deptCount = (db.prepare('SELECT COUNT(*) as c FROM departments').get() as { c: number }).c;
   if (deptCount === 0) {
@@ -30,9 +33,9 @@ async function main() {
     );
     console.log('Created department');
   }
-  
+
   const dept = db.prepare('SELECT id FROM departments WHERE code = ?').get(ORGANIZATION.departmentCode) as { id: number };
-  
+
   // Programs
   const progCount = (db.prepare('SELECT COUNT(*) as c FROM programs').get() as { c: number }).c;
   if (progCount === 0) {
@@ -41,9 +44,9 @@ async function main() {
     );
     console.log('Created program');
   }
-  
+
   const program = db.prepare('SELECT id FROM programs WHERE code = ?').get('BSIT') as { id: number };
-  
+
   // Academic Years
   const ayCount = (db.prepare('SELECT COUNT(*) as c FROM academic_years').get() as { c: number }).c;
   if (ayCount === 0) {
@@ -52,9 +55,9 @@ async function main() {
     );
     console.log('Created academic year');
   }
-  
+
   const ay = db.prepare('SELECT id FROM academic_years WHERE is_active = 1').get() as { id: number };
-  
+
   // Semesters
   const semCount = (db.prepare('SELECT COUNT(*) as c FROM semesters').get() as { c: number }).c;
   if (semCount === 0) {
@@ -62,9 +65,9 @@ async function main() {
     db.prepare('INSERT INTO semesters (academic_year_id, name, is_active) VALUES (?, ?, 0)').run(ay.id, '2nd Semester');
     console.log('Created semesters');
   }
-  
+
   const semester = db.prepare('SELECT id FROM semesters WHERE is_active = 1').get() as { id: number };
-  
+
   // Buildings
   const bldgCount = (db.prepare('SELECT COUNT(*) as c FROM buildings').get() as { c: number }).c;
   if (bldgCount === 0) {
@@ -72,7 +75,7 @@ async function main() {
     db.prepare('INSERT INTO buildings (code, name) VALUES (?, ?)').run('LAB', 'Computer Laboratory');
     console.log('Created buildings');
   }
-  
+
   // Ensure time slots
   try {
     ensureTimeSlots();
@@ -84,7 +87,7 @@ async function main() {
       throw e;
     }
   }
-  
+
   // Subjects
   const subCount = (db.prepare('SELECT COUNT(*) as c FROM subjects').get() as { c: number }).c;
   if (subCount === 0) {
@@ -104,7 +107,7 @@ async function main() {
     }
     console.log('Created subjects');
   }
-  
+
   // Curriculum
   const currCount = (db.prepare('SELECT COUNT(*) as c FROM curriculum').get() as { c: number }).c;
   if (currCount === 0) {
@@ -120,7 +123,7 @@ async function main() {
     }
     console.log('Created curriculum');
   }
-  
+
   // Sections
   const secCount = (db.prepare('SELECT COUNT(*) as c FROM sections').get() as { c: number }).c;
   if (secCount === 0) {
@@ -128,7 +131,7 @@ async function main() {
     db.prepare('INSERT INTO sections (code, program_id, year_level, semester_id, capacity) VALUES (?, ?, ?, ?, ?)').run('BSIT-1A', program.id, 1, semester.id, 45);
     console.log('Created sections');
   }
-  
+
   // Faculty
   const facCount = (db.prepare('SELECT COUNT(*) as c FROM faculty').get() as { c: number }).c;
   if (facCount === 0) {
@@ -136,7 +139,7 @@ async function main() {
     const f1 = insertFac.run('FAC-001', 'Maria', 'Santos', 'msantos@trac.edu.ph', '09171234567', dept.id);
     const f2 = insertFac.run('FAC-002', 'Juan', 'Delgado', 'jdelgado@trac.edu.ph', '09181234567', dept.id);
     const f3 = insertFac.run('FAC-003', 'Ana', 'Rashid', 'arashid@trac.edu.ph', '09191234567', dept.id);
-    
+
     const subjects = db.prepare('SELECT id, code FROM subjects').all() as { id: number; code: string }[];
     const insertFS = db.prepare('INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES (?, ?)');
     const facultySubjects: Record<number, string[]> = {
@@ -152,7 +155,7 @@ async function main() {
     }
     console.log('Created faculty');
   }
-  
+
   // Students
   const stuCount = (db.prepare('SELECT COUNT(*) as c FROM students').get() as { c: number }).c;
   if (stuCount === 0) {
@@ -162,7 +165,7 @@ async function main() {
     db.prepare('INSERT INTO students (student_id, first_name, last_name, email, section_id) VALUES (?, ?, ?, ?, ?)').run('2023-0001', 'Sample', 'Enrollee', 'sample.enrollee@trac.edu.ph', section1A.id);
     console.log('Created students');
   }
-  
+
   // Demo users
   const DEMO_ACCOUNTS = [
     { username: 'admin', role: 'admin' as const, passwordEnv: 'ADMIN_PASSWORD', passwordFallback: 'admin123' },
@@ -172,31 +175,32 @@ async function main() {
     { username: '2022-0001', role: 'student' as const, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
     { username: '2023-0001', role: 'student' as const, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
   ] as const;
-  
+
   const seedDefaultUsers = process.env.SEED_DEFAULT_USERS !== '0';
   if (seedDefaultUsers) {
     const facultyRows = db.prepare('SELECT id, employee_id FROM faculty').all();
     const faculty = Array.isArray(facultyRows) ? facultyRows : [];
     const facultyByEmployeeId = new Map(faculty.map(f => [f.employee_id.toLowerCase(), f.id]));
+
     const studentRows = db.prepare('SELECT id, student_id FROM students').all();
     const students = Array.isArray(studentRows) ? studentRows : [];
     const studentsByStudentId = new Map(students.map(s => [s.student_id, s.id]));
-    
+
     for (const account of DEMO_ACCOUNTS) {
       const password = getEnvPassword(account.passwordEnv, account.passwordFallback);
       const passwordHash = hashPassword(password);
-      
+
       let resolvedFacultyId: number | undefined;
       let resolvedStudentId: number | undefined;
-      
+
       if (account.role === 'faculty') {
         resolvedFacultyId = facultyByEmployeeId.get(account.username);
       } else if (account.role === 'student') {
         resolvedStudentId = studentsByStudentId.get(account.username);
       }
-      
+
       const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(account.username) as { id: number } | undefined;
-      
+
       if (existingUser) {
         db.prepare('UPDATE users SET password_hash = ?, must_change_password = ?, faculty_id = ?, student_id = ? WHERE id = ?')
           .run(passwordHash, 0, resolvedFacultyId ?? null, resolvedStudentId ?? null, existingUser.id);
@@ -207,7 +211,7 @@ async function main() {
     }
     console.log('Seeded demo users');
   }
-  
+
   console.log('Seeding complete!');
 }
 
