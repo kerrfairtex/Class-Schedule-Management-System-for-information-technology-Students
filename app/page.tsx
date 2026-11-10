@@ -77,7 +77,7 @@ export default function HomePage() {
       <section className="relative bg-slate-50 dark:bg-midnight/90">
         <div className="absolute inset-0" aria-hidden="true">
           <Image
-            src="/images/hero-campus.jpg"
+            src="/it-building.png"
             alt="Tawi-Tawi Regional Agricultural College campus"
             fill
             sizes="100vw"
