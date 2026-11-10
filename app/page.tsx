@@ -48,21 +48,24 @@ export default function HomePage() {
               </div>
             </Link>
             <div className="hidden md:flex items-center space-x-6">
-              <Link href="/login" className="text-slate-400 hover:text-cyber-cyan transition-colors">
-                Admin Portal
-              </Link>
-              <Link href="/login" className="text-slate-400 hover:text-cyber-cyan transition-colors">
-                Faculty Portal
-              </Link>
-              <Link href="/login" className="text-slate-400 hover:text-cyber-cyan transition-colors">
-                Student Portal
-              </Link>
               <Link href="/about" className="text-slate-400 hover:text-cyber-cyan transition-colors">
                 About
               </Link>
+              <Link
+                href="/login"
+                className="btn-primary px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Login
+              </Link>
             </div>
-            <div className="md:hidden">
-              <Link href="/login" className="btn-primary px-4 py-2 rounded-md text-sm font-medium">
+            <div className="md:hidden flex items-center gap-3">
+              <Link href="/about" className="text-slate-400 hover:text-cyber-cyan transition-colors">
+                About
+              </Link>
+              <Link
+                href="/login"
+                className="btn-primary px-4 py-2 rounded-md text-sm font-medium"
+              >
                 Login
               </Link>
             </div>
@@ -93,10 +96,10 @@ export default function HomePage() {
             BSIT Department in {ORGANIZATION.location}. Streamline your academic scheduling with our intelligent,
             local-first system.
           </p>
-          <Link 
-            href="/login" 
+          <Link
+            href="/login"
             className="btn-primary px-8 py-3 text-lg font-medium transition-all hover:scale-[1.02] shadow-glow-teal-sm"
-            data-aos="fade-up" 
+            data-aos="fade-up"
             data-aos-delay="300"
           >
             Get Started →
@@ -112,36 +115,36 @@ export default function HomePage() {
           </h2>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {/* Stat Card */}
-            <div 
+            <div
               className="glass-card p-6 text-center"
-              data-aos="fade-up" 
+              data-aos="fade-up"
               data-aos-delay="100"
             >
               <MapPin className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
               <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">4</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">Academic Departments</p>
             </div>
-            <div 
+            <div
               className="glass-card p-6 text-center"
-              data-aos="fade-up" 
+              data-aos="fade-up"
               data-aos-delay="200"
             >
               <Users className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
               <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">12</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">Active Faculty Members</p>
             </div>
-            <div 
+            <div
               className="glass-card p-6 text-center"
-              data-aos="fade-up" 
+              data-aos="fade-up"
               data-aos-delay="300"
             >
               <BookOpen className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
               <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">38</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">Courses Offered</p>
             </div>
-            <div 
+            <div
               className="glass-card p-6 text-center"
-              data-aos="fade-up" 
+              data-aos="fade-up"
               data-aos-delay="400"
             >
               <Calendar className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
@@ -160,9 +163,9 @@ export default function HomePage() {
           </h2>
           <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
             {/* Feature Card 1 */}
-            <div 
+            <div
               className="glass-card p-8 hover:glass-card hover:shadow-glow-teal-sm transition-all duration-300"
-              data-aos="fade-up" 
+              data-aos="fade-up"
               data-aos-delay="100"
             >
               <div className="mb-6">
@@ -172,15 +175,15 @@ export default function HomePage() {
                 Secure & Private
               </h3>
               <p className="text-center text-slate-600 dark:text-slate-400">
-                Local-first architecture ensures your data stays within TRAC&apos;s network. 
+                Local-first architecture ensures your data stays within TRAC&apos;s network.
                 Role-based access control protects sensitive academic information.
               </p>
             </div>
-            
+
             {/* Feature Card 2 */}
-            <div 
+            <div
               className="glass-card p-8 hover:glass-card hover:shadow-glow-teal-sm transition-all duration-300"
-              data-aos="fade-up" 
+              data-aos="fade-up"
               data-aos-delay="200"
             >
               <div className="mb-6">
@@ -190,15 +193,15 @@ export default function HomePage() {
                 Intelligent Scheduling
               </h3>
               <p className="text-center text-slate-600 dark:text-slate-400">
-                Automated conflict detection and resolution engine optimizes room and 
+                Automated conflict detection and resolution engine optimizes room and
                 instructor assignments while respecting curriculum requirements.
               </p>
             </div>
-            
+
             {/* Feature Card 3 */}
-            <div 
+            <div
               className="glass-card p-8 hover:glass-card hover:shadow-glow-teal-sm transition-all duration-300"
-              data-aos="fade-up" 
+              data-aos="fade-up"
               data-aos-delay="300"
             >
               <div className="mb-6">
@@ -208,7 +211,7 @@ export default function HomePage() {
                 Multi-Portal Access
               </h3>
               <p className="text-center text-slate-600 dark:text-slate-400">
-                Dedicated interfaces for administrators, faculty, and students — each 
+                Dedicated interfaces for administrators, faculty, and students — each
                 with tailored views and permissions for their specific needs.
               </p>
             </div>
@@ -237,20 +240,20 @@ export default function HomePage() {
                 Empowering TRAC&apos;s Academic Excellence
               </h2>
               <p className="text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="300">
-                The Class Schedule Management System transforms how TRAC&apos;s BSIT Department 
-                handles academic scheduling. By combining intelligent automation with 
-                user-centric design, we reduce administrative overhead by up to 70% while 
+                The Class Schedule Management System transforms how TRAC&apos;s BSIT Department
+                handles academic scheduling. By combining intelligent automation with
+                user-centric design, we reduce administrative overhead by up to 70% while
                 ensuring optimal resource utilization.
               </p>
               <p className="text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="400">
-                Built specifically for the unique needs of a state college focused on 
-                agriculture, home technology, and allied sciences, our system respects 
+                Built specifically for the unique needs of a state college focused on
+                agriculture, home technology, and allied sciences, our system respects
                 TRAC&apos;s mission while embracing modern educational management practices.
               </p>
-              <Link 
-                href="/login" 
+              <Link
+                href="/login"
                 className="mt-6 inline-block btn-primary px-6 py-3 text-medium font-medium transition-all hover:scale-[1.02]"
-                data-aos="fade-up" 
+                data-aos="fade-up"
                 data-aos-delay="500"
               >
                 Experience the System →
@@ -267,27 +270,17 @@ export default function HomePage() {
             Ready to Transform Your Academic Scheduling?
           </h2>
           <p className="mb-10 max-w-2xl mx-auto text-slate-300 dark:text-slate-700" data-aos="fade-up" data-aos-delay="100">
-            Join the growing number of educational institutions trusting our scheduling 
+            Join the growing number of educational institutions trusting our scheduling
             solution to streamline operations and enhance educational delivery.
           </p>
-          <div className="space-x-4">
-            <Link 
-              href="/login" 
-              className="btn-primary btn-light px-6 py-3 text-medium font-medium transition-all hover:scale-[1.02]"
-              data-aos="fade-up" 
-              data-aos-delay="200"
-            >
-              Admin Login
-            </Link>
-            <Link 
-              href="/login" 
-              className="btn-outline px-6 py-3 text-medium font-medium border border-slate-300 text-slate-300 dark:border-slate-600 dark:text-slate-700 hover:bg-slate-800/50 transition-all hover:scale-[1.02]"
-              data-aos="fade-up" 
-              data-aos-delay="300"
-            >
-              Faculty/Student Login
-            </Link>
-          </div>
+          <Link
+            href="/login"
+            className="btn-primary btn-light px-6 py-3 text-medium font-medium transition-all hover:scale-[1.02]"
+            data-aos="fade-up"
+            data-aos-delay="200"
+          >
+            Login
+          </Link>
         </div>
       </section>
 

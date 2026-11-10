@@ -1,4 +1,5 @@
 import { getDb } from '../lib/persistence/db';
+import { assertNotProductionDatabase } from '@/lib/guards/production-database';
 import { hashPassword } from '../lib/modules/mod-01-auth/service';
 import { logAudit } from '../lib/modules/mod-08-database-service/audit';
 import * as readline from 'readline';
@@ -23,6 +24,8 @@ function generateSecurePassword(length: number = 16): string {
 }
 
 async function main() {
+  // Refuse to write to the production database by accident.
+  assertNotProductionDatabase();
   const args = process.argv.slice(2);
   
   if (args.length !== 1) {

@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/persistence/db';
+import { getDb, withTransaction } from '@/lib/persistence/db';
 import type {
   AcademicYear,
   Building,
@@ -12,9 +12,12 @@ import type {
   Student,
   Subject,
   TimeSlot,
+  User,
 } from '@/lib/domain/types';
 import { DAYS, TIME_SLOTS } from '@/lib/domain/constants';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
+import { describeBlockers } from '@/lib/modules/mod-02-master-list/references';
+import { DomainError } from '@/lib/modules/mod-02-master-list/validation';
 
 // Departments & Programs
 export async function getDepartments(): Promise<Department[]> {
@@ -64,7 +67,8 @@ export async function getBuildings(): Promise<Building[]> {
 export async function createBuilding(code: string, name: string, userId?: number) {
   const db = await getDb();
   const result = await db.prepare('INSERT INTO buildings (code, name) VALUES (?, ?)').run(code, name);
-  await logAudit(userId ?? null, 'CREATE', 'building', Number(result.lastInsertRowid));
+  await logAudit(userId ?? null, 'CREATE', 'building', toInsertId(result));
+  return toInsertId(result);
 }
 
 export async function getRooms(): Promise<Room[]> {
@@ -75,6 +79,32 @@ export async function getRooms(): Promise<Room[]> {
        FROM rooms r JOIN buildings b ON b.id = r.building_id ORDER BY b.code, r.code`
     )
     .all() as Room[];
+}
+
+/**
+ * Read the generated primary key from an INSERT result.
+ *
+ * better-sqlite3 exposes `lastInsertRowid`; the PostgreSQL facade exposes
+ * `lastID` (and now also `lastInsertRowid`). Reading `lastInsertRowid` only
+ * returned undefined on PostgreSQL, which became NaN and then failed against
+ * int4 columns with 'invalid input syntax for type integer: "NaN"'.
+ */
+function toInsertId(result: any): number | null {
+  if (!result) return null;
+  const raw = result.lastInsertRowid ?? result.lastID;
+  if (raw === null || raw === undefined) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * True when a DELETE actually removed a row.
+ * Both adapters report the affected row count in `changes`.
+ */
+function didDelete(result: any): boolean {
+  if (!result) return false;
+  const changes = Number(result.changes ?? 0);
+  return Number.isFinite(changes) && changes > 0;
 }
 
 export async function createRoom(
@@ -88,7 +118,39 @@ export async function createRoom(
   const result = await db
     .prepare('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)')
     .run(buildingId, code, name, capacity);
-  await logAudit(userId ?? null, 'CREATE', 'room', Number(result.lastInsertRowid));
+  const id = toInsertId(result);
+  await logAudit(userId ?? null, 'CREATE', 'room', id);
+  return id;
+}
+
+export async function updateRoom(
+  id: number,
+  buildingId: number,
+  code: string,
+  name: string,
+  capacity: number,
+  userId?: number
+) {
+  const db = await getDb();
+  await db
+    .prepare('UPDATE rooms SET building_id = ?, code = ?, name = ?, capacity = ? WHERE id = ?')
+    .run(buildingId, code, name, capacity, id);
+  await logAudit(userId ?? null, 'UPDATE', 'room', id);
+  return id;
+}
+
+export async function deleteRoom(id: number, userId?: number): Promise<boolean> {
+  const db = await getDb();
+  // schedules.room_id references rooms.id with ON DELETE NO ACTION, so a
+  // referenced room must not be removed. The counts come from the actual
+  // foreign key constraints, so the message always matches the schema.
+  const room = (await db.prepare('SELECT code FROM rooms WHERE id = ?').get(id) as { code: string } | undefined);
+  const blocked = await describeBlockers('rooms', id, `Room ${room?.code ?? id}`);
+  if (blocked) throw new DomainError(blocked);
+  const result = await db.prepare('DELETE FROM rooms WHERE id = ?').run(id);
+  if (!didDelete(result)) return false;
+  await logAudit(userId ?? null, 'DELETE', 'room', id);
+  return true;
 }
 
 // Subjects & Curriculum
@@ -108,7 +170,39 @@ export async function createSubject(
   const result = await db
     .prepare('INSERT INTO subjects (code, name, credit_hours, program_id) VALUES (?, ?, ?, ?)')
     .run(code, name, creditHours, programId);
-  await logAudit(userId ?? null, 'CREATE', 'subject', Number(result.lastInsertRowid));
+  const id = toInsertId(result);
+  await logAudit(userId ?? null, 'CREATE', 'subject', id);
+  return id;
+}
+
+export async function updateSubject(
+  id: number,
+  code: string,
+  name: string,
+  creditHours: number,
+  programId: number,
+  userId?: number
+) {
+  const db = await getDb();
+  await db
+    .prepare('UPDATE subjects SET code = ?, name = ?, credit_hours = ?, program_id = ? WHERE id = ?')
+    .run(code, name, creditHours, programId, id);
+  await logAudit(userId ?? null, 'UPDATE', 'subject', id);
+  return id;
+}
+
+export async function deleteSubject(id: number, userId?: number): Promise<boolean> {
+  const db = await getDb();
+  // curriculum.subject_id, faculty_subjects.subject_id and
+  // schedules.subject_id reference subjects.id with ON DELETE NO ACTION.
+  const subject = (await db.prepare('SELECT code, name FROM subjects WHERE id = ?').get(id) as { code: string; name: string } | undefined);
+  const label = subject ? `${subject.code} (${subject.name})` : `Subject ${id}`;
+  const blocked = await describeBlockers('subjects', id, label);
+  if (blocked) throw new DomainError(blocked);
+  const result = await db.prepare('DELETE FROM subjects WHERE id = ?').run(id);
+  if (!didDelete(result)) return false;
+  await logAudit(userId ?? null, 'DELETE', 'subject', id);
+  return true;
 }
 
 export async function getCurriculum(programId?: number): Promise<Curriculum[]> {
@@ -138,7 +232,9 @@ export async function addCurriculumEntry(
        VALUES (?, ?, ?, ?)`
     )
     .run(programId, subjectId, yearLevel, semesterNumber);
-  await logAudit(userId ?? null, 'CREATE', 'curriculum', Number(result.lastInsertRowid));
+  const id = toInsertId(result);
+  await logAudit(userId ?? null, 'CREATE', 'curriculum', id);
+  return id;
 }
 
 // Sections
@@ -165,7 +261,40 @@ export async function createSection(
       'INSERT INTO sections (code, program_id, year_level, semester_id) VALUES (?, ?, ?, ?)'
     )
     .run(code, programId, yearLevel, semesterId);
-  await logAudit(userId ?? null, 'CREATE', 'section', Number(result.lastInsertRowid));
+  const id = toInsertId(result);
+  await logAudit(userId ?? null, 'CREATE', 'section', id);
+  return id;
+}
+
+export async function updateSection(
+  id: number,
+  code: string,
+  programId: number,
+  yearLevel: number,
+  semesterId: number,
+  userId?: number
+) {
+  const db = await getDb();
+  await db
+    .prepare(
+      'UPDATE sections SET code = ?, program_id = ?, year_level = ?, semester_id = ? WHERE id = ?'
+    )
+    .run(code, programId, yearLevel, semesterId, id);
+  await logAudit(userId ?? null, 'UPDATE', 'section', id);
+  return id;
+}
+
+export async function deleteSection(id: number, userId?: number): Promise<boolean> {
+  const db = await getDb();
+  // students.section_id and schedules.section_id reference sections.id with
+  // ON DELETE NO ACTION, so a referenced section cannot be removed.
+  const section = (await db.prepare('SELECT code FROM sections WHERE id = ?').get(id) as { code: string } | undefined);
+  const blocked = await describeBlockers('sections', id, `Section ${section?.code ?? id}`);
+  if (blocked) throw new DomainError(blocked);
+  const result = await db.prepare('DELETE FROM sections WHERE id = ?').run(id);
+  if (!didDelete(result)) return false;
+  await logAudit(userId ?? null, 'DELETE', 'section', id);
+  return true;
 }
 
 // Faculty
@@ -182,28 +311,105 @@ export async function createFaculty(
   userId?: number
 ) {
   const db = await getDb();
-  const result = await db
-    .prepare(
-      `INSERT INTO faculty (employee_id, first_name, last_name, email, phone, department_id)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      data.employee_id,
-      data.first_name,
-      data.last_name,
-      data.email,
-      data.phone,
-      data.department_id
+  return withTransaction(async () => {
+    const result = await db
+      .prepare(
+        `INSERT INTO faculty (employee_id, first_name, last_name, email, phone, department_id)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        data.employee_id,
+        data.first_name,
+        data.last_name,
+        data.email,
+        data.phone,
+        data.department_id
+      );
+    const facultyId = toInsertId(result);
+    if (facultyId === null) {
+      throw new Error('Faculty record was created but its ID could not be read');
+    }
+    const insertSubject = db.prepare(
+      'INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES (?, ?)'
     );
-  const facultyId = Number(result.lastInsertRowid);
-  const insertSubject = db.prepare(
-    'INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES (?, ?)'
-  );
-  for (const subjectId of subjectIds) {
-    insertSubject.run(facultyId, subjectId);
-  }
-  await logAudit(userId ?? null, 'CREATE', 'faculty', facultyId);
-  return facultyId;
+    for (const subjectId of subjectIds) {
+      await insertSubject.run(facultyId, subjectId);
+    }
+    await logAudit(userId ?? null, 'CREATE', 'faculty', facultyId);
+    return facultyId;
+  });
+}
+
+export async function updateFaculty(
+  id: number,
+  data: Omit<Faculty, 'id'>,
+  subjectIds: number[],
+  userId?: number
+) {
+  const db = await getDb();
+  return withTransaction(async () => {
+    await db
+      .prepare(
+        `UPDATE faculty SET employee_id = ?, first_name = ?, last_name = ?, email = ?, phone = ?, department_id = ?
+         WHERE id = ?`
+      )
+      .run(
+        data.employee_id,
+        data.first_name,
+        data.last_name,
+        data.email,
+        data.phone,
+        data.department_id,
+        id
+      );
+    await db.prepare('DELETE FROM faculty_subjects WHERE faculty_id = ?').run(id);
+    const insertSubject = db.prepare(
+      'INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES (?, ?)'
+    );
+    for (const subjectId of subjectIds) {
+      await insertSubject.run(id, subjectId);
+    }
+    await logAudit(userId ?? null, 'UPDATE', 'faculty', id);
+    return id;
+  });
+}
+
+export async function deleteFaculty(id: number, userId?: number): Promise<boolean> {
+  const db = await getDb();
+  // schedules.faculty_id references faculty.id with ON DELETE NO ACTION, so
+  // a faculty member who is on a schedule must not be removed. The schedule
+  // is NOT deleted automatically - the admin reassigns it.
+  const faculty = (await db
+    .prepare('SELECT first_name, last_name, employee_id FROM faculty WHERE id = ?')
+    .get(id) as { first_name: string; last_name: string; employee_id: string } | undefined);
+  const label = faculty
+    ? `${faculty.first_name} ${faculty.last_name}`
+    : `Faculty ${id}`;
+  return withTransaction(async () => {
+    // Delete referencing rows FIRST. users.faculty_id and
+    // faculty_subjects.faculty_id have NO ACTION delete rules, so removing
+    // the faculty row before them raises a foreign key violation. These are
+    // the rows the delete owns, so they are not blockers.
+    await db.prepare('DELETE FROM faculty_availability WHERE faculty_id = ?').run(id);
+    await db.prepare('DELETE FROM faculty_subjects WHERE faculty_id = ?').run(id);
+    // audit_logs.user_id is nullable, so the audit trail of the login
+    // accounts is kept and the actor is detached. Without this the FK
+    // violation on audit_logs fires while the user row is being removed and
+    // the delete fails with a generic "still referenced" message.
+    await db
+      .prepare('UPDATE audit_logs SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE faculty_id = ?)')
+      .run(id);
+    await db.prepare('DELETE FROM users WHERE faculty_id = ?').run(id);
+    // schedules.faculty_id references faculty.id with ON DELETE NO ACTION,
+    // so a faculty member who is on a schedule must not be removed. The
+    // schedule is NOT deleted automatically - the admin reassigns it.
+    const blocked = await describeBlockers('faculty', id, label);
+    if (blocked) throw new DomainError(blocked);
+    const result = await db.prepare('DELETE FROM faculty WHERE id = ?').run(id);
+    if (!didDelete(result)) return false;
+    await logAudit(userId ?? null, 'DELETE', 'faculty', id);
+    return true;
+  });
 }
 
 // Students
@@ -229,8 +435,110 @@ export async function createStudent(
        VALUES (?, ?, ?, ?, ?)`
     )
     .run(data.student_id, data.first_name, data.last_name, data.email, data.section_id);
-  await logAudit(userId ?? null, 'CREATE', 'student', Number(result.lastInsertRowid));
-  return Number(result.lastInsertRowid);
+  const id = toInsertId(result);
+  await logAudit(userId ?? null, 'CREATE', 'student', id);
+  return id;
+}
+
+export async function updateStudent(
+  id: number,
+  data: Omit<Student, 'id' | 'section_code'>,
+  userId?: number
+) {
+  const db = await getDb();
+  await db
+    .prepare(
+      `UPDATE students SET student_id = ?, first_name = ?, last_name = ?, email = ?, section_id = ?
+       WHERE id = ?`
+    )
+    .run(data.student_id, data.first_name, data.last_name, data.email, data.section_id, id);
+  await logAudit(userId ?? null, 'UPDATE', 'student', id);
+  return id;
+}
+
+export async function deleteStudent(id: number, userId?: number): Promise<boolean> {
+  const db = await getDb();
+  // users.student_id references students.id with ON DELETE NO ACTION, so a
+  // student who still has a login account must not be removed.
+  const student = (await db
+    .prepare('SELECT student_id, first_name, last_name FROM students WHERE id = ?')
+    .get(id) as { student_id: string; first_name: string; last_name: string } | undefined);
+  const label = student
+    ? `${student.first_name} ${student.last_name} (${student.student_id})`
+    : `Student ${id}`;
+  return withTransaction(async () => {
+    // users.student_id references students.id — remove the user first. The
+    // login account is part of the delete, so it is not a blocker. Its
+    // audit rows are detached first because audit_logs.user_id is nullable
+    // and would otherwise raise a foreign key violation here.
+    await db
+      .prepare('UPDATE audit_logs SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE student_id = ?)')
+      .run(id);
+    await db.prepare('DELETE FROM users WHERE student_id = ?').run(id);
+    const blocked = await describeBlockers('students', id, label);
+    if (blocked) throw new DomainError(blocked);
+    const result = await db.prepare('DELETE FROM students WHERE id = ?').run(id);
+    if (!didDelete(result)) return false;
+    await logAudit(userId ?? null, 'DELETE', 'student', id);
+    return true;
+  });
+}
+
+// Users
+export async function getUsers(): Promise<User[]> {
+  const db = await getDb();
+  return db
+    .prepare(
+      `SELECT u.id, u.username, u.role, u.is_active, u.must_change_password,
+              u.faculty_id, u.student_id,
+              CASE
+                WHEN u.role = 'faculty' THEN (SELECT employee_id FROM faculty WHERE id = u.faculty_id)
+                WHEN u.role = 'student' THEN (SELECT student_id FROM students WHERE id = u.student_id)
+                ELSE NULL
+              END AS external_id
+       FROM users u
+       ORDER BY u.role, u.username`
+    )
+    .all() as User[];
+}
+
+export async function updateUser(
+  id: number,
+  data: { role: string; is_active: number; must_change_password: number; faculty_id?: number | null; student_id?: number | null },
+  userId?: number
+) {
+  const db = await getDb();
+  await db
+    .prepare(
+      `UPDATE users SET role = ?, is_active = ?, must_change_password = ?, faculty_id = ?, student_id = ?
+       WHERE id = ?`
+    )
+    .run(
+      data.role,
+      data.is_active,
+      data.must_change_password,
+      data.faculty_id ?? null,
+      data.student_id ?? null,
+      id
+    );
+  await logAudit(userId ?? null, 'UPDATE', 'user', id);
+  return id;
+}
+
+export async function deleteUser(id: number, userId?: number): Promise<boolean> {
+  const db = await getDb();
+  const user = (await db
+    .prepare('SELECT username FROM users WHERE id = ?')
+    .get(id) as { username: string } | undefined);
+  // audit_logs.user_id references users.id with ON DELETE NO ACTION, so a
+  // user with audit history cannot be removed. The rule is unchanged; only
+  // the message is now specific.
+  const blocked = await describeBlockers('users', id, `Account ${user?.username ?? id}`);
+  if (blocked) throw new DomainError(blocked);
+  const result = await db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  if (!didDelete(result)) return false;
+  await logAudit(userId ?? null, 'DELETE', 'user', id);
+  return true;
 }
 
 // Time Slots
@@ -251,7 +559,7 @@ export async function ensureTimeSlots() {
   );
   for (const day of DAYS) {
     for (const slot of TIME_SLOTS) {
-      insert.run(day, slot.start, slot.end);
+      await insert.run(day, slot.start, slot.end);
     }
   }
 }

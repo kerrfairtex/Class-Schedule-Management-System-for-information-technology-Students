@@ -14,8 +14,12 @@ export function verifyPassword(password: string, hash: string): boolean {
 
 export async function authenticate(username: string, password: string): Promise<User | null> {
   const db = await getDb();
+  // Usernames are matched case-insensitively. The login route lowercases the
+  // submitted username, so an exact comparison would miss any account whose
+  // stored username is not already lowercase (e.g. a student id like
+  // '2025-0001' seeded in caps, or a row created before this rule).
   const user = db
-    .prepare('SELECT * FROM users WHERE username = ? AND is_active = 1')
+    .prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?) AND is_active = 1')
     .get(username) as Promise<User | undefined>;
   // .get() returns a Promise on the PostgreSQL adapter; await it for both backends.
   const resolvedUser = await user;

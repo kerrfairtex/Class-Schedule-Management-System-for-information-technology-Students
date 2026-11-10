@@ -71,7 +71,7 @@ But the production database contains:
 
 **Accessible via DATABASE_URL:**
 ```
-postgresql://postgres.ebyepweqwihdvjecrufk:4n=AgYHXO?%ESEKv@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?options=search_path%3Dcsms
+postgresql://postgres.[REDACTED_PROJECT_REF]:4n=AgYHXO?%ESEKv@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?options=search_path%3Dcsms
 ```
 
 **What's Available:**

@@ -58,3 +58,7 @@ Thumbs.db
 .vercel
 core
 env.local*
+
+# Local password/test scripts
+fix-passwords.mjs
+test-*.mjs

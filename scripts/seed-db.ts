@@ -1,9 +1,12 @@
 import { getDb, initSchema } from '@/lib/persistence/db';
+import { assertNotProductionDatabase } from '@/lib/guards/production-database';
 import { hashPassword } from '@/lib/modules/mod-01-auth/service';
 import { ensureTimeSlots } from '@/lib/modules/mod-02-master-list/service';
 import { ORGANIZATION } from '@/lib/domain/constants';
 
 async function seedDatabase() {
+  // Refuse to write to the production database by accident.
+  assertNotProductionDatabase();
   const db = await getDb();
   await initSchema(db);
   

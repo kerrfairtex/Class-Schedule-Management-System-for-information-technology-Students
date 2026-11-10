@@ -11,11 +11,11 @@ import {
 let seeded = false;
 let evidenceSeeded = false;
 
-/**
+/** 
  * Spec §63/§64: distinguish project/sample data from institutional data.
  * All seed entries below are DEMO. They must NOT be presented as institutional
  * facts and must NOT appear on the public schedule until VERIFIED.
- *
+ * 
  * data_environment is a per-deployment flag:
  *   DEMO      — development fixtures, never authoritative
  *   VERIFIED  — backed by registrar/HR records
@@ -26,6 +26,9 @@ const DATA_ENVIRONMENT: 'DEMO' | 'VERIFIED' | 'PRODUCTION' = 'DEMO';
 function getEnvPassword(envKey: string, fallback: string): string {
   const value = process.env[envKey];
   if (value && value.length >= 8) return value;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`[SEED] Missing required env var: ${envKey}. Set it in .env.local before running seed. Fallbacks are not allowed in production.`);
+  }
   return fallback;
 }
 
@@ -48,9 +51,7 @@ export async function ensureSeeded() {
   const progCount = (db.prepare('SELECT COUNT(*) as c FROM programs').get() as { c: number }).c;
   if (progCount === 0) {
     db.prepare('INSERT INTO programs (department_id, code, name) VALUES (?, ?, ?)').run(
-      dept.id,
-      'BSIT',
-      'Bachelor of Science in Information Technology'
+      dept.id, 'BSIT', 'Bachelor of Science in Information Technology'
     );
   }
 
@@ -70,12 +71,10 @@ export async function ensureSeeded() {
   const semCount = (db.prepare('SELECT COUNT(*) as c FROM semesters').get() as { c: number }).c;
   if (semCount === 0) {
     db.prepare('INSERT INTO semesters (academic_year_id, name, is_active) VALUES (?, ?, 1)').run(
-      ay.id,
-      '1st Semester'
+      ay.id, '1st Semester'
     );
     db.prepare('INSERT INTO semesters (academic_year_id, name, is_active) VALUES (?, ?, 0)').run(
-      ay.id,
-      '2nd Semester'
+      ay.id, '2nd Semester'
     );
   }
 
@@ -170,9 +169,9 @@ export async function ensureSeeded() {
     const subjects = db.prepare('SELECT id, code FROM subjects').all() as { id: number; code: string }[];
     const insertFS = db.prepare('INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES (?, ?)');
     const facultySubjects: Record<number, string[]> = {
-      [Number(f1.lastInsertRowid)]: ['IT 111', 'IT 112'],
-      [Number(f2.lastInsertRowid)]: ['IT 121', 'IT 122', 'IT 211'],
-      [Number(f3.lastInsertRowid)]: ['IT 212', 'IT 221', 'IT 222'],
+      [Number(f1.lastInsertRowid ?? f1.lastID)]: ['IT 111', 'IT 112'],
+      [Number(f2.lastInsertRowid ?? f2.lastID)]: ['IT 121', 'IT 122', 'IT 211'],
+      [Number(f3.lastInsertRowid ?? f3.lastID)]: ['IT 212', 'IT 221', 'IT 222'],
     };
     for (const [facId, codes] of Object.entries(facultySubjects)) {
       for (const code of codes) {
@@ -264,17 +263,31 @@ export async function ensureSeeded() {
   seeded = true;
 }
 
-/**
+/** 
  * Seed the evidence layer (sources, institutional_facts, fact_sources,
  * verification_records, officials, institution_contacts, system_settings)
  * with the verified facts from lib/evidence/institutional-facts.ts.
- *
+ * 
  * Spec §61: "The initial database should contain at least: TRAC legal name,
  * TRAC legal foundation, 1983 establishment, Nalil/Bongao/Tawi-Tawi location,
  * Current TRAC website, Current BSIT offering, Institute of Computing Studies,
  * Current institutional mission, Current institutional vision, Four-fold
  * institutional thrust, Official institutional contact channels."
  */
+
+/** 
+ * Seed the evidence layer (sources, institutional_facts, fact_sources,
+ * verification_records, officials, institution_contacts, system_settings)
+ * with the verified facts from lib/evidence/institutional-facts.ts.
+ * 
+ * Spec §61: "The initial database should contain at least: TRAC legal name,
+ * TRAC legal foundation, 1983 establishment, Nalil/Bongao/Tawi-Tawi location,
+ * Current TRAC website, Current BSIT offering, Institute of Computing Studies,
+ * Current institutional mission, Current institutional vision, Four-fold
+ * institutional thrust, Official institutional contact channels."
+ */
+
+/* This block was duplicated above — let me just continue with ensureEvidenceSeeded */
 export async function ensureEvidenceSeeded(): Promise<void> {
   if (evidenceSeeded) return;
   const db = await getDb();
@@ -349,7 +362,7 @@ export async function ensureEvidenceSeeded(): Promise<void> {
       `INSERT INTO institution_contacts (office, contact_type, value, label, is_primary, source_id, verified_at, data_environment)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'VERIFIED')`
     );
-    const contacts: Array<[string, 'email'|'mobile'|'phone', string, string|null, number, string]> = [
+    const contacts: Array<[office: string, contact_type: 'email'|'mobile'|'phone', value: string, label: string|null, is_primary: number, source_id: string]> = [
       ['Office of the College President', 'email', 'op@trac.edu.ph', null, 1, 'SRC-TRAC-WEB'],
       ['Office of the College Registrar', 'email', 'registrar@trac.edu.ph', null, 1, 'SRC-TRAC-WEB'],
       ['Office of Admission', 'email', 'admission@trac.edu.ph', null, 1, 'SRC-TRAC-WEB'],
@@ -370,7 +383,7 @@ export async function ensureEvidenceSeeded(): Promise<void> {
     );
     // Names below were visible on the TRAC official website at access date.
     // Marked PENDING_VERIFICATION until an official directory confirms each.
-    const officials: Array<[string, string, string|null, string, string|null, string, string]> = [
+    const officials: Array<[position: string, first_name: string, middle_name: string|null, last_name: string, title: string|null, source_id: string, status: string]> = [
       ['College President', 'Sitti Amina', 'J.', 'Mohammad', 'SUC President I', 'SRC-TRAC-WEB', 'PENDING_VERIFICATION'],
       ['Vice President for Academic Affairs', 'Al-Ghazier', 'H.', 'Kandon', 'Ph.D.', 'SRC-TRAC-WEB', 'PENDING_VERIFICATION'],
       ['Dean of Institute of Computing Studies', 'Abubakar', 'M.', 'Hiyang', 'MIT', 'SRC-TRAC-WEB', 'PENDING_VERIFICATION'],
