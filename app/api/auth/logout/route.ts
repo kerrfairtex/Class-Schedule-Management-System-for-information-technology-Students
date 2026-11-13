@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { clearSession } from '@/lib/modules/mod-01-auth/session';
 
-export async function POST(request: Request) {
+export async function POST() {
   await clearSession();
-  // 303 See Other forces the browser to convert the redirect target to GET,
-  // which is the correct status for form POST → redirect flows.
-  return NextResponse.redirect(new URL('/login', request.url), { status: 303 });
+  // 303 forces the browser to follow with GET. Use a RELATIVE Location:
+  // building an absolute URL from request.url yields Render's internal
+  // address (localhost:10000) behind the proxy.
+  return new NextResponse(null, {
+    status: 303,
+    headers: { Location: '/login' },
+  });
 }
