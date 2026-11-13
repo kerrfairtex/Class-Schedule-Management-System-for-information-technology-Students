@@ -117,42 +117,42 @@ export default function HomePage() {
           </h2>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {/* Stat Card */}
-            <div
-              className="glass-card p-6 text-center"
+            <Link href="/departments"
+              className="glass-card block p-6 text-center transition-all hover:shadow-glow-teal-sm hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyber-teal"
               data-aos="fade-up"
               data-aos-delay="100"
             >
               <MapPin className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
               <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">4</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">Academic Departments</p>
-            </div>
-            <div
-              className="glass-card p-6 text-center"
+            </Link>
+            <Link href="/faculty"
+              className="glass-card block p-6 text-center transition-all hover:shadow-glow-teal-sm hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyber-teal"
               data-aos="fade-up"
               data-aos-delay="200"
             >
               <Users className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
               <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">12</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">Active Faculty Members</p>
-            </div>
-            <div
-              className="glass-card p-6 text-center"
+            </Link>
+            <Link href="/courses"
+              className="glass-card block p-6 text-center transition-all hover:shadow-glow-teal-sm hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyber-teal"
               data-aos="fade-up"
               data-aos-delay="300"
             >
               <BookOpen className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
               <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">38</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">Courses Offered</p>
-            </div>
-            <div
-              className="glass-card p-6 text-center"
+            </Link>
+            <Link href="/sections"
+              className="glass-card block p-6 text-center transition-all hover:shadow-glow-teal-sm hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyber-teal"
               data-aos="fade-up"
               data-aos-delay="400"
             >
               <Calendar className="mx-auto mb-4 h-10 w-10 text-cyber-teal" />
               <h3 className="mb-3 text-2xl font-bold text-slate-900 dark:text-slate-100">156</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">Class Sections Scheduled</p>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
