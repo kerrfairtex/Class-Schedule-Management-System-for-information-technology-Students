@@ -5,5 +5,5 @@ export async function POST(request: Request) {
   await clearSession();
   // 303 See Other forces the browser to convert the redirect target to GET,
   // which is the correct status for form POST → redirect flows.
-  return NextResponse.redirect(new URL('/', request.url), { status: 303 });
+  return NextResponse.redirect(new URL('/login', request.url), { status: 303 });
 }
