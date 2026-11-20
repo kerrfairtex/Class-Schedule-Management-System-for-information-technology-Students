@@ -62,3 +62,9 @@ env.local*
 # Local password/test scripts
 fix-passwords.mjs
 test-*.mjs
+.env.*
+.claude/settings.local.json
+.claude/.cc-managed.json
+supabase/.temp
+node_modules
+.next
