@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2, Check } from 'lucide-react';
+import { useIsClient, usePrefersReducedMotion } from '@/lib/hooks/client-state';
 
 interface LoginFormProps {
   title: string;
@@ -24,19 +25,8 @@ export function LoginForm({
   const [success, setSuccess] = useState(false);
   const [checkedSession, setCheckedSession] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  // Mark as mounted on client side
-  useEffect(() => {
-    setMounted(true);
-    // Check for reduced motion preference
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(mediaQuery.matches);
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
+  const mounted = useIsClient();
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // Check existing session on mount
   useEffect(() => {
