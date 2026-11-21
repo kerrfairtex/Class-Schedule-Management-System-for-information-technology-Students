@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { usePrefersReducedMotion } from '@/lib/hooks/client-state';
 
 export type Item = { id: string | number; title: string; meta: string; tag?: string };
 
@@ -8,17 +9,20 @@ export default function DetailPage({ title, subtitle, items }: {
   title: string; subtitle: string; items: Item[];
 }) {
   const [q, setQ] = useState('');
-  const [n, setN] = useState(0);
+  const [animatedN, setN] = useState(0);
+  const reducedMotion = usePrefersReducedMotion();
+  // Reduced motion shows the final count at once instead of counting up.
+  const n = reducedMotion ? items.length : animatedN;
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setN(items.length); return; }
+    if (reducedMotion) return;
     let f = 0; const steps = 24;
     const t = setInterval(() => {
       f++; setN(Math.round((items.length * f) / steps));
       if (f >= steps) clearInterval(t);
     }, 28);
     return () => clearInterval(t);
-  }, [items.length]);
+  }, [items.length, reducedMotion]);
 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase();

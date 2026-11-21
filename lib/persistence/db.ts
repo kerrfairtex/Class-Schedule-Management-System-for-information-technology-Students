@@ -22,7 +22,15 @@ export function isPostgres(database: any): boolean {
   );
 }
 
+/**
+ * The only schema CSMS reads or writes. The database is shared with other
+ * apps, so every connection is pinned here and never falls back to `public`.
+ */
+export const PG_SCHEMA = 'csms';
+
 let db: any = null;
+let pool: any = null;
+let connecting: Promise<any> | null = null;
 
 export function setDb(database: any) {
   db = database;
@@ -30,6 +38,10 @@ export function setDb(database: any) {
 
 export function resetDb() {
   db = null;
+  if (pool) {
+    pool.end().catch(() => {});
+    pool = null;
+  }
 }
 
 /**
@@ -42,87 +54,172 @@ function toPgSql(sql: string): string {
   return sql.replace(/\?/g, () => '$' + (++n));
 }
 
+type PgQuery = (sql: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount: number | null }>;
+
+/**
+ * Wrap a query function in the better-sqlite3-style API the services use.
+ * `query` is either the pool (one connection per statement) or a single
+ * checked-out client (inside a transaction).
+ */
+function createPgFacade(query: PgQuery, transaction: <T>(fn: (database: any) => Promise<T>) => Promise<T>) {
+  const facade = {
+    __isPostgres: true,
+    prepare: (sql: string) => ({
+      get: async (...params: any[]) => {
+        const res = await query(toPgSql(sql), params);
+        return res.rows[0] || null;
+      },
+      all: async (...params: any[]) => {
+        const res = await query(toPgSql(sql), params);
+        return res.rows;
+      },
+      run: async (...params: any[]) => {
+        // RETURNING * (not RETURNING id) so INSERTs expose the generated key as
+        // `lastID` / `lastInsertRowid`, and tables without an `id` column
+        // (e.g. faculty_subjects) do not raise "column id does not exist".
+        const pgSql = toPgSql(sql);
+        const withReturning = /^\s*insert\b/i.test(pgSql) ? `${pgSql} RETURNING *` : pgSql;
+        const res = await query(withReturning, params);
+        const insertedId = res.rows?.[0]?.id ?? null;
+        return { lastID: insertedId, lastInsertRowid: insertedId, changes: res.rowCount || 0 };
+      },
+    }),
+    exec: async (sql: string) => {
+      await query(sql);
+    },
+    pragma: () => { /* PostgreSQL adapter: no PRAGMA; no-op */ },
+    transaction,
+  };
+  return facade;
+}
+
+/**
+ * Open a connection pool pinned to the csms schema.
+ *
+ * A pool (not one shared client) is required: with a single client every
+ * concurrent request shared one session, so `withTransaction` wrapped other
+ * users' statements in its BEGIN/ROLLBACK, and one dropped socket broke every
+ * request until the service restarted.
+ */
+async function connectPostgres(url: string) {
+  const pg = require('pg');
+  const newPool = new pg.Pool({
+    connectionString: url,
+    max: Number(process.env.PG_POOL_MAX) || 5,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
+    // Let one-off scripts (seed, reset-passwords) exit once their work is done.
+    allowExitOnIdle: true,
+  });
+  // Every new physical connection is pinned to csms before any query runs
+  // (pg queues this ahead of the caller's statement).
+  newPool.on('connect', (client: any) => {
+    client.query(`SET search_path TO ${PG_SCHEMA}`).catch(() => {});
+  });
+  // An idle connection dropped by the pooler must not crash the process; the
+  // pool replaces it on the next checkout.
+  newPool.on('error', (err: Error) => {
+    console.error('[db] idle PostgreSQL connection error:', err.message);
+  });
+
+  if (/:6543\b/.test(url)) {
+    console.warn(
+      '[db] DATABASE_URL uses the Supabase transaction pooler (6543); session settings such as ' +
+        'search_path are not guaranteed there. Prefer the session pooler (5432).'
+    );
+  }
+
+  try {
+    // Fail closed: refuse to serve if csms is missing or not the active
+    // schema, rather than read or write another app's tables.
+    const res = await newPool.query('SELECT current_schema() AS schema');
+    const schema = res.rows[0]?.schema;
+    if (schema !== PG_SCHEMA) {
+      throw new Error(`active schema is "${schema ?? 'none'}", expected "${PG_SCHEMA}" (does the schema exist?)`);
+    }
+  } catch (e) {
+    await newPool.end().catch(() => {});
+    throw e;
+  }
+
+  const transaction = async <T>(fn: (database: any) => Promise<T>): Promise<T> => {
+    const client = await newPool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SET LOCAL search_path TO ${PG_SCHEMA}`);
+      const txQuery: PgQuery = (sql, params) => client.query(sql, params);
+      // Nested withTransaction calls join this transaction.
+      const txFacade = createPgFacade(txQuery, (inner) => inner(txFacade));
+      const result = await fn(txFacade);
+      await client.query('COMMIT');
+      return result;
+    } catch (e) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw e;
+    } finally {
+      client.release();
+    }
+  };
+
+  pool = newPool;
+  return createPgFacade((sql, params) => newPool.query(sql, params), transaction);
+}
+
+function openSqlite() {
+  const Database = require('better-sqlite3');
+  const dataDir = getDataDir();
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  const sqliteDb = new Database(path.join(dataDir, 'csms.db'));
+  sqliteDb.pragma('foreign_keys = ON');
+  return sqliteDb;
+}
+
 // Lazy connect: DATABASE_URL read ONLY inside getDb(); not at import time.
 export async function getDb(): Promise<any> {
-  if (!db) {
+  if (db) return db;
+  // Concurrent first requests share one connection attempt instead of each
+  // opening a pool. A failed attempt is cleared so the next request retries.
+  if (!connecting) {
     const url = process.env.DATABASE_URL; // Only use explicit DATABASE_URL, not SUPABASE_URL
-    
-    if (url && url.trim() !== '') {
-      // PostgreSQL adapter (production)
-      try {
-        const pg = require('pg');
-        const client = new pg.Client({ connectionString: url });
-        await client.connect();
-        
-        // Ensure search_path is set to csms for all queries
-        await client.query('SET search_path TO csms');
-        
-        const facade = {
-          prepare: (sql: string) => ({
-            get: async (...params: any[]) => {
-              const pgSql = toPgSql(sql);
-
-              const res = await client.query(pgSql, params);
-              return res.rows[0] || null;
-            },
-            all: async (...params: any[]) => {
-              const pgSql = toPgSql(sql);
-
-              const res = await client.query(pgSql, params);
-              return res.rows;
-            },
-            run: async (...params: any[]) => {
-              // The PostgreSQL adapter must return the generated primary key.
-              // `client.query` without RETURNING yields an empty row set, so the
-              // id was always undefined here — callers reading
-              // `result.lastInsertRowid` got undefined, and `Number(undefined)`
-              // produced NaN, which then failed against int4 columns with
-              // 'invalid input syntax for type integer: "NaN"'.
-              // Append RETURNING id for INSERT statements so the facade can
-              // expose both `lastID` and the better-sqlite3-style
-              // `lastInsertRowid`.
-              const pgSql = toPgSql(sql);
-              // RETURNING * (not RETURNING id) so tables without an `id` column
-              // (e.g. faculty_subjects) do not raise "column id does not exist".
-              const withReturning = /^\s*insert\b/i.test(pgSql) ? `${pgSql} RETURNING *` : pgSql;
-
-              const res = await client.query(withReturning, params);
-              const insertedId = res.rows?.[0]?.id ?? null;
-              return {
-                lastID: insertedId,
-                lastInsertRowid: insertedId,
-                changes: res.rowCount || 0,
-              };
-            },
-          }),
-          exec: async (sql: string) => {
-            await client.query(sql);
-          },
-          pragma: () => { /* PostgreSQL adapter: no PRAGMA; no-op */ },
-        };
-        (facade as any).__isPostgres = true;
-        db = facade;
-      } catch (e: any) {
-        throw new Error('PostgreSQL adapter initialization failed. Ensure DATABASE_URL is set and pg package is installed. Error: ' + e.message);
-      }
-    } else {
-      // SQLite adapter (local development)
-      try {
-        const Database = require('better-sqlite3');
-        const dataDir = getDataDir();
-        if (!fs.existsSync(dataDir)) {
-          fs.mkdirSync(dataDir, { recursive: true });
+    connecting = (async () => {
+      if (url && url.trim() !== '') {
+        try {
+          return await connectPostgres(url);
+        } catch (e: any) {
+          throw new Error('PostgreSQL adapter initialization failed: ' + e.message);
         }
-        const dbPath = path.join(dataDir, 'csms.db');
-        const sqliteDb = new Database(dbPath);
-        sqliteDb.pragma('foreign_keys = ON');
-        db = sqliteDb;
+      }
+      try {
+        return openSqlite();
       } catch (e: any) {
         throw new Error('SQLite adapter initialization failed. Ensure better-sqlite3 package is installed. Error: ' + e.message);
       }
-    }
+    })()
+      .then((database) => {
+        db = database;
+        return database;
+      })
+      .finally(() => {
+        connecting = null;
+      });
   }
-  return db;
+  return connecting;
+}
+
+/**
+ * Round-trip check for /api/health. Returns the active schema (PostgreSQL)
+ * or 'main' (SQLite). Throws when the database is unreachable.
+ */
+export async function checkDatabase(): Promise<{ adapter: 'postgres' | 'sqlite'; schema: string }> {
+  const database = await getDb();
+  if (isPostgres(database)) {
+    const row = await database.prepare('SELECT current_schema() AS schema').get();
+    return { adapter: 'postgres', schema: row?.schema ?? '' };
+  }
+  database.prepare('SELECT 1').get();
+  return { adapter: 'sqlite', schema: 'main' };
 }
 
 export function getDbPath(): string {
@@ -413,28 +510,29 @@ CREATE INDEX IF NOT EXISTS idx_schedules_semester ON schedules(semester_id);
   database.exec(usePostgres ? pgSql : sqliteSql);
 }
 
-export function backupDatabase(destinationPath: string) {
-  if (isPostgres(getDb())) {
+/**
+ * Back up the open SQLite database to `destinationPath`.
+ *
+ * Uses better-sqlite3's online backup API on the live connection rather than
+ * copying csms.db: a file copy of a database being written can be torn, and
+ * it fails outright for an in-memory database.
+ */
+export async function backupDatabase(destinationPath: string): Promise<void> {
+  const database = await getDb();
+  if (isPostgres(database)) {
     throw new Error('PostgreSQL adapter: backupDatabase not implemented. Use database-level backup (e.g., pg_dump, Supabase backups) or implement logical export separately.');
   }
-  const dataDir = getDataDir();
-  const sourcePath = path.join(dataDir, 'csms.db');
-  fs.copyFileSync(sourcePath, destinationPath);
+  fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
+  await database.backup(destinationPath);
 }
 
 export async function withTransaction<T>(fn: (database: any) => Promise<T>): Promise<T> {
   const database = await getDb();
 
   if (isPostgres(database)) {
-    await database.exec('BEGIN');
-    try {
-      const result = await fn(database);
-      await database.exec('COMMIT');
-      return result;
-    } catch (e: any) {
-      await database.exec('ROLLBACK');
-      throw e;
-    }
+    // Runs on a dedicated pooled connection so concurrent requests never
+    // share (or roll back) this transaction.
+    return database.transaction(fn);
   } else {
     database.exec('BEGIN');
     try {
