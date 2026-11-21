@@ -24,7 +24,7 @@ export async function createBackup(): Promise<string> {
   const backupDir = path.join(path.dirname(dbPath), 'backups');
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const backupPath = path.join(backupDir, `csms-backup-${timestamp}.db`);
-  backupDatabase(backupPath);
+  await backupDatabase(backupPath);
   return backupPath;
 }
 

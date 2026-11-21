@@ -510,13 +510,20 @@ CREATE INDEX IF NOT EXISTS idx_schedules_semester ON schedules(semester_id);
   database.exec(usePostgres ? pgSql : sqliteSql);
 }
 
-export function backupDatabase(destinationPath: string) {
-  if (isPostgres(getDb())) {
+/**
+ * Back up the open SQLite database to `destinationPath`.
+ *
+ * Uses better-sqlite3's online backup API on the live connection rather than
+ * copying csms.db: a file copy of a database being written can be torn, and
+ * it fails outright for an in-memory database.
+ */
+export async function backupDatabase(destinationPath: string): Promise<void> {
+  const database = await getDb();
+  if (isPostgres(database)) {
     throw new Error('PostgreSQL adapter: backupDatabase not implemented. Use database-level backup (e.g., pg_dump, Supabase backups) or implement logical export separately.');
   }
-  const dataDir = getDataDir();
-  const sourcePath = path.join(dataDir, 'csms.db');
-  fs.copyFileSync(sourcePath, destinationPath);
+  fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
+  await database.backup(destinationPath);
 }
 
 export async function withTransaction<T>(fn: (database: any) => Promise<T>): Promise<T> {
