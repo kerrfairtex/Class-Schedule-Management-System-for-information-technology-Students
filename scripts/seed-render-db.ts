@@ -1,5 +1,6 @@
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
+import { assertNotProductionDatabase } from '@/lib/guards/production-database';
 
 // This script runs against Render's internal PostgreSQL database
 // DATABASE_URL is injected by Render at runtime
@@ -10,6 +11,9 @@ if (!DATABASE_URL) {
   console.error('DATABASE_URL not set');
   process.exit(1);
 }
+
+// Refuse to write to the shared production database by accident.
+assertNotProductionDatabase(DATABASE_URL);
 
 async function seedRenderDatabase() {
   console.log('Connecting to Render PostgreSQL...');
