@@ -135,12 +135,30 @@ idempotent and paired with a `.down.sql` rollback, run by hand:
 
 | File | What it does |
 |---|---|
-| `001_csms_app_role.sql` | Least-privilege `csms_app` login role (no password set). On branch `feat/csms-app-role`, not merged yet |
+| `001_csms_app_role.sql` | Least-privilege `csms_app` login role (no password set). Also covers tables added later (default privileges, and policies on tables with row level security such as `room_bookings` and `announcements`). See below. |
 | `002_schedule_publish_workflow.sql` | Adds the schedule workflow columns the app relies on, plus unique indexes that stop double-booked rooms, faculty and sections. Refuses to run, changing nothing, if existing rows already clash. |
 | `003_bookings_announcements_evidence.sql` | `room_bookings` and `announcements` (with row level security), plus repo definitions of the evidence tables that already exist in production. **Run before deploying the code that uses them**; until then those pages show a notice or nothing. |
 
 Fresh local databases get their schema from `initSchema()` in `lib/persistence/db.ts`
 (via `npm run seed`). Keep it in step with the migrations.
+
+#### Production database (Render + shared Supabase Postgres)
+
+Production runs on Render with `DATABASE_URL` pointing at a Supabase Postgres database that other apps share. CSMS keeps all of its tables in the `csms` schema. When `DATABASE_URL` is set the app uses Postgres; without it, it falls back to local SQLite.
+
+##### Dedicated `csms_app` role
+
+`db/migrations/001_csms_app_role.sql` creates a login role that can only read and write rows in `csms`. It can't see or change other apps' tables, create or drop tables, or bypass row level security. Its `search_path` is fixed to `csms` at login.
+
+1. **Apply it.** In the Supabase SQL editor (or psql as `postgres`), run `db/migrations/001_csms_app_role.sql`, then the verify queries at the bottom of the file. The last query must return no rows.
+2. **Set a password.** Generate one locally with `openssl rand -base64 33 | tr -d '/+='` (letters and digits only, so it needs no URL encoding). Then either run `\password csms_app` in psql, or in the SQL editor run `ALTER ROLE csms_app WITH PASSWORD '<password>';` as an unsaved query. Never commit the password or save it in a snippet.
+3. **Point the app at it.** On Render, set `DATABASE_URL` to the session pooler (port 5432) as `csms_app.<project-ref>`:
+   `postgresql://csms_app.<project-ref>:<password>@<pooler-host>:5432/postgres`
+4. **Deploy and confirm.** `GET /api/health` should return `"database":"up"`. The app refuses to serve if the active schema isn't `csms`.
+
+Seed and schema scripts (`seed-production.ts`, `seed-render-db.ts`) create tables, so they need the `postgres` role, not `csms_app`.
+
+**Rollback:** set `DATABASE_URL` back to the previous value and redeploy first, then run `db/migrations/001_csms_app_role.down.sql`. It removes only the role, its grants and its `csms_app_all` policies. No tables or rows are touched.
 
 ### Environment variables
 
