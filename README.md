@@ -122,6 +122,49 @@ The app already produces a standalone Next.js build and will auto-seed the SQLit
 
 > Note: Supabase/Postgres variables are future-migration settings and are not required unless `lib/persistence/*` is migrated away from SQLite.
 
+### Database migrations (PostgreSQL)
+
+Production schema changes are numbered SQL files in `db/migrations/`, each additive,
+idempotent and paired with a `.down.sql` rollback. They are **not** run automatically:
+
+1. Take a backup first (Supabase dashboard backup, or `pg_dump -n csms`).
+2. Run the file as `postgres` in the Supabase SQL editor (or `psql`).
+3. To roll back, run the matching `.down.sql`.
+
+| File | What it does |
+|---|---|
+| `001_csms_app_role.sql` | Least-privilege `csms_app` login role (no password set) |
+| `002_schedule_publish_workflow.sql` | Adds the schedule workflow columns the app relies on, plus unique indexes that stop double-booked rooms, faculty and sections. Refuses to run, changing nothing, if existing rows already clash. |
+
+### Environment variables
+
+| Name | Required | Purpose |
+|---|---|---|
+| `DATABASE_URL` | Production | PostgreSQL connection (session pooler). Empty → local SQLite |
+| `SESSION_SECRET` | Production | Signs session cookies |
+| `SITE_URL` | No | Public origin for sitemap, robots.txt and Open Graph (defaults to the Render URL) |
+| `PG_POOL_MAX` | No | PostgreSQL pool size (default 5) |
+| `CSMS_DATA_DIR` | No | SQLite data directory (default `./data`) |
+
+## Schedule publishing workflow
+
+Schedules are created on the **Schedule Board** (`/admin/schedule-board`) as **Draft**,
+either manually or by auto-generation, and move through:
+
+`Draft → Pending review → Approved → Published` (then `Cancelled` / `Archived`).
+
+| Who | Sees |
+|---|---|
+| Admin (board, `/admin/schedules`) | Every status |
+| Faculty portal | Approved and Published |
+| Student portal | Published |
+| Public site (`/`, `/sections`, `/schedules`) | Published, and only when the deployment's `data_environment` setting is `VERIFIED` or `PRODUCTION` (DEMO data is never public) |
+
+Published classes are locked: cancel one instead of moving or deleting it. Moving a
+class that is pending review or approved returns it to Draft. Publishing is refused
+while a blocking conflict exists. The rule lives in
+`lib/modules/mod-03-schedule-engine/visibility.ts`; use it for any new schedule list.
+
 ## Project Structure
 
 ```
