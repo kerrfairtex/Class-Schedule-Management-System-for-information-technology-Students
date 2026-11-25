@@ -6,8 +6,8 @@ import { PortalLayout } from '@/components/PortalLayout';
 import { Calendar, Clock, BookOpen, Users, Activity } from 'lucide-react';
 import type { Schedule } from '@/lib/domain/types';
 import { ORGANIZATION } from '@/lib/domain/constants';
-import Link from 'next/link';
 import { MetricCard, QuickLink } from '@/components/DashboardComponents';
+import { FACULTY_NAV, navFor } from '@/lib/domain/navigation';
 
 export default function FacultyDashboardPage() {
   const router = useRouter();
@@ -29,10 +29,7 @@ export default function FacultyDashboardPage() {
   }, [router]);
 
   const name = faculty ? `${faculty.first_name} ${faculty.last_name}` : '';
-  const links = [
-    { href: '/faculty/dashboard', label: 'Mission Log', active: true },
-    { href: '/faculty/schedule', label: 'Schedule Matrix' },
-  ];
+  const links = navFor(FACULTY_NAV, '/faculty/dashboard');
 
   const upcoming = getUpcomingClasses(schedules);
   const uniqueSubjects = new Set(schedules.map((s) => s.subject_code)).size;

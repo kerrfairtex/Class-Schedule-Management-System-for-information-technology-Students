@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { requireAdmin } from '@/lib/auth';
+import { AdminTopNav } from '@/components/admin/AdminTopNav';
 import { getDb } from '@/lib/persistence/db';
 
 export const dynamic = 'force-dynamic';
@@ -79,14 +79,7 @@ export default async function AdminSchedulesPage() {
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
       <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className="mb-4 flex items-center justify-between">
-          <Link href="/login" className="text-sm text-cyber-teal hover:text-cyber-cyan">
-            ← Admin Portal
-          </Link>
-          <Link href="/admin/conflicts" className="text-sm text-cyber-teal hover:text-cyber-cyan">
-            Conflicts →
-          </Link>
-        </div>
+        <AdminTopNav current="/admin/schedules" />
         <h1 className="mb-2 text-3xl font-bold">Schedule Management</h1>
         <p className="mb-2 text-slate-400">
           Active semester: <strong>{activeSemester?.name ?? 'None'}</strong>

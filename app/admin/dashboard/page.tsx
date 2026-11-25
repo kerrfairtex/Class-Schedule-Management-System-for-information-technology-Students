@@ -3,9 +3,10 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { getDashboardStats, getActiveSemester, getActiveAcademicYear } from '@/lib/modules/mod-02-master-list/service';
 import { getSchedulesBySemester } from '@/lib/modules/mod-03-schedule-engine/service';
-import { LayoutDashboard, Users, GraduationCap, BookOpen, Building2, Calendar, Layers, Database, AlertTriangle, Activity, Server } from 'lucide-react';
+import { Users, GraduationCap, BookOpen, Building2, Calendar, Layers, AlertTriangle, Activity, Server } from 'lucide-react';
 import { ORGANIZATION } from '@/lib/domain/constants';
 import { MetricCard, QuickLink } from '@/components/DashboardComponents';
+import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
 
 export default async function AdminDashboardPage() {
   const session = await getSession();
@@ -19,12 +20,7 @@ export default async function AdminDashboardPage() {
   const schedules = await getSchedulesBySemester(semester?.id || 0);
   const conflicts = detectConflictsCount(schedules);
 
-  const adminLinks = [
-    { href: '/admin/dashboard', label: 'Mission Control', icon: <LayoutDashboard className="h-4 w-4" />, active: true, moduleId: 'admin-control' },
-    { href: '/admin/master-list', label: 'Master List (MOD-02)', icon: <BookOpen className="h-4 w-4" />, moduleId: 'master-list' },
-    { href: '/admin/faculty-availability', label: 'Faculty Load', icon: <Users className="h-4 w-4" />, moduleId: 'faculty-availability' },
-    { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)', icon: <Calendar className="h-4 w-4" />, moduleId: 'schedule-board' },
-  ];
+  const adminLinks = navFor(ADMIN_NAV, '/admin/dashboard');
 
   const telemetry = {
     term: `${academicYear?.label || 'AY 2024-2025'} • ${semester?.name || 'No Active Semester'}`,

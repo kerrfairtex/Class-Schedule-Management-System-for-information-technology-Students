@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   toInt,
   toOptionalInt,
@@ -25,7 +25,6 @@ interface Meta {
   semester: { id: number; name: string } | null;
 }
 
-type Tab = MasterListTab;
 
 export interface EditingRecord {
   id: number;
@@ -43,16 +42,6 @@ interface MasterListFormProps {
 }
 
 type Mode = 'create' | 'edit';
-
-/**
- * A single value that can be edited: the row id for updates, or undefined for
- * creates. Keeping it in one place means the form renders the same fields for
- * Add and Edit.
- */
-interface EditTarget {
-  id: number;
-  values: Record<string, string>;
-}
 
 export function MasterListForm({
   tab,

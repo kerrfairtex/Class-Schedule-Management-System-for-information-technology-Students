@@ -47,6 +47,7 @@ import {
   semesterNumberOf,
 } from '@/lib/modules/mod-03-schedule-engine/service';
 import { detectConflicts } from '@/lib/modules/mod-04-conflict-engine/validator';
+import { DATA_ENVIRONMENTS, setDataEnvironment } from '@/lib/modules/mod-08-database-service/settings';
 import { createBackup } from '@/lib/modules/mod-08-database-service/backup';
 import { getAuditLogs, logAudit } from '@/lib/modules/mod-08-database-service/audit';
 import { createUser } from '@/lib/modules/mod-01-auth/service';
@@ -615,6 +616,21 @@ export async function POST(request: Request) {
           return NextResponse.json({ ...result, error }, { status: 409 });
         }
         return NextResponse.json(result);
+      }
+      case 'set-data-environment': {
+        const envSchema = z.object({
+          value: z.enum(DATA_ENVIRONMENTS),
+          applyToActiveSemester: z.boolean().optional(),
+        });
+        const validated = envSchema.safeParse(body);
+        if (!validated.success) return invalidBody('Invalid data environment');
+        const semester = validated.data.applyToActiveSemester ? await getActiveSemester() : null;
+        const result = await setDataEnvironment(validated.data.value, {
+          semesterId: semester?.id,
+          userId: session!.id,
+          username: session!.username,
+        });
+        return NextResponse.json({ success: true, ...result });
       }
       case 'reset-password': {
         const resetSchema = z.object({

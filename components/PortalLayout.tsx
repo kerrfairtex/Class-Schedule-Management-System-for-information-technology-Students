@@ -2,10 +2,9 @@
 
 import { useState, useSyncExternalStore, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Menu, X, LayoutDashboard, Users, BookOpen, GraduationCap, Building2, Calendar, AlertTriangle, Activity, Server, Database } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Menu, X, LayoutDashboard, Users, BookOpen, GraduationCap, Building2, Calendar, AlertTriangle, Activity, Database } from 'lucide-react';
 import { ORGANIZATION } from '@/lib/domain/constants';
 import { TelemetryBar } from './TelemetryBar';
-import { MetricCard, QuickLink } from './DashboardComponents';
 
 interface NavLink {
   href: string;

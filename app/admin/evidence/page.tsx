@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { requireAdmin } from '@/lib/auth';
+import { AdminTopNav } from '@/components/admin/AdminTopNav';
 import { getDb } from '@/lib/persistence/db';
 
 export const dynamic = 'force-dynamic';
@@ -64,14 +64,7 @@ export default async function AdminEvidencePage() {
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
       <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className="mb-4 flex items-center justify-between">
-          <Link href="/login" className="text-sm text-cyber-teal hover:text-cyber-cyan">
-            ← Admin Portal
-          </Link>
-          <Link href="/admin/settings" className="text-sm text-cyber-teal hover:text-cyber-cyan">
-            Settings →
-          </Link>
-        </div>
+        <AdminTopNav current="/admin/evidence" />
         <h1 className="mb-2 text-3xl font-bold">Evidence Dashboard</h1>
         <p className="mb-8 text-slate-400">
           Source-of-Truth overview (spec §66).
