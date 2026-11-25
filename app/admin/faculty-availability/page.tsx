@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PortalSidebar } from '@/components/Sidebar';
-import { ORGANIZATION, DAY_LABELS } from '@/lib/domain/constants';
+import { DAY_LABELS } from '@/lib/domain/constants';
 import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
+import { PortalLayout } from '@/components/PortalLayout';
 
 interface FacultyOption {
   id: number;
@@ -75,21 +75,14 @@ export default function FacultyAvailabilityPage() {
   const adminLinks = navFor(ADMIN_NAV, '/admin/faculty-availability');
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <PortalSidebar
-        title="Admin"
-        name="Administrator"
-        subtitle={ORGANIZATION.departmentCode}
-        links={adminLinks}
-      />
-      <main className="min-w-0 flex-1 p-4 sm:p-8">
+    <PortalLayout role="admin" name="Administrator" links={adminLinks}>
         <h1 className="mb-2 text-2xl font-bold">Faculty Availability</h1>
-        <p className="mb-6 text-sm text-slate-500">
+        <p className="mb-6 text-sm text-muted">
           Mark unavailable time slots — MOD-04 uses this during conflict detection.
         </p>
 
         {message && (
-          <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">{message}</div>
+          <div className="mb-4 rounded-lg bg-lagoon-50 px-4 py-3 text-sm text-lagoon-dark">{message}</div>
         )}
 
         <div className="mb-6">
@@ -114,8 +107,8 @@ export default function FacultyAvailabilityPage() {
               onClick={() => toggleSlot(slot.id, slot.is_available)}
               className={`rounded-lg border p-3 text-left text-sm transition ${
                 slot.is_available
-                  ? 'border-green-200 bg-green-50 text-green-800 hover:bg-green-100'
-                  : 'border-red-200 bg-red-50 text-red-800 hover:bg-red-100'
+                  ? 'border-seagrass/40 bg-seagrass-50 text-seagrass hover:bg-green-100'
+                  : 'border-coral/40 bg-coral-50 text-coral hover:bg-red-100'
               }`}
             >
               <p className="font-medium">{DAY_LABELS[slot.day_of_week]}</p>
@@ -126,7 +119,6 @@ export default function FacultyAvailabilityPage() {
             </button>
           ))}
         </div>
-      </main>
-    </div>
+    </PortalLayout>
   );
 }

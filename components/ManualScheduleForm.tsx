@@ -160,23 +160,23 @@ export function ManualScheduleForm({ onSuccess, onError }: ManualScheduleFormPro
     <form onSubmit={handleSubmit} className="card mb-6 grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div className="flex items-center justify-between sm:col-span-2 lg:col-span-3">
         <h2 className="font-semibold">Manual Schedule Entry (MOD-05)</h2>
-        <button type="button" onClick={close} className="text-sm text-slate-600 underline-offset-2 hover:underline">
+        <button type="button" onClick={close} className="text-sm text-muted underline-offset-2 hover:underline">
           Close
         </button>
       </div>
 
       {optionsError && (
-        <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2 lg:col-span-3">
+        <p role="alert" className="rounded bg-coral-50 px-3 py-2 text-sm text-coral sm:col-span-2 lg:col-span-3">
           Could not load form options: {optionsError}
         </p>
       )}
       {!options && !optionsError && (
-        <p role="status" className="text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
+        <p role="status" className="text-sm text-muted sm:col-span-2 lg:col-span-3">
           Loading options…
         </p>
       )}
       {options && !options.semester && (
-        <p role="alert" className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-800 sm:col-span-2 lg:col-span-3">
+        <p role="alert" className="rounded bg-sand px-3 py-2 text-sm text-ink sm:col-span-2 lg:col-span-3">
           No active semester. Activate one in Settings before scheduling.
         </p>
       )}
@@ -254,19 +254,19 @@ export function ManualScheduleForm({ onSuccess, onError }: ManualScheduleFormPro
       />
 
       <div aria-live="polite" className="text-sm sm:col-span-2 lg:col-span-3">
-        {checking && <p className="text-slate-500">Checking for conflicts…</p>}
+        {checking && <p className="text-muted">Checking for conflicts…</p>}
         {!checking && check && blocking.length === 0 && warnings.length === 0 && (
-          <p className="rounded bg-green-50 px-3 py-2 text-green-800">No conflicts. This slot is free.</p>
+          <p className="rounded bg-seagrass-50 px-3 py-2 text-seagrass">No conflicts. This slot is free.</p>
         )}
         {blocking.length > 0 && (
-          <ul role="alert" className="list-inside list-disc rounded bg-red-50 px-3 py-2 text-red-700">
+          <ul role="alert" className="list-inside list-disc rounded bg-coral-50 px-3 py-2 text-coral">
             {blocking.map((c) => (
               <li key={c.kind}>{c.message}</li>
             ))}
           </ul>
         )}
         {warnings.length > 0 && (
-          <ul className="mt-2 list-inside list-disc rounded bg-amber-50 px-3 py-2 text-amber-800">
+          <ul className="mt-2 list-inside list-disc rounded bg-sand px-3 py-2 text-ink">
             {warnings.map((c) => (
               <li key={c.kind}>Warning: {c.message}. You can still save.</li>
             ))}
@@ -306,7 +306,7 @@ function SelectField({
   const noOptions = !disabled && options.length === 0 && emptyHint;
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-ink-soft">
         {label}
       </label>
       <select
@@ -316,7 +316,7 @@ function SelectField({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="input-field disabled:cursor-not-allowed disabled:bg-slate-100"
+        className="input-field disabled:cursor-not-allowed disabled:bg-paper-2"
         aria-describedby={noOptions || disabled ? `${id}-hint` : undefined}
       >
         <option value="">Select…</option>
@@ -327,7 +327,7 @@ function SelectField({
         ))}
       </select>
       {(noOptions || (disabled && emptyHint)) && (
-        <p id={`${id}-hint`} className="mt-1 text-xs text-slate-500">
+        <p id={`${id}-hint`} className="mt-1 text-xs text-muted">
           {emptyHint}
         </p>
       )}
@@ -347,7 +347,7 @@ function Toggle({
   label: string;
 }) {
   return (
-    <label htmlFor={id} className="mt-1 flex items-center gap-2 text-xs text-slate-600">
+    <label htmlFor={id} className="mt-1 flex items-center gap-2 text-xs text-muted">
       <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>

@@ -1,6 +1,8 @@
 import { requireAdmin } from '@/lib/auth';
-import { AdminTopNav } from '@/components/admin/AdminTopNav';
 import { getDb } from '@/lib/persistence/db';
+import { campusNow } from '@/lib/modules/mod-03-schedule-engine/public-timetable';
+import { PortalLayout } from '@/components/PortalLayout';
+import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,22 +22,22 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  VERIFIED: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
-  OFFICIAL: 'border-cyber-teal/40 bg-cyber-teal/10 text-cyber-teal',
-  GOVERNMENT_SUPPORTED: 'border-blue-500/40 bg-blue-500/10 text-blue-300',
-  CORROBORATED: 'border-violet-500/40 bg-violet-500/10 text-violet-300',
-  PENDING_VERIFICATION: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
-  UNVERIFIED: 'border-red-500/40 bg-red-500/10 text-red-300',
-  CONFLICTING: 'border-red-600/40 bg-red-600/10 text-red-400',
-  DEPRECATED: 'border-slate-500/40 bg-slate-500/10 text-slate-400',
+  VERIFIED: 'border-seagrass/40 bg-seagrass-50 text-seagrass',
+  OFFICIAL: 'border-lagoon/40 bg-lagoon-50 text-lagoon',
+  GOVERNMENT_SUPPORTED: 'border-lagoon/40 bg-lagoon-50 text-lagoon-dark',
+  CORROBORATED: 'border-violet-500/40 bg-paper-2 text-ink-soft',
+  PENDING_VERIFICATION: 'border-sand-dark/50 bg-sand text-ink',
+  UNVERIFIED: 'border-coral/40 bg-coral-50 text-coral',
+  CONFLICTING: 'border-coral/40 bg-red-600/10 text-coral',
+  DEPRECATED: 'border-line-strong bg-paper-2 text-muted',
 };
 
 export default async function AdminEvidencePage() {
-  await requireAdmin();
+  const session = await requireAdmin();
   const db = await getDb();
   const facts = await db
     .prepare(
-      `SELECT id, category, key, value, status, confidence, verified_at, review_due_at, NULL::text AS source_id
+      `SELECT id, category, key, value, status, confidence, verified_at, review_due_at, NULL AS source_id
        FROM institutional_facts
        ORDER BY status, category, key`
     )
@@ -57,38 +59,37 @@ export default async function AdminEvidencePage() {
   const overdue = await db
     .prepare(
       `SELECT COUNT(*) as c FROM institutional_facts
-       WHERE review_due_at IS NOT NULL AND review_due_at < CURRENT_DATE::text`
+       WHERE review_due_at IS NOT NULL AND review_due_at < ?`
     )
-    .get() as { c: number };
+    // Dates are stored as YYYY-MM-DD text; compare with the campus date.
+    .get(campusNow().date) as { c: number };
 
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <AdminTopNav current="/admin/evidence" />
+    <PortalLayout role="admin" name={session.name} links={navFor(ADMIN_NAV, '/admin/evidence')}>
         <h1 className="mb-2 text-3xl font-bold">Evidence Dashboard</h1>
-        <p className="mb-8 text-slate-400">
+        <p className="mb-8 text-muted">
           Source-of-Truth overview (spec §66).
         </p>
 
         <div className="mb-8 grid gap-4 md:grid-cols-4">
-          <div className="rounded border border-slate-700 bg-slate-900/50 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Total Facts</p>
+          <div className="rounded border border-line bg-surface p-4">
+            <p className="text-xs text-muted">Total Facts</p>
             <p className="mt-2 text-3xl font-bold">{facts.length}</p>
           </div>
-          <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-4">
-            <p className="text-xs uppercase tracking-wide text-emerald-300">
+          <div className="rounded border border-seagrass/40 bg-seagrass-50 p-4">
+            <p className="text-xs text-seagrass">
               Verified / Official
             </p>
             <p className="mt-2 text-3xl font-bold">
               {(byStatus.VERIFIED ?? 0) + (byStatus.OFFICIAL ?? 0)}
             </p>
           </div>
-          <div className="rounded border border-amber-500/40 bg-amber-500/10 p-4">
-            <p className="text-xs uppercase tracking-wide text-amber-300">Pending</p>
+          <div className="rounded border border-sand-dark/50 bg-sand p-4">
+            <p className="text-xs text-ink">Pending</p>
             <p className="mt-2 text-3xl font-bold">{byStatus.PENDING_VERIFICATION ?? 0}</p>
           </div>
-          <div className="rounded border border-red-500/40 bg-red-500/10 p-4">
-            <p className="text-xs uppercase tracking-wide text-red-300">Review Overdue</p>
+          <div className="rounded border border-coral/40 bg-coral-50 p-4">
+            <p className="text-xs text-coral">Review Overdue</p>
             <p className="mt-2 text-3xl font-bold">{overdue.c}</p>
           </div>
         </div>
@@ -96,23 +97,23 @@ export default async function AdminEvidencePage() {
         <h2 className="mb-4 text-xl font-semibold">All Facts</h2>
         <div className="space-y-3">
           {facts.map((f) => (
-            <article key={f.id} className="rounded border border-slate-700 bg-slate-900/50 p-4">
+            <article key={f.id} className="rounded border border-line bg-surface p-4">
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <code className="text-xs text-slate-500">{f.id}</code>
+                <code className="text-xs text-muted">{f.id}</code>
                 <span
-                  className={`rounded-full border px-2 py-0.5 text-xs uppercase tracking-wide ${STATUS_COLOR[f.status] ?? ''}`}
+                  className={`rounded-full border px-2 py-0.5 text-xs   ${STATUS_COLOR[f.status] ?? ''}`}
                 >
                   {STATUS_LABEL[f.status] ?? f.status}
                 </span>
-                <span className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400">
+                <span className="rounded border border-line px-2 py-0.5 text-xs text-muted">
                   {f.category}
                 </span>
                 {f.review_due_at && (
                   <span
                     className={`rounded px-2 py-0.5 text-xs ${
                       f.review_due_at < new Date().toISOString().slice(0, 10)
-                        ? 'bg-red-500/20 text-red-300'
-                        : 'bg-slate-700 text-slate-400'
+                        ? 'bg-coral-50 text-coral'
+                        : 'bg-surface text-muted'
                     }`}
                   >
                     Due: {f.review_due_at}
@@ -120,14 +121,13 @@ export default async function AdminEvidencePage() {
                 )}
               </div>
               <h3 className="mb-1 font-medium">{f.key.replace(/_/g, ' ')}</h3>
-              <p className="text-sm text-slate-300">{f.value}</p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="text-sm text-ink-soft">{f.value}</p>
+              <p className="mt-2 text-xs text-muted">
                 Source: {f.source_id} · Verified: {f.verified_at}
               </p>
             </article>
           ))}
         </div>
-      </div>
-    </div>
+    </PortalLayout>
   );
 }

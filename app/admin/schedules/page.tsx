@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth';
-import { AdminTopNav } from '@/components/admin/AdminTopNav';
 import { getDb } from '@/lib/persistence/db';
+import { PortalLayout } from '@/components/PortalLayout';
+import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,16 +19,16 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  DRAFT: 'border-slate-500/40 bg-slate-500/10 text-slate-300',
-  PENDING_REVIEW: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
-  APPROVED: 'border-blue-500/40 bg-blue-500/10 text-blue-300',
-  PUBLISHED: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
-  CANCELLED: 'border-red-500/40 bg-red-500/10 text-red-300',
-  ARCHIVED: 'border-slate-700 bg-slate-800 text-slate-500',
+  DRAFT: 'border-line-strong bg-paper-2 text-ink-soft',
+  PENDING_REVIEW: 'border-sand-dark/50 bg-sand text-ink',
+  APPROVED: 'border-lagoon/40 bg-lagoon-50 text-lagoon-dark',
+  PUBLISHED: 'border-seagrass/40 bg-seagrass-50 text-seagrass',
+  CANCELLED: 'border-coral/40 bg-coral-50 text-coral',
+  ARCHIVED: 'border-line bg-surface text-muted',
 };
 
 export default async function AdminSchedulesPage() {
-  await requireAdmin();
+  const session = await requireAdmin();
   const db = await getDb();
   const activeSemester = await db
     .prepare(`SELECT id, name FROM semesters WHERE is_active = 1`)
@@ -77,15 +78,13 @@ export default async function AdminSchedulesPage() {
   for (const s of schedules) byStatus[s.status] = (byStatus[s.status] ?? 0) + 1;
 
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <AdminTopNav current="/admin/schedules" />
+    <PortalLayout role="admin" name={session.name} links={navFor(ADMIN_NAV, '/admin/schedules')}>
         <h1 className="mb-2 text-3xl font-bold">Schedule Management</h1>
-        <p className="mb-2 text-slate-400">
+        <p className="mb-2 text-muted">
           Active semester: <strong>{activeSemester?.name ?? 'None'}</strong>
         </p>
-        <p className="mb-8 text-sm text-slate-500">
-          Spec §32–§34: status workflow DRAFT → PENDING_REVIEW → APPROVED → PUBLISHED.
+        <p className="mb-8 text-sm text-muted">
+          Classes move from draft to pending review, approved, then published.
           PUBLISHED requires zero blocking conflicts.
         </p>
 
@@ -95,70 +94,70 @@ export default async function AdminSchedulesPage() {
               key={key}
               className={`rounded border p-3 text-center ${STATUS_COLOR[key]}`}
             >
-              <p className="text-xs uppercase tracking-wide">{label}</p>
+              <p className="text-xs">{label}</p>
               <p className="mt-1 text-2xl font-bold">{byStatus[key] ?? 0}</p>
             </div>
           ))}
         </div>
 
         {schedules.length === 0 ? (
-          <div className="rounded border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-300">
+          <div className="rounded border border-sand-dark/50 bg-sand p-4 text-sm text-ink">
             <strong>No schedules yet.</strong> Use the Schedule Board to create
             draft schedules. They will appear here as DRAFT until they are
             transitioned through the approval workflow.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-700 text-xs uppercase tracking-wide text-slate-400">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="py-2 pr-4">ID</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Day</th>
-                  <th className="py-2 pr-4">Time</th>
-                  <th className="py-2 pr-4">Subject</th>
-                  <th className="py-2 pr-4">Section</th>
-                  <th className="py-2 pr-4">Faculty</th>
-                  <th className="py-2 pr-4">Room</th>
-                  <th className="py-2 pr-4">Data</th>
-                  <th className="py-2 pr-4">Published</th>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>Day</th>
+                  <th>Time</th>
+                  <th>Subject</th>
+                  <th>Section</th>
+                  <th>Faculty</th>
+                  <th>Room</th>
+                  <th>Data</th>
+                  <th>Published</th>
                 </tr>
               </thead>
               <tbody>
                 {schedules.map((s) => (
-                  <tr key={s.id} className="border-b border-slate-800">
-                    <td className="py-2 pr-4 font-mono text-slate-500">#{s.id}</td>
-                    <td className="py-2 pr-4">
+                  <tr key={s.id}>
+                    <td className="text-muted">#{s.id}</td>
+                    <td>
                       <span className={`rounded px-2 py-0.5 text-xs ${STATUS_COLOR[s.status]}`}>
                         {STATUS_LABEL[s.status] ?? s.status}
                       </span>
                     </td>
-                    <td className="py-2 pr-4 capitalize">{s.day_of_week}</td>
-                    <td className="py-2 pr-4 text-slate-400">
+                    <td className="capitalize">{s.day_of_week}</td>
+                    <td className="text-muted">
                       {s.start_time}–{s.end_time}
                     </td>
-                    <td className="py-2 pr-4">
+                    <td>
                       <strong>{s.subject_code}</strong> {s.subject_name}
                     </td>
-                    <td className="py-2 pr-4">{s.section_code}</td>
-                    <td className="py-2 pr-4">{s.faculty_name}</td>
-                    <td className="py-2 pr-4">
-                      {s.room_code} <span className="text-xs text-slate-500">({s.section_capacity}/{s.room_capacity})</span>
+                    <td>{s.section_code}</td>
+                    <td>{s.faculty_name}</td>
+                    <td>
+                      {s.room_code} <span className="text-xs text-muted">({s.section_capacity}/{s.room_capacity})</span>
                     </td>
-                    <td className="py-2 pr-4">
+                    <td>
                       <span
                         className={`rounded px-2 py-0.5 text-xs ${
                           s.data_environment === 'PRODUCTION'
-                            ? 'bg-emerald-500/20 text-emerald-300'
+                            ? 'bg-seagrass-50 text-seagrass'
                             : s.data_environment === 'VERIFIED'
-                            ? 'bg-cyber-teal/20 text-cyber-teal'
-                            : 'bg-amber-500/20 text-amber-300'
+                            ? 'bg-lagoon-50 text-lagoon'
+                            : 'bg-sand text-ink'
                         }`}
                       >
                         {s.data_environment}
                       </span>
                     </td>
-                    <td className="py-2 pr-4 text-xs text-slate-500">
+                    <td className="text-xs text-muted">
                       {s.published_at ?? '—'}
                     </td>
                   </tr>
@@ -167,7 +166,6 @@ export default async function AdminSchedulesPage() {
             </table>
           </div>
         )}
-      </div>
-    </div>
+    </PortalLayout>
   );
 }

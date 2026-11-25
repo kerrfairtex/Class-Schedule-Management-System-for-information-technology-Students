@@ -1,7 +1,8 @@
 import { requireAdmin } from '@/lib/auth';
-import { AdminTopNav } from '@/components/admin/AdminTopNav';
 import { getDb } from '@/lib/persistence/db';
 import { detectAllConflictsInSemester } from '@/lib/modules/mod-04-conflict-engine/validator';
+import { PortalLayout } from '@/components/PortalLayout';
+import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,7 @@ export const metadata = {
 };
 
 export default async function AdminConflictsPage() {
-  await requireAdmin();
+  const session = await requireAdmin();
   const db = await getDb();
   const activeSemester = await db
     .prepare(`SELECT id, name FROM semesters WHERE is_active = 1`)
@@ -75,67 +76,65 @@ export default async function AdminConflictsPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <AdminTopNav current="/admin/conflicts" />
+    <PortalLayout role="admin" name={session.name} links={navFor(ADMIN_NAV, '/admin/conflicts')}>
         <h1 className="mb-2 text-3xl font-bold">Conflict Detection</h1>
-        <p className="mb-8 text-slate-400">
+        <p className="mb-8 text-muted">
           Active semester: <strong>{activeSemester?.name ?? 'None'}</strong>
         </p>
 
         <div className="mb-8 grid gap-4 md:grid-cols-3">
-          <div className="rounded border border-red-500/40 bg-red-500/10 p-4">
-            <p className="text-xs uppercase tracking-wide text-red-300">
+          <div className="rounded border border-coral/40 bg-coral-50 p-4">
+            <p className="text-xs text-coral">
               Schedules With Blocking Conflicts
             </p>
             <p className="mt-2 text-3xl font-bold">{details.length}</p>
           </div>
-          <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-4">
-            <p className="text-xs uppercase tracking-wide text-emerald-300">
+          <div className="rounded border border-seagrass/40 bg-seagrass-50 p-4">
+            <p className="text-xs text-seagrass">
               Validation Required
             </p>
             <p className="mt-2 text-sm">
               Schedules with blocking conflicts cannot transition to{' '}
-              <code className="rounded bg-slate-800 px-1">PUBLISHED</code> (spec §34).
+              <code className="rounded bg-surface px-1">PUBLISHED</code> (spec §34).
             </p>
           </div>
-          <div className="rounded border border-slate-700 bg-slate-900/50 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-400">
+          <div className="rounded border border-line bg-surface p-4">
+            <p className="text-xs text-muted">
               Conflict Categories
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-slate-300">
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">
               faculty · room · section · capacity · availability
             </p>
           </div>
         </div>
 
         {details.length === 0 ? (
-          <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+          <div className="rounded border border-seagrass/40 bg-seagrass-50 p-4 text-sm text-seagrass">
             <strong>No blocking conflicts detected.</strong> Schedules in the
             active semester are conflict-free.
           </div>
         ) : (
           <div className="space-y-4">
             {details.map((d) => (
-              <article key={d.scheduleId} className="rounded border border-red-500/40 bg-red-500/5 p-4">
+              <article key={d.scheduleId} className="rounded border border-coral/40 bg-coral-50 p-4">
                 <div className="mb-2 flex items-center gap-3">
-                  <code className="text-sm text-red-300">#{d.scheduleId}</code>
-                  <span className="rounded bg-red-500/20 px-2 py-0.5 text-xs uppercase tracking-wide text-red-300">
+                  <code className="text-sm text-coral">#{d.scheduleId}</code>
+                  <span className="rounded bg-coral-50 px-2 py-0.5 text-xs text-coral">
                     Blocking
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-muted">
                     {d.day} {d.time}
                   </span>
                 </div>
                 <p className="mb-2 text-sm">
                   <strong>{d.subject}</strong> · {d.section} · {d.faculty} · {d.room}
                 </p>
-                <ul className="space-y-1 text-sm text-red-300">
+                <ul className="space-y-1 text-sm text-coral">
                   {d.conflicts.map((c, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="mt-1 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-red-500" />
                       <span>
-                        <code className="rounded bg-slate-800 px-1 text-xs">{c.kind}</code>{' '}
+                        <code className="rounded bg-surface px-1 text-xs">{c.kind}</code>{' '}
                         {c.message}
                       </span>
                     </li>
@@ -145,7 +144,6 @@ export default async function AdminConflictsPage() {
             ))}
           </div>
         )}
-      </div>
-    </div>
+    </PortalLayout>
   );
 }

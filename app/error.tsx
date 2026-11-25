@@ -16,23 +16,23 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-midnight px-6 text-slate-100">
+    <main className="flex min-h-screen items-center justify-center bg-paper px-6 text-ink">
       <div role="alert" className="max-w-md text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-red-300">Error</p>
+        <p className="text-sm font-semibold text-coral">Error</p>
         <h1 className="mt-2 text-3xl font-bold">Something went wrong</h1>
-        <p className="mt-3 text-slate-400">
+        <p className="mt-3 text-muted">
           The page could not be loaded. Please try again. If it keeps happening, contact the BSIT department.
         </p>
-        {error.digest && <p className="mt-2 font-mono text-xs text-slate-500">Reference: {error.digest}</p>}
+        {error.digest && <p className="mt-2 text-xs text-muted">Reference: {error.digest}</p>}
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             type="button"
             onClick={() => retry()}
-            className="rounded-lg bg-cyber-teal px-4 py-2 font-medium text-midnight hover:bg-cyber-cyan"
+            className="rounded-lg bg-lagoon px-4 py-2 font-medium text-white hover:bg-lagoon-dark"
           >
             Try again
           </button>
-          <Link href="/" className="rounded-lg border border-slate-600 px-4 py-2 hover:border-cyber-teal">
+          <Link href="/" className="rounded-lg border border-line px-4 py-2 hover:border-lagoon">
             Go home
           </Link>
         </div>

@@ -2,544 +2,437 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 9 13 22;        /* #090D16 - midnight */
-    --foreground: 248 250 252;    /* slate-50 */
-    --card: 15 20 30;             /* #0F141E - midnight-light */
-    --card-border: 6 182 212;     /* cyan-500 */
-    --muted: 30 41 59;            /* slate-700 */
-    --muted-foreground: 148 163 184; /* slate-400 */
-    --accent: 6 182 212;          /* cyan-500 */
-    --accent-foreground: 9 13 22; /* midnight */
-    --success: 16 185 129;        /* emerald-500 */
-    --warning: 245 158 11;        /* amber-500 */
-    --destructive: 239 68 68;     /* red-500 */
-  }
+/*
+ * TRAC BSIT design system. Tokens live in tailwind.config.ts.
+ * One light theme; the only accent moment is the sand "now" band.
+ */
 
+@layer base {
   * {
-    @apply border-slate-800;
+    @apply border-line;
   }
 
   html {
     @apply scroll-smooth;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-midnight text-slate-100 antialiased min-h-screen;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply min-h-screen bg-paper font-sans text-[15px] leading-relaxed text-ink antialiased sm:text-base;
   }
 
-  /* Selection styling */
+  h1,
+  h2,
+  h3 {
+    @apply font-display text-ink;
+    letter-spacing: -0.01em;
+  }
+
+  /* Times and counts line up in tables and timetables. */
+  table,
+  time,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
   ::selection {
-    @apply bg-cyber-teal/30 text-white;
+    @apply bg-sand text-ink;
   }
 
-  /* Focus visible for accessibility */
   :focus-visible {
-    @apply outline-none ring-2 ring-cyber-teal ring-offset-2 ring-offset-midnight;
+    @apply outline outline-2 outline-offset-2 outline-lagoon;
   }
 
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    @apply w-2 h-2;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-midnight-light;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-slate-700 rounded-full hover:bg-slate-600;
-  }
-  ::-webkit-scrollbar-corner {
-    @apply bg-midnight;
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 @layer components {
-  /* ===== GLASSMORPHISM UTILITIES ===== */
-  .glass {
-    @apply bg-slate-900/80 backdrop-blur-glass border border-cyber-teal/20 shadow-glass;
-  }
-
-  .glass-strong {
-    @apply bg-slate-900/95 backdrop-blur-glass border border-cyber-teal/30 shadow-glass;
-  }
-
-  .glass-subtle {
-    @apply bg-slate-900/60 backdrop-blur-md border border-slate-800/50;
-  }
-
-  .glass-card {
-    @apply glass rounded-2xl p-6 transition-all duration-300 hover:border-cyber-teal/40 hover:shadow-glow-teal-sm;
-  }
-
-  .glass-panel {
-    @apply glass rounded-xl p-4 transition-all duration-200;
-  }
-
-  /* ===== BUTTONS ===== */
-  .btn-primary {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-lg bg-cyber-teal px-4 py-2.5 font-medium text-midnight transition-all duration-200 hover:bg-cyber-cyan hover:shadow-glow-teal active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight;
-  }
-
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5 font-medium text-slate-200 transition-all duration-200 hover:border-cyber-teal/50 hover:bg-slate-800 hover:text-white active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight;
-  }
-
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-medium text-slate-400 transition-all duration-200 hover:text-cyber-cyan hover:bg-slate-800/50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight;
-  }
-
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-red-600/20 border border-red-500/30 px-4 py-2.5 font-medium text-red-400 transition-all duration-200 hover:bg-red-600/30 hover:border-red-500/50 hover:text-red-300 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-midnight;
-  }
-
-  .btn-icon {
-    @apply inline-flex items-center justify-center rounded-lg p-2 text-slate-400 transition-all duration-200 hover:text-cyber-cyan hover:bg-slate-800/50 active:scale-[0.95] focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight;
-  }
-
-  /* ===== FORM INPUTS ===== */
-  .input-field {
-    @apply w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-600 transition-all duration-200 focus:border-cyber-teal focus:ring-2 focus:ring-cyber-teal/20 focus:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  .input-field-error {
-    @apply border-red-500/50 focus:border-red-500 focus:ring-red-500/20;
-  }
-
-  .label-field {
-    @apply mb-1.5 block text-sm font-medium text-slate-300;
-  }
-
-  .select-field {
-    @apply input-field appearance-none bg-no-repeat pr-10;
-    background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%2394A3B8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E');
-    background-size: 1.5rem 1.5rem;
-    background-position: right 0.75rem center;
-  }
-
-  .textarea-field {
-    @apply input-field resize-y min-h-[80px];
-  }
-
-  /* ===== CARDS & PANELS ===== */
+  /* ===== Surfaces ===== */
   .card {
-    @apply glass-card;
+    @apply rounded-lg border border-line bg-surface p-5;
   }
-
   .card-hover {
-    @apply glass-card hover:border-cyber-teal/50 hover:shadow-glow-teal-sm hover:translate-y-[-2px];
+    @apply transition-colors hover:border-lagoon/50;
   }
-
   .panel {
-    @apply glass-panel;
+    @apply rounded-lg border border-line bg-surface;
   }
-
   .panel-section {
-    @apply space-y-4;
+    @apply border-b border-line p-5 last:border-b-0;
+  }
+  /* Older names, now plain surfaces (no glass effects). */
+  .glass,
+  .glass-subtle,
+  .glass-panel {
+    @apply rounded-lg border border-line bg-surface;
+  }
+  .glass-card {
+    @apply rounded-lg border border-line bg-surface p-5;
+  }
+  .glass-strong {
+    @apply rounded-xl border border-line bg-surface shadow-sm;
   }
 
-  /* ===== METRIC CARDS ===== */
+  /* ===== Buttons ===== */
+  .btn {
+    @apply inline-flex min-h-[40px] items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-lagoon text-white hover:bg-lagoon-dark;
+  }
+  .btn-secondary {
+    @apply btn border border-line-strong bg-surface text-ink hover:border-lagoon hover:text-lagoon;
+  }
+  .btn-ghost {
+    @apply btn text-ink-soft hover:bg-paper-2;
+  }
+  .btn-danger {
+    @apply btn border border-coral/40 bg-surface text-coral hover:bg-coral-50;
+  }
+  .btn-light {
+    @apply bg-surface text-lagoon hover:bg-paper-2;
+  }
+  .btn-icon {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-md text-ink-soft hover:bg-paper-2 hover:text-lagoon;
+  }
+
+  /* ===== Forms ===== */
+  .label-field {
+    @apply mb-1 block text-sm font-semibold text-ink;
+  }
+  .input-field,
+  .select-field,
+  .textarea-field {
+    @apply w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-ink placeholder:text-muted focus:border-lagoon focus:outline-none focus:ring-2 focus:ring-lagoon/25 disabled:bg-paper-2;
+  }
+  .textarea-field {
+    @apply min-h-[120px];
+  }
+  .input-field-error {
+    @apply border-coral focus:border-coral focus:ring-coral/25;
+  }
+  .hint {
+    @apply mt-1 text-xs text-muted;
+  }
+
+  /* ===== Status messages ===== */
+  .notice {
+    @apply rounded-md border px-4 py-3 text-sm;
+  }
+  .notice-info {
+    @apply notice border-lagoon/30 bg-lagoon-50 text-ink;
+  }
+  .notice-success {
+    @apply notice border-seagrass/30 bg-seagrass-50 text-ink;
+  }
+  .notice-warning {
+    @apply notice border-sand-dark/40 bg-sand text-ink;
+  }
+  .notice-error {
+    @apply notice border-coral/40 bg-coral-50 text-coral;
+  }
+
+  /* ===== Data tables ===== */
+  .data-table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .data-table th {
+    @apply border-b border-line-strong px-3 py-2 font-semibold text-ink-soft;
+  }
+  .data-table td {
+    @apply border-b border-line px-3 py-2 align-top;
+  }
+
+  /* ===== Page furniture ===== */
+  .page-title {
+    @apply font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl;
+  }
+  .page-lead {
+    @apply mt-2 max-w-prose text-muted;
+  }
+  .link {
+    @apply font-semibold text-lagoon underline decoration-lagoon/30 underline-offset-2 hover:decoration-lagoon;
+  }
+
+  /* ===== Dashboard metrics ===== */
   .metric-card {
-    @apply glass-card flex items-center gap-4;
+    @apply flex items-start gap-4 rounded-lg border border-line bg-surface p-5;
   }
-
   .metric-icon {
-    @apply flex h-12 w-12 items-center justify-center rounded-xl;
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-md;
   }
-
   .metric-icon-teal {
-    @apply metric-icon bg-cyber-teal/10 text-cyber-teal;
+    @apply bg-lagoon-50 text-lagoon;
   }
-
   .metric-icon-emerald {
-    @apply metric-icon bg-emerald-500/10 text-emerald-500;
+    @apply bg-seagrass-50 text-seagrass;
   }
-
   .metric-icon-amber {
-    @apply metric-icon bg-amber-500/10 text-amber-500;
+    @apply bg-sand text-ink;
   }
-
   .metric-icon-violet {
-    @apply metric-icon bg-violet-500/10 text-violet-500;
+    @apply bg-paper-2 text-ink-soft;
   }
-
   .metric-icon-red {
-    @apply metric-icon bg-red-500/10 text-red-500;
+    @apply bg-coral-50 text-coral;
   }
-
   .metric-content {
-    @apply flex-1 min-w-0;
+    @apply min-w-0;
   }
-
   .metric-label {
-    @apply text-sm font-medium text-slate-400 truncate;
+    @apply text-sm text-muted;
   }
-
   .metric-value {
-    @apply text-2xl font-bold text-slate-100 tabular-nums font-mono;
+    @apply font-display text-2xl font-bold text-ink;
+    font-variant-numeric: tabular-nums;
   }
-
   .metric-trend {
-    @apply mt-1 flex items-center gap-1 text-xs font-medium;
+    @apply mt-1 text-xs;
   }
-
   .metric-trend-up {
-    @apply metric-trend text-emerald-400;
+    @apply text-seagrass;
   }
-
   .metric-trend-down {
-    @apply metric-trend text-red-400;
+    @apply text-coral;
   }
-
   .metric-trend-neutral {
-    @apply metric-trend text-slate-500;
+    @apply text-muted;
   }
 
-  /* ===== COURSE BADGES ===== */
+  /* ===== Subject badges (by subject area) ===== */
   .course-badge {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium font-mono transition-all duration-200;
+    @apply inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold;
   }
-
   .course-badge-networking {
-    @apply course-badge bg-cyber-teal/15 text-cyber-teal border border-cyber-teal/30 hover:bg-cyber-teal/25;
+    @apply border-lagoon/30 bg-lagoon-50 text-lagoon-dark;
   }
-
   .course-badge-software {
-    @apply course-badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25;
+    @apply border-seagrass/30 bg-seagrass-50 text-seagrass;
   }
-
   .course-badge-systems {
-    @apply course-badge bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25;
+    @apply border-sand-dark/40 bg-sand text-ink;
   }
-
-  .course-badge-gened {
-    @apply course-badge bg-violet-500/15 text-violet-400 border border-violet-500/30 hover:bg-violet-500/25;
-  }
-
+  .course-badge-gened,
   .course-badge-unknown {
-    @apply course-badge bg-slate-700 text-slate-400 border border-slate-600;
+    @apply border-line bg-paper-2 text-ink-soft;
   }
 
-  /* ===== STATUS INDICATORS ===== */
+  /* ===== Status dots ===== */
   .status-dot {
-    @apply relative inline-flex h-2 w-2 rounded-full;
+    @apply inline-block h-2 w-2 rounded-full bg-current;
   }
-
-  .status-dot::after {
-    @apply content-[''] absolute -inset-1 rounded-full opacity-75 animate-pulse-glow;
-  }
-
   .status-active {
-    @apply status-dot bg-emerald-500;
+    @apply text-seagrass;
   }
-  .status-active::after {
-    @apply bg-emerald-500;
-  }
-
   .status-warning {
-    @apply status-dot bg-amber-500;
+    @apply text-sand-dark;
   }
-  .status-warning::after {
-    @apply bg-amber-500;
-  }
-
   .status-error {
-    @apply status-dot bg-red-500;
+    @apply text-coral;
   }
-  .status-error::after {
-    @apply bg-red-500;
-  }
-
   .status-idle {
-    @apply status-dot bg-slate-500;
-  }
-  .status-idle::after {
-    @apply bg-slate-500;
+    @apply text-line-strong;
   }
 
-  /* ===== SIDEBAR ===== */
+  /* ===== Portal sidebar ===== */
   .sidebar {
-    @apply fixed inset-y-0 left-0 z-50 w-72 glass-strong border-r border-cyber-teal/20 flex flex-col transition-all duration-300 ease-out;
+    @apply fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-line bg-surface transition-transform duration-200;
   }
-
   .sidebar-collapsed {
-    @apply w-20;
+    @apply lg:w-20;
   }
-
   .sidebar-link {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-all duration-200 hover:text-cyber-cyan hover:bg-slate-800/50;
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-ink-soft hover:bg-paper-2 hover:text-ink;
   }
-
   .sidebar-link-active {
-    @apply sidebar-link text-cyber-cyan bg-cyber-teal/10 border-l-2 border-cyber-teal;
+    @apply bg-lagoon-50 text-lagoon-dark;
   }
-
   .sidebar-link-collapsed {
     @apply justify-center px-2;
   }
 
-  /* ===== TELEMETRY BAR ===== */
+  /* ===== Term bar (portal header strip) ===== */
   .telemetry-bar {
-    @apply glass mb-6 rounded-xl p-4;
+    @apply mb-6 flex flex-wrap gap-x-8 gap-y-2 border-b border-line bg-surface px-4 py-3 text-sm sm:px-6 lg:px-8;
   }
-
   .telemetry-item {
-    @apply flex flex-col;
+    @apply flex items-baseline gap-2;
   }
-
   .telemetry-label {
-    @apply text-xs font-medium text-slate-500 uppercase tracking-wider;
+    @apply text-muted;
   }
-
   .telemetry-value {
-    @apply text-lg font-bold text-slate-100 font-mono;
+    @apply font-semibold text-ink;
   }
-
   .telemetry-value-accent {
-    @apply telemetry-value text-cyber-cyan;
+    @apply text-lagoon;
   }
-
   .telemetry-value-success {
-    @apply telemetry-value text-emerald-400;
+    @apply text-seagrass;
   }
-
   .telemetry-value-warning {
-    @apply telemetry-value text-amber-400;
+    @apply text-sand-dark;
   }
-
   .telemetry-value-error {
-    @apply telemetry-value text-red-400;
+    @apply text-coral;
   }
 
-  /* ===== SCHEDULE GRID ===== */
+  /* ===== Portal timetable (ScheduleGrid) ===== */
   .schedule-grid {
-    @apply glass overflow-hidden rounded-xl;
+    @apply overflow-x-auto rounded-lg border border-line bg-surface;
   }
-
   .schedule-grid-table {
-    @apply w-full min-w-[900px] border-collapse text-sm;
+    @apply w-full min-w-[760px] border-collapse text-sm;
   }
-
-  .schedule-grid-header {
-    @apply bg-slate-900/50 text-cyber-cyan;
-  }
-
   .schedule-grid-header th {
-    @apply px-3 py-3 text-left font-medium text-xs uppercase tracking-wider;
+    @apply border-b border-line-strong bg-paper-2 px-3 py-2 text-left font-semibold text-ink-soft;
   }
-
   .schedule-grid-time-col {
-    @apply whitespace-nowrap border-t border-slate-800 px-3 py-2 font-mono font-medium text-slate-400;
+    @apply whitespace-nowrap border-r border-line px-3 py-2 text-left font-medium text-muted;
   }
-
   .schedule-grid-cell {
-    @apply border-t border-slate-800/50 px-2 py-2 align-top min-h-[70px] transition-colors duration-150;
+    @apply border-b border-line px-2 py-2 align-top;
   }
-
-  .schedule-grid-cell:hover {
-    @apply bg-cyber-teal/5;
-  }
-
   .schedule-block {
-    @apply rounded-lg p-2.5 text-xs animate-fade-in;
+    @apply rounded-md border-l-4 bg-paper p-2 text-xs;
   }
-
   .schedule-block-networking {
-    @apply schedule-block bg-cyber-teal/15 border border-cyber-teal/30 text-cyber-teal;
+    @apply border-lagoon;
   }
-
   .schedule-block-software {
-    @apply schedule-block bg-emerald-500/15 border border-emerald-500/30 text-emerald-400;
+    @apply border-seagrass;
   }
-
   .schedule-block-systems {
-    @apply schedule-block bg-amber-500/15 border border-amber-500/30 text-amber-400;
+    @apply border-sand-dark;
   }
-
   .schedule-block-gened {
-    @apply schedule-block bg-violet-500/15 border border-violet-500/30 text-violet-400;
+    @apply border-line-strong;
   }
-
   .schedule-block-title {
-    @apply font-semibold font-mono truncate;
+    @apply font-semibold text-ink;
   }
-
   .schedule-block-meta {
-    @apply text-[10px] text-slate-500 truncate;
+    @apply text-muted;
   }
-
   .schedule-empty {
-    @apply text-slate-700 text-center py-4;
+    @apply py-4 text-center text-line-strong;
   }
 
-  /* ===== FILTER TOOLBAR ===== */
+  /* ===== Filters ===== */
   .filter-toolbar {
-    @apply glass mb-4 rounded-lg p-4;
+    @apply mb-4 rounded-lg border border-line bg-surface p-4;
   }
-
   .filter-group {
     @apply flex flex-wrap items-center gap-3;
   }
-
   .filter-select {
-    @apply select-field min-w-[160px] max-w-[200px];
+    @apply select-field min-w-[160px] max-w-[220px];
   }
-
   .filter-input {
-    @apply input-field min-w-[140px] max-w-[180px];
+    @apply input-field min-w-[140px] max-w-[200px];
   }
-
   .filter-btn {
     @apply btn-secondary whitespace-nowrap;
   }
 
-  /* ===== QUICK LINKS ===== */
+  /* ===== Quick links ===== */
   .quick-link {
-    @apply glass-card flex items-center gap-4 transition-all duration-200 hover:border-cyber-teal/50 hover:shadow-glow-teal-sm hover:translate-y-[-2px];
+    @apply flex items-center gap-4 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-lagoon/50;
   }
-
   .quick-link-icon {
-    @apply flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800/50 text-cyber-teal;
+    @apply flex h-10 w-10 items-center justify-center rounded-md bg-lagoon-50 text-lagoon;
   }
 
-  /* ===== PRINT STYLES ===== */
+  /* ===== The "now" band: the one accent moment ===== */
+  .now-band {
+    @apply bg-sand;
+    box-shadow: inset 4px 0 0 theme('colors.sand.dark');
+  }
+
+  /* ===== Print ===== */
   @media print {
     body {
       @apply bg-white text-black;
     }
     .sidebar,
-    .print\\:hidden,
-    button,
-    nav,
     .telemetry-bar,
     .filter-toolbar {
       display: none !important;
     }
     main {
       padding: 0 !important;
+      margin: 0 !important;
       width: 100% !important;
     }
-    .glass,
-    .glass-card,
-    .glass-panel,
     .card,
-    .panel {
-      @apply bg-white border-slate-300 shadow-none;
-    }
+    .panel,
+    .glass-card,
     .schedule-grid {
-      @apply border border-slate-300;
-    }
-    .schedule-grid-header {
-      @apply bg-slate-900 text-white print:bg-slate-900 print:text-white;
-    }
-    .schedule-block {
-      @apply border border-slate-400 bg-slate-50 print:border print:bg-slate-50;
-    }
-    .metric-card {
-      @apply border border-slate-300 bg-white print:border print:bg-white;
-    }
-    .course-badge {
-      @apply border border-slate-400 bg-white print:border print:bg-white;
+      @apply border-slate-400 shadow-none;
     }
   }
 }
 
-@layer utilities {
-  /* Text gradient utilities */
-  .text-gradient-cyber {
-    @apply bg-gradient-to-r from-cyber-teal to-cyber-cyan bg-clip-text text-transparent;
-  }
-
-  .text-gradient-emerald {
-    @apply bg-gradient-to-r from-emerald-500 to-emerald-400 bg-clip-text text-transparent;
-  }
-
-  .text-gradient-warning {
-    @apply bg-gradient-to-r from-amber-500 to-amber-400 bg-clip-text text-transparent;
-  }
-
-  /* Animation utilities */
-  .animate-in {
-    animation: fade-in 0.3s ease-out, slide-up 0.3s ease-out;
-  }
-
-  .stagger-1 { animation-delay: 50ms; }
-  .stagger-2 { animation-delay: 100ms; }
-  .stagger-3 { animation-delay: 150ms; }
-  .stagger-4 { animation-delay: 200ms; }
-  .stagger-5 { animation-delay: 250ms; }
-  .stagger-6 { animation-delay: 300ms; }
-}
 /* User Guide page (rendered markdown) */
+.user-guide {
+  @apply max-w-prose;
+}
 .user-guide h3 {
-  @apply mb-8 mt-14 text-3xl font-bold text-slate-100 border-b border-slate-700 pb-4;
+  @apply mb-6 mt-12 border-b border-line pb-3 text-2xl font-bold;
 }
 .user-guide h4 {
-  @apply mb-3 mt-10 text-xl font-semibold text-cyber-teal;
+  @apply mb-3 mt-8 text-lg font-semibold;
+}
+.user-guide p,
+.user-guide li {
+  @apply leading-relaxed text-ink-soft;
 }
 .user-guide p {
-  @apply mb-4 text-slate-300 leading-relaxed;
+  @apply mb-4;
 }
 .user-guide ul {
-  @apply mb-6 space-y-2 list-disc list-inside;
+  @apply mb-6 list-inside list-disc space-y-2;
 }
 .user-guide ol {
-  @apply mb-6 space-y-2 list-decimal list-inside;
-}
-.user-guide li {
-  @apply text-slate-300 leading-relaxed;
+  @apply mb-6 list-inside list-decimal space-y-2;
 }
 .user-guide hr {
-  @apply my-10 border-slate-800;
+  @apply my-10;
 }
 .user-guide code {
-  @apply text-cyber-teal px-1.5 py-0.5 rounded bg-slate-800/50 text-sm font-mono;
+  @apply rounded bg-paper-2 px-1.5 py-0.5 text-sm text-ink;
 }
 .user-guide pre {
-  @apply mb-6 p-4 rounded-lg bg-slate-900/60 border border-slate-700/50 overflow-x-auto text-sm;
+  @apply mb-6 overflow-x-auto rounded-md border border-line bg-surface p-4 text-sm;
 }
 .user-guide pre code {
-  @apply bg-transparent p-0 text-slate-100;
+  @apply bg-transparent p-0;
 }
 .user-guide a {
-  @apply text-cyber-teal hover:text-cyber-cyan underline underline-offset-2;
+  @apply link;
 }
 .user-guide .table-wrap {
   @apply my-6 overflow-x-auto;
 }
 .user-guide table {
-  @apply min-w-full border border-slate-700 rounded-lg overflow-hidden text-sm;
-}
-.user-guide thead {
-  @apply bg-slate-800/50;
+  @apply min-w-full border-collapse rounded-md border border-line bg-surface text-left text-sm;
 }
 .user-guide th {
-  @apply px-4 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider border-b border-slate-700;
+  @apply border-b border-line-strong px-3 py-2 font-semibold text-ink-soft;
 }
 .user-guide td {
-  @apply px-4 py-2 text-slate-300 border-b border-slate-700/50 align-top;
-}
-.user-guide tr:last-child td {
-  @apply border-b-0;
+  @apply border-b border-line px-3 py-2 align-top text-ink-soft;
 }
 .user-guide strong {
-  @apply font-semibold text-slate-100;
-}
-
-/* Scroll reveal for [data-aos] (see app/page.tsx). Only active once JS has
-   added .reveal-ready, so content is never hidden without JS. */
-.reveal-ready [data-aos] {
-  opacity: 0;
-  transition: opacity 0.8s ease, transform 0.8s ease;
-}
-.reveal-ready [data-aos='fade-up'] {
-  transform: translateY(24px);
-}
-.reveal-ready [data-aos='fade-right'] {
-  transform: translateX(-24px);
-}
-.reveal-ready [data-aos].aos-animate {
-  opacity: 1;
-  transform: none;
+  @apply font-semibold text-ink;
 }

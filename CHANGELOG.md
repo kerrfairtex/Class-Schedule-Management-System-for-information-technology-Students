@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Production release: design system and department tools
+- **Added (database):** migration 003 with `room_bookings` and `announcements` (checks,
+  indexes, row level security) and repo definitions of the evidence tables. Run it
+  before deploying; see `docs/DEPLOYMENT.md`.
+- **Added (admin):** Terms and periods, Room bookings, Announcements, Audit log; a
+  dashboard that lists what needs attention.
+- **Added (faculty):** own availability, weekly teaching load, today's classes.
+- **Added (public):** `/today`, `/announcements`, bookings in room availability, a
+  date-based free-room search, a home page built around the timetable.
+- **Changed (design):** one light design system (lagoon, seagrass, sand; Atkinson
+  Hyperlegible and Archivo) replacing the dark theme, glass effects and "Mission
+  Control" copy; every admin page uses the same layout.
+- **Removed:** fake status indicators, the unused "Remember me" box, dead components,
+  `/api/public/stats`, and 7 unused dependencies.
+- **Fixed:** evidence page and verification API used Postgres-only SQL; `npm run seed`
+  now seeds the evidence layer.
+
 ### Students use the public site (no accounts)
 - **Removed (breaking):** student login, `/student/*` pages and `/api/student`. Old links
   redirect to `/schedules`; old student logins are refused with a pointer to the public

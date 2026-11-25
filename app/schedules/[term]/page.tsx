@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { PublicHeader } from '@/components/public/PublicHeader';
+import { PublicFooter } from '@/components/public/PublicFooter';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/persistence/db';
 import { scheduleVisibilitySql } from '@/lib/modules/mod-03-schedule-engine/visibility';
@@ -58,52 +60,50 @@ export default async function TermSchedules({ params }: PageProps) {
     }>;
 
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
-      <div className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/schedules/archive" className="mb-4 inline-block text-sm text-cyber-teal hover:text-cyber-cyan">
-          ← All academic years
+    <div className="min-h-screen">
+      <PublicHeader active="/schedules" />
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+        <Link href="/schedules/archive" className="link text-sm">
+          All academic years
         </Link>
-        <h1 className="mb-2 text-4xl font-bold">{year.label}</h1>
-        <p className="mb-8 text-slate-400">
-          {semesters.map((s) => s.name).join(' · ')}
-        </p>
+        <h1 className="page-title mt-2">A.Y. {year.label}</h1>
+        <p className="page-lead mb-8">{semesters.map((s) => s.name).join(', ')}</p>
 
         {published.length === 0 ? (
-          <div className="rounded border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-300">
-            <strong>No PUBLISHED schedules.</strong> Schedules appear here
-            only after validation and approval (spec §32–§35). The current
-            seed data is <code className="rounded bg-slate-800 px-1">DEMO</code> and has not
-            been authorized for public display.
-          </div>
+          <p className="notice-warning max-w-prose">
+            No classes have been published for this academic year. Schedules appear here after the department
+            approves and publishes them.
+          </p>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-slate-700 text-xs uppercase tracking-wide text-slate-400">
+          <table className="data-table min-w-[640px]">
+            <thead>
               <tr>
-                <th className="py-2 pr-4">Section</th>
-                <th className="py-2 pr-4">Day</th>
-                <th className="py-2 pr-4">Time</th>
-                <th className="py-2 pr-4">Subject</th>
-                <th className="py-2 pr-4">Faculty</th>
-                <th className="py-2 pr-4">Room</th>
+                <th>Section</th>
+                <th>Day</th>
+                <th>Time</th>
+                <th>Subject</th>
+                <th>Faculty</th>
+                <th>Room</th>
               </tr>
             </thead>
             <tbody>
               {published.map((p) => (
-                <tr key={p.id} className="border-b border-slate-800">
-                  <td className="py-2 pr-4 font-medium">{p.section_code}</td>
-                  <td className="py-2 pr-4 capitalize">{p.day_of_week}</td>
-                  <td className="py-2 pr-4">{p.start_time}–{p.end_time}</td>
-                  <td className="py-2 pr-4">{p.subject_code} {p.subject_name}</td>
-                  <td className="py-2 pr-4">{p.faculty_name}</td>
-                  <td className="py-2 pr-4">{p.room_code}</td>
+                <tr key={p.id}>
+                  <td className="font-medium">{p.section_code}</td>
+                  <td className="capitalize">{p.day_of_week}</td>
+                  <td>{p.start_time}–{p.end_time}</td>
+                  <td>{p.subject_code} {p.subject_name}</td>
+                  <td>{p.faculty_name}</td>
+                  <td>{p.room_code}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           </div>
         )}
-      </div>
+      </main>
+      <PublicFooter />
     </div>
   );
 }

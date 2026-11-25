@@ -26,17 +26,33 @@ export function formatTime(hhmm: string): string {
 
 export const formatRange = (start: string, end: string) => `${formatTime(start)}–${formatTime(end)}`;
 
-/** Current campus weekday ("monday") and time ("HH:MM"). */
-export function campusNow(now: Date = new Date()): { day: string; time: string } {
+/** Current campus weekday ("monday"), time ("HH:MM") and date ("YYYY-MM-DD"). */
+export function campusNow(now: Date = new Date()): { day: string; time: string; date: string } {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: CAMPUS_TIME_ZONE,
     weekday: 'long',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
   }).formatToParts(now);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
-  return { day: get('weekday').toLowerCase(), time: `${get('hour')}:${get('minute')}` };
+  return {
+    day: get('weekday').toLowerCase(),
+    time: `${get('hour')}:${get('minute')}`,
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+  };
+}
+
+/** Weekday name ("monday") of a calendar date "YYYY-MM-DD". */
+export function weekdayOf(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  // UTC on purpose: a bare calendar date has no time zone.
+  return ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
+    new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+  ];
 }
 
 const dayRank = (d: string) => {
@@ -45,7 +61,7 @@ const dayRank = (d: string) => {
 };
 
 /** Days that have slots, in week order. */
-export function daysOf(slots: Slot[]): string[] {
+export function daysOf(slots: Pick<Slot, 'day_of_week'>[]): string[] {
   return Array.from(new Set(slots.map((s) => s.day_of_week))).sort((a, b) => dayRank(a) - dayRank(b));
 }
 
@@ -86,4 +102,65 @@ export function roomStatusAt(
 export function freeRoomIds(entries: Schedule[], roomIds: number[], day: string, time: string): number[] {
   const busy = new Set(entries.filter((e) => occupies(e, day, time)).map((e) => e.room_id));
   return roomIds.filter((id) => !busy.has(id));
+}
+
+const minutes = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+
+/** Weekly teaching load for a set of class meetings. */
+export function teachingLoad(entries: Schedule[]): {
+  meetings: number;
+  hours: number;
+  subjects: number;
+  sections: number;
+  byDay: { day: string; meetings: number; hours: number }[];
+} {
+  const byDay = new Map<string, { meetings: number; minutes: number }>();
+  let total = 0;
+  for (const e of entries) {
+    const m = e.start_time && e.end_time ? Math.max(minutes(e.end_time) - minutes(e.start_time), 0) : 0;
+    total += m;
+    const d = byDay.get(e.day_of_week ?? '') ?? { meetings: 0, minutes: 0 };
+    byDay.set(e.day_of_week ?? '', { meetings: d.meetings + 1, minutes: d.minutes + m });
+  }
+  const round = (m: number) => Math.round((m / 60) * 10) / 10;
+  return {
+    meetings: entries.length,
+    hours: round(total),
+    subjects: new Set(entries.map((e) => e.subject_id)).size,
+    sections: new Set(entries.map((e) => e.section_id)).size,
+    byDay: Array.from(byDay, ([day, v]) => ({ day, meetings: v.meetings, hours: round(v.minutes) })).sort(
+      (a, b) => dayRank(a.day) - dayRank(b.day)
+    ),
+  };
+}
+
+/** "2026-11-25" → "Wednesday, 25 November 2026". */
+export function formatCampusDate(date: string, opts: { weekday?: boolean; year?: boolean } = {}): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'UTC', // a bare calendar date; no shift
+    weekday: opts.weekday === false ? undefined : 'long',
+    day: 'numeric',
+    month: 'long',
+    year: opts.year === false ? undefined : 'numeric',
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}
+
+/** ISO-8601 week number of a calendar date "YYYY-MM-DD". */
+export function isoWeek(date: string): number {
+  const [y, m, d] = date.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day); // Thursday of this week
+  const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+/** "2026-11-25" plus n days. */
+export function addDays(date: string, n: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }

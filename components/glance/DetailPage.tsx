@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePrefersReducedMotion } from '@/lib/hooks/client-state';
 import { PublicHeader } from '@/components/public/PublicHeader';
+import { PublicFooter } from '@/components/public/PublicFooter';
 
 export type Item = { id: string | number; title: string; meta: string; tag?: string };
 
@@ -32,14 +33,14 @@ export default function DetailPage({ title, subtitle, items, emptyText = 'Nothin
   }, [q, items]);
 
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
+    <div className="min-h-screen">
       <PublicHeader active={active} />
       <div className="mx-auto max-w-4xl px-6 py-12">
         <header className="mb-8 flex flex-wrap items-end gap-5">
-          <div className="text-6xl font-bold leading-none tabular-nums text-cyber-teal sm:text-7xl">{n}</div>
+          <div className="text-6xl font-bold leading-none tabular-nums text-lagoon sm:text-7xl">{n}</div>
           <div>
             <h1 className="text-3xl font-bold">{title}</h1>
-            <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+            <p className="mt-1 text-sm text-muted">{subtitle}</p>
           </div>
         </header>
         <input
@@ -47,10 +48,10 @@ export default function DetailPage({ title, subtitle, items, emptyText = 'Nothin
           onChange={e => setQ(e.target.value)}
           placeholder={`Search ${title.toLowerCase()}`}
           aria-label={`Search ${title}`}
-          className="mb-4 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-3 text-base text-slate-100 placeholder:text-slate-500 focus:outline focus:outline-2 focus:outline-cyber-teal"
+          className="mb-4 w-full rounded-lg border border-line bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus:outline focus:outline-2 focus:outline-lagoon"
         />
         {shown.length === 0 ? (
-          <div className="glass-card p-8 text-center text-slate-400">
+          <div className="glass-card p-8 text-center text-muted">
             {items.length === 0 ? emptyText : `No match for “${q}”. Try a shorter search.`}
           </div>
         ) : (
@@ -59,10 +60,10 @@ export default function DetailPage({ title, subtitle, items, emptyText = 'Nothin
               <li key={i.id} className="glass-card flex items-center justify-between gap-4 p-4">
                 <div className="min-w-0">
                   <p className="font-semibold">{i.title}</p>
-                  <p className="text-sm text-slate-400">{i.meta}</p>
+                  <p className="text-sm text-muted">{i.meta}</p>
                 </div>
                 {i.tag && (
-                  <span className="shrink-0 rounded-full border border-cyber-teal/40 px-3 py-0.5 text-xs text-cyber-teal">
+                  <span className="shrink-0 rounded-full border border-lagoon/40 px-3 py-0.5 text-xs text-lagoon">
                     {i.tag}
                   </span>
                 )}
@@ -71,6 +72,7 @@ export default function DetailPage({ title, subtitle, items, emptyText = 'Nothin
           </ul>
         )}
       </div>
+      <PublicFooter />
     </div>
   );
 }

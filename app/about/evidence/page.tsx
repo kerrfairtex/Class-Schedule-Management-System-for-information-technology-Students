@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { PublicHeader } from '@/components/public/PublicHeader';
+import { PublicFooter } from '@/components/public/PublicFooter';
 import {
   EVIDENCE_SOURCES,
   INSTITUTIONAL_FACTS,
@@ -19,35 +20,35 @@ export const metadata: Metadata = {
 const STATUS_STYLES: Record<EvidenceStatus, { label: string; className: string }> = {
   VERIFIED: {
     label: 'VERIFIED',
-    className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+    className: 'border-seagrass/40 bg-seagrass-50 text-seagrass',
   },
   OFFICIAL: {
     label: 'OFFICIAL',
-    className: 'border-cyber-teal/40 bg-cyber-teal/10 text-cyber-teal',
+    className: 'border-lagoon/40 bg-lagoon-50 text-lagoon',
   },
   GOVERNMENT_SUPPORTED: {
     label: 'GOVERNMENT SOURCE',
-    className: 'border-blue-500/40 bg-blue-500/10 text-blue-300',
+    className: 'border-lagoon/40 bg-lagoon-50 text-lagoon-dark',
   },
   CORROBORATED: {
     label: 'CORROBORATED',
-    className: 'border-violet-500/40 bg-violet-500/10 text-violet-300',
+    className: 'border-violet-500/40 bg-paper-2 text-ink-soft',
   },
   PENDING_VERIFICATION: {
     label: 'PENDING VERIFICATION',
-    className: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+    className: 'border-sand-dark/50 bg-sand text-ink',
   },
   UNVERIFIED: {
     label: 'UNVERIFIED',
-    className: 'border-red-500/40 bg-red-500/10 text-red-300',
+    className: 'border-coral/40 bg-coral-50 text-coral',
   },
   CONFLICTING: {
     label: 'CONFLICTING',
-    className: 'border-red-600/40 bg-red-600/10 text-red-400',
+    className: 'border-coral/40 bg-red-600/10 text-coral',
   },
   DEPRECATED: {
     label: 'DEPRECATED',
-    className: 'border-slate-500/40 bg-slate-500/10 text-slate-400',
+    className: 'border-line-strong bg-paper-2 text-muted',
   },
 };
 
@@ -74,15 +75,15 @@ export default function EvidencePage() {
   const totalSources = EVIDENCE_SOURCES.length;
 
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
+    <div className="min-h-screen">
       <PublicHeader />
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="mb-4">
         </div>
 
-        <header className="mb-12 border-b border-slate-800 pb-8">
+        <header className="mb-12 border-b border-line pb-8">
           <h1 className="mb-4 text-4xl font-bold">Source of Truth</h1>
-          <p className="text-lg text-slate-400">
+          <p className="text-lg text-muted">
             Every institutional claim displayed by the TRAC BSIT CSMS is
             classified and traceable to an identified source. This page is the
             authoritative reference for what the system asserts as institutional
@@ -94,36 +95,36 @@ export default function EvidencePage() {
         <section className="mb-12">
           <div className="grid gap-4 md:grid-cols-4">
             <div className="glass-card p-5">
-              <p className="text-xs uppercase tracking-wide text-cyber-teal">
+              <p className="text-xs text-lagoon">
                 Institutional Facts
               </p>
               <p className="mt-2 text-3xl font-bold">{totalFacts}</p>
-              <p className="mt-1 text-xs text-slate-400">total tracked</p>
+              <p className="mt-1 text-xs text-muted">total tracked</p>
             </div>
             <div className="glass-card p-5">
-              <p className="text-xs uppercase tracking-wide text-emerald-400">
+              <p className="text-xs text-seagrass">
                 Verified / Official
               </p>
               <p className="mt-2 text-3xl font-bold">{verifiedCount}</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-muted">
                 {pendingCount} pending, {conflictingCount} conflicting
               </p>
             </div>
             <div className="glass-card p-5">
-              <p className="text-xs uppercase tracking-wide text-violet-400">
+              <p className="text-xs text-ink-soft">
                 Sources
               </p>
               <p className="mt-2 text-3xl font-bold">{totalSources}</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-muted">
                 Level 1: {sourceCounts[1]} · Level 2: {sourceCounts[2]}
               </p>
             </div>
             <div className="glass-card p-5">
-              <p className="text-xs uppercase tracking-wide text-amber-400">
+              <p className="text-xs text-ink">
                 Last Verification
               </p>
               <p className="mt-2 text-3xl font-bold">2026-08-31</p>
-              <p className="mt-1 text-xs text-slate-400">Verification baseline</p>
+              <p className="mt-1 text-xs text-muted">Verification baseline</p>
             </div>
           </div>
         </section>
@@ -139,49 +140,48 @@ export default function EvidencePage() {
                 <article
                   key={fact.id}
                   className="glass-card p-5"
-                  data-aos="fade-up"
                 >
                   <div className="mb-3 flex flex-wrap items-center gap-3">
-                    <code className="text-xs text-slate-500">{fact.id}</code>
+                    <code className="text-xs text-muted">{fact.id}</code>
                     <span
-                      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide ${statusStyle.className}`}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium   ${statusStyle.className}`}
                     >
                       {statusStyle.label}
                     </span>
-                    <span className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400">
+                    <span className="rounded border border-line px-2 py-0.5 text-xs text-muted">
                       {fact.category}
                     </span>
-                    <span className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400">
+                    <span className="rounded border border-line px-2 py-0.5 text-xs text-muted">
                       Confidence: {fact.confidence}
                     </span>
                   </div>
-                  <h3 className="mb-2 text-lg font-semibold text-slate-100">
+                  <h3 className="mb-2 text-lg font-semibold text-ink">
                     {fact.key.replace(/_/g, ' ')}
                   </h3>
-                  <p className="text-sm text-slate-300">{fact.value}</p>
+                  <p className="text-sm text-ink-soft">{fact.value}</p>
                   {fact.notes && (
-                    <p className="mt-3 text-xs italic text-slate-500">
+                    <p className="mt-3 text-xs italic text-muted">
                       Note: {fact.notes}
                     </p>
                   )}
-                  <div className="mt-4 grid gap-2 border-t border-slate-800 pt-3 text-xs text-slate-500 sm:grid-cols-3">
+                  <div className="mt-4 grid gap-2 border-t border-line pt-3 text-xs text-muted sm:grid-cols-3">
                     <div>
-                      <span className="block uppercase tracking-wide">Source</span>
-                      <span className="text-slate-300">
+                      <span className="block">Source</span>
+                      <span className="text-ink-soft">
                         {source?.id ?? '—'}
                       </span>
                     </div>
                     <div>
-                      <span className="block uppercase tracking-wide">
+                      <span className="block">
                         Verified
                       </span>
-                      <span className="text-slate-300">{fact.verifiedAt}</span>
+                      <span className="text-ink-soft">{fact.verifiedAt}</span>
                     </div>
                     <div>
-                      <span className="block uppercase tracking-wide">
+                      <span className="block">
                         Review due
                       </span>
-                      <span className="text-slate-300">
+                      <span className="text-ink-soft">
                         {fact.reviewDueAt ?? '—'}
                       </span>
                     </div>
@@ -198,7 +198,7 @@ export default function EvidencePage() {
             Pending Verification Items
           </h2>
           <div className="glass-card p-5">
-            <p className="mb-4 text-sm text-slate-400">
+            <p className="mb-4 text-sm text-muted">
               These institutional data points MUST NOT be displayed as
               authoritative facts until an authoritative TRAC source is
               identified. Per spec §62.
@@ -207,7 +207,7 @@ export default function EvidencePage() {
               {PENDING_VERIFICATION_ITEMS.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-2 text-sm text-slate-300"
+                  className="flex items-start gap-2 text-sm text-ink-soft"
                 >
                   <span className="mt-1 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-amber-500" />
                   {item}
@@ -221,8 +221,8 @@ export default function EvidencePage() {
         <section className="mb-12">
           <h2 className="mb-6 text-2xl font-semibold">Source Registry</h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-700 text-xs uppercase tracking-wide text-slate-400">
+            <table className="data-table">
+              <thead>
                 <tr>
                   <th className="py-3 pr-4">ID</th>
                   <th className="py-3 pr-4">Title</th>
@@ -235,40 +235,40 @@ export default function EvidencePage() {
                 {EVIDENCE_SOURCES.map((source) => (
                   <tr
                     key={source.id}
-                    className="border-b border-slate-800 last:border-b-0"
+                    className="border-b border-line last:border-b-0"
                   >
                     <td className="py-3 pr-4">
-                      <code className="text-cyber-teal">{source.id}</code>
+                      <code className="text-lagoon">{source.id}</code>
                     </td>
                     <td className="py-3 pr-4">
-                      <p className="text-slate-100">{source.title}</p>
+                      <p className="text-ink">{source.title}</p>
                       {source.url && (
                         <a
                           href={source.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-cyber-teal hover:underline"
+                          className="text-xs text-lagoon hover:underline"
                         >
                           {source.url}
                         </a>
                       )}
                     </td>
-                    <td className="py-3 pr-4 text-slate-300">
+                    <td className="py-3 pr-4 text-ink-soft">
                       Level {source.authorityLevel}
                       <br />
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-muted">
                         {AUTHORITY_LEVELS[source.authorityLevel]}
                       </span>
                     </td>
-                    <td className="py-3 pr-4 text-slate-400">
+                    <td className="py-3 pr-4 text-muted">
                       {source.accessedAt}
                     </td>
                     <td className="py-3 pr-4">
                       <span
                         className={`rounded px-2 py-0.5 text-xs ${
                           source.status === 'ACTIVE'
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : 'bg-slate-500/20 text-slate-400'
+                            ? 'bg-seagrass-50 text-seagrass'
+                            : 'bg-paper-2 text-muted'
                         }`}
                       >
                         {source.status}
@@ -286,15 +286,15 @@ export default function EvidencePage() {
           <h2 className="mb-6 text-2xl font-semibold">Definitions</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="glass-card p-5">
-              <h3 className="mb-2 text-lg font-semibold text-cyber-teal">
+              <h3 className="mb-2 text-lg font-semibold text-lagoon">
                 Grounded
               </h3>
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-ink-soft">
                 A claim is grounded when the system can identify the source
                 from which the claim was obtained and can determine the
                 source&apos;s authority, temporal validity, and verification status.
               </p>
-              <p className="mt-3 text-xs text-slate-500">
+              <p className="mt-3 text-xs text-muted">
                 Grounded ≠ copied from Google<br />
                 Grounded ≠ found on Facebook<br />
                 Grounded ≠ generated by AI<br />
@@ -302,15 +302,15 @@ export default function EvidencePage() {
               </p>
             </div>
             <div className="glass-card p-5">
-              <h3 className="mb-2 text-lg font-semibold text-cyber-teal">
+              <h3 className="mb-2 text-lg font-semibold text-lagoon">
                 Source of Truth
               </h3>
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-ink-soft">
                 <strong>Institutional:</strong> the authoritative source or
                 verified evidence record from which the CSMS derives an
                 institutional fact.
               </p>
-              <p className="mt-3 text-sm text-slate-300">
+              <p className="mt-3 text-sm text-ink-soft">
                 <strong>Operational:</strong> the authoritative database record
                 representing the currently approved state of the scheduling
                 operation.
@@ -319,13 +319,14 @@ export default function EvidencePage() {
           </div>
         </section>
 
-        <footer className="border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
+        <footer className="border-t border-line pt-6 text-center text-xs text-muted">
           <p>
             Verification baseline: 2026-08-31 · TRAC BSIT Class Schedule
             Management System
           </p>
         </footer>
       </div>
+      <PublicFooter />
     </div>
   );
 }

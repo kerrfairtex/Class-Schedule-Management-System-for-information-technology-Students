@@ -409,6 +409,62 @@ CREATE TABLE IF NOT EXISTS system_settings (
   updated_by TEXT,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+-- Room bookings and announcements (mirrors migration 003).
+CREATE TABLE IF NOT EXISTS room_bookings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 160),
+  kind TEXT NOT NULL CHECK (kind IN ('EXAM', 'EVENT', 'MEETING', 'MAINTENANCE')),
+  booking_date TEXT NOT NULL CHECK (booking_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  start_time TEXT NOT NULL CHECK (start_time GLOB '[0-9][0-9]:[0-9][0-9]'),
+  end_time TEXT NOT NULL CHECK (end_time GLOB '[0-9][0-9]:[0-9][0-9]'),
+  notes TEXT,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  CHECK (start_time < end_time)
+);
+CREATE INDEX IF NOT EXISTS idx_room_bookings_room_date ON room_bookings (room_id, booking_date);
+CREATE INDEX IF NOT EXISTS idx_room_bookings_date ON room_bookings (booking_date);
+CREATE TABLE IF NOT EXISTS announcements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 160),
+  body TEXT NOT NULL CHECK (length(body) BETWEEN 1 AND 4000),
+  starts_on TEXT NOT NULL CHECK (starts_on GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  ends_on TEXT CHECK (ends_on IS NULL OR ends_on GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  CHECK (ends_on IS NULL OR ends_on >= starts_on)
+);
+CREATE INDEX IF NOT EXISTS idx_announcements_window ON announcements (starts_on, ends_on);
+-- Evidence layer (spec §61; mirrors migration 003).
+CREATE TABLE IF NOT EXISTS sources (
+  id TEXT PRIMARY KEY, title TEXT NOT NULL, source_type TEXT, authority_level TEXT, publisher TEXT,
+  url TEXT, document_date TEXT, accessed_at TEXT, status TEXT, notes TEXT
+);
+CREATE TABLE IF NOT EXISTS institutional_facts (
+  id TEXT PRIMARY KEY, category TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, value_type TEXT,
+  status TEXT, confidence TEXT, effective_from TEXT, verified_at TEXT, review_due_at TEXT, notes TEXT
+);
+CREATE TABLE IF NOT EXISTS fact_sources (
+  fact_id TEXT NOT NULL REFERENCES institutional_facts(id) ON DELETE CASCADE,
+  source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+  supports INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (fact_id, source_id)
+);
+CREATE TABLE IF NOT EXISTS verification_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, fact_id TEXT NOT NULL REFERENCES institutional_facts(id) ON DELETE CASCADE, verified_by TEXT,
+  verified_at TEXT, verification_method TEXT, source_count INTEGER, authority_level TEXT, next_review_date TEXT
+);
+CREATE TABLE IF NOT EXISTS institution_contacts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, office TEXT NOT NULL, contact_type TEXT NOT NULL, value TEXT NOT NULL, label TEXT,
+  is_primary INTEGER NOT NULL DEFAULT 0, source_id TEXT, verified_at TEXT, data_environment TEXT NOT NULL DEFAULT 'DEMO'
+);
+CREATE TABLE IF NOT EXISTS officials (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, position TEXT NOT NULL, first_name TEXT, middle_name TEXT, last_name TEXT, title TEXT,
+  source_id TEXT, status TEXT, data_environment TEXT NOT NULL DEFAULT 'DEMO'
+);
   `;
 
   const pgSql = `
@@ -570,6 +626,62 @@ CREATE TABLE IF NOT EXISTS system_settings (
   updated_by TEXT,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+-- Room bookings and announcements (mirrors migration 003).
+CREATE TABLE IF NOT EXISTS room_bookings (
+  id SERIAL PRIMARY KEY,
+  room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 160),
+  kind TEXT NOT NULL CHECK (kind IN ('EXAM', 'EVENT', 'MEETING', 'MAINTENANCE')),
+  booking_date TEXT NOT NULL CHECK (booking_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'),
+  start_time TEXT NOT NULL CHECK (start_time ~ '^[0-9]{2}:[0-9]{2}$'),
+  end_time TEXT NOT NULL CHECK (end_time ~ '^[0-9]{2}:[0-9]{2}$'),
+  notes TEXT,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  CHECK (start_time < end_time)
+);
+CREATE INDEX IF NOT EXISTS idx_room_bookings_room_date ON room_bookings (room_id, booking_date);
+CREATE INDEX IF NOT EXISTS idx_room_bookings_date ON room_bookings (booking_date);
+CREATE TABLE IF NOT EXISTS announcements (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 160),
+  body TEXT NOT NULL CHECK (length(body) BETWEEN 1 AND 4000),
+  starts_on TEXT NOT NULL CHECK (starts_on ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'),
+  ends_on TEXT CHECK (ends_on IS NULL OR ends_on ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'),
+  pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  CHECK (ends_on IS NULL OR ends_on >= starts_on)
+);
+CREATE INDEX IF NOT EXISTS idx_announcements_window ON announcements (starts_on, ends_on);
+-- Evidence layer (spec §61; mirrors migration 003).
+CREATE TABLE IF NOT EXISTS sources (
+  id TEXT PRIMARY KEY, title TEXT NOT NULL, source_type TEXT, authority_level TEXT, publisher TEXT,
+  url TEXT, document_date TEXT, accessed_at TEXT, status TEXT, notes TEXT
+);
+CREATE TABLE IF NOT EXISTS institutional_facts (
+  id TEXT PRIMARY KEY, category TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, value_type TEXT,
+  status TEXT, confidence TEXT, effective_from TEXT, verified_at TEXT, review_due_at TEXT, notes TEXT
+);
+CREATE TABLE IF NOT EXISTS fact_sources (
+  fact_id TEXT NOT NULL REFERENCES institutional_facts(id) ON DELETE CASCADE,
+  source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+  supports INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (fact_id, source_id)
+);
+CREATE TABLE IF NOT EXISTS verification_records (
+  id SERIAL PRIMARY KEY, fact_id TEXT NOT NULL REFERENCES institutional_facts(id) ON DELETE CASCADE, verified_by TEXT,
+  verified_at TEXT, verification_method TEXT, source_count INTEGER, authority_level TEXT, next_review_date TEXT
+);
+CREATE TABLE IF NOT EXISTS institution_contacts (
+  id SERIAL PRIMARY KEY, office TEXT NOT NULL, contact_type TEXT NOT NULL, value TEXT NOT NULL, label TEXT,
+  is_primary INTEGER NOT NULL DEFAULT 0, source_id TEXT, verified_at TEXT, data_environment TEXT NOT NULL DEFAULT 'DEMO'
+);
+CREATE TABLE IF NOT EXISTS officials (
+  id SERIAL PRIMARY KEY, position TEXT NOT NULL, first_name TEXT, middle_name TEXT, last_name TEXT, title TEXT,
+  source_id TEXT, status TEXT, data_environment TEXT NOT NULL DEFAULT 'DEMO'
+);
   `;
 
   database.exec(usePostgres ? pgSql : sqliteSql);
@@ -611,5 +723,29 @@ export async function withTransaction<T>(fn: (database: any) => Promise<T>): Pro
       database.exec('ROLLBACK');
       throw e;
     }
+  }
+}
+
+/**
+ * True for "table does not exist" (PostgreSQL 42P01, SQLite "no such table").
+ * Used only where a newer feature's table may not be migrated yet.
+ */
+export function isMissingTableError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | null;
+  return e?.code === '42P01' || /no such table|relation .* does not exist/i.test(e?.message ?? '');
+}
+
+/**
+ * Run a read that depends on a table from a migration that may not have
+ * been applied yet (e.g. 003). A missing table yields `fallback` and a
+ * logged warning; every other error is re-thrown.
+ */
+export async function readIfMigrated<T>(read: () => Promise<T>, fallback: T, what: string): Promise<T> {
+  try {
+    return await read();
+  } catch (err) {
+    if (!isMissingTableError(err)) throw err;
+    console.warn(`[db] ${what} unavailable: run the pending migration in db/migrations/.`);
+    return fallback;
   }
 }

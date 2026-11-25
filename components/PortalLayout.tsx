@@ -2,9 +2,9 @@
 
 import { useState, useSyncExternalStore, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Menu, X, LayoutDashboard, Users, BookOpen, GraduationCap, Building2, Calendar, AlertTriangle, Activity, Database } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Menu, X, LayoutDashboard, Users, BookOpen, GraduationCap, Building2, Calendar, AlertTriangle, Activity, Database, CalendarRange, DoorOpen, Megaphone, ScrollText, BadgeCheck } from 'lucide-react';
 import { ORGANIZATION } from '@/lib/domain/constants';
-import { TelemetryBar } from './TelemetryBar';
+import { TermBar, type TermBarData } from './TermBar';
 
 interface NavLink {
   href: string;
@@ -17,16 +17,11 @@ interface NavLink {
 interface PortalLayoutProps {
   role: 'admin' | 'faculty' | 'student';
   name: string;
-  subtitle?: string;
   details?: { label: string; value: string }[];
   links: NavLink[];
   children: React.ReactNode;
-  telemetry?: {
-    term: string;
-    week: string;
-    health: 'healthy' | 'warning' | 'critical';
-    conflicts: number;
-  };
+  /** Term, week and conflict count shown under the header. */
+  termBar?: TermBarData;
 }
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
@@ -41,6 +36,11 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
   'audit': <AlertTriangle className="h-4 w-4" />,
   'dashboard': <LayoutDashboard className="h-4 w-4" />,
   'schedule': <Calendar className="h-4 w-4" />,
+  'terms': <CalendarRange className="h-4 w-4" />,
+  'bookings': <DoorOpen className="h-4 w-4" />,
+  'announcements': <Megaphone className="h-4 w-4" />,
+  'audit-log': <ScrollText className="h-4 w-4" />,
+  'evidence': <BadgeCheck className="h-4 w-4" />,
 };
 
 function subscribeSidebar(_role: string) {
@@ -61,11 +61,10 @@ function getServerSidebarSnapshot(): string {
 export function PortalLayout({
   role,
   name,
-  subtitle,
   details,
   links,
   children,
-  telemetry,
+  termBar,
 }: PortalLayoutProps) {
   const stored = useSyncExternalStore(
     useCallback(() => subscribeSidebar(role), [role]),
@@ -97,7 +96,7 @@ export function PortalLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-midnight">
+    <div className="flex min-h-screen bg-paper">
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
@@ -108,7 +107,6 @@ export function PortalLayout({
       <PortalSidebar
         role={role}
         name={name}
-        subtitle={subtitle || ORGANIZATION.departmentCode}
         details={details}
         links={links.map(l => ({ ...l, moduleId: l.moduleId || getModuleId(l.href) }))}
         // The open drawer always shows labels; collapsing is a desktop option.
@@ -120,7 +118,7 @@ export function PortalLayout({
       <div
         className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}
       >
-        <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-30 lg:hidden">
+        <header className="border-b border-line bg-surface sticky top-0 z-30 lg:hidden">
           <div className="flex h-14 items-center gap-3 px-4">
             <button
               type="button"
@@ -132,10 +130,10 @@ export function PortalLayout({
             >
               <Menu className="h-5 w-5" />
             </button>
-            <p className="truncate text-sm font-semibold text-slate-100">{name}</p>
+            <p className="truncate text-sm font-semibold text-ink">{name}</p>
           </div>
         </header>
-        {telemetry && <TelemetryBar data={telemetry} />}
+        {termBar && <TermBar data={termBar} />}
         <main className="flex-1 p-4 pt-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
@@ -145,7 +143,6 @@ export function PortalLayout({
 interface PortalSidebarProps {
   role: 'admin' | 'faculty' | 'student';
   name: string;
-  subtitle?: string;
   details?: { label: string; value: string }[];
   links: { href: string; label: string; icon?: React.ReactNode; active?: boolean; moduleId?: string }[];
   collapsed: boolean;
@@ -154,29 +151,7 @@ interface PortalSidebarProps {
   onClose: () => void;
 }
 
-function PortalSidebar({ role, name, subtitle, details, links, collapsed, mobileOpen, onToggle, onClose }: PortalSidebarProps) {
-  const healthColors = {
-    healthy: 'text-emerald-400',
-    warning: 'text-amber-400',
-    critical: 'text-red-400',
-  };
-
-  const getModuleHealth = (moduleId: string) => {
-    const healthMap: Record<string, 'healthy' | 'warning' | 'critical'> = {
-      'admin-control': 'healthy',
-      'faculty-load': 'healthy',
-      'student-schedule': 'healthy',
-      'lab-node-status': 'warning',
-      'master-list': 'healthy',
-      'schedule-board': 'healthy',
-      'faculty-availability': 'healthy',
-      'database': 'healthy',
-      'audit': 'healthy',
-      'dashboard': 'healthy',
-      'schedule': 'healthy',
-    };
-    return healthMap[moduleId] || 'healthy';
-  };
+function PortalSidebar({ role, name, details, links, collapsed, mobileOpen, onToggle, onClose }: PortalSidebarProps) {
 
   return (
     <aside
@@ -184,12 +159,15 @@ function PortalSidebar({ role, name, subtitle, details, links, collapsed, mobile
       aria-label={`${role} navigation`}
       className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'translate-x-0' : 'invisible -translate-x-full'} lg:visible lg:translate-x-0`}
     >
-      <div className="flex h-16 items-center justify-between border-b border-slate-800 px-4">
+      <div className="flex h-16 items-center justify-between border-b border-line px-4">
         {!collapsed && (
-          <div className="text-center">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{role.toUpperCase()}</p>
-            <h2 className="text-lg font-semibold text-slate-100 truncate">{name}</h2>
-            {subtitle && <p className="text-sm text-slate-500 truncate">{subtitle}</p>}
+          <div className="min-w-0">
+            <Link href="/" className="font-display text-base font-extrabold tracking-tight text-lagoon">
+              TRAC BSIT
+            </Link>
+            <p className="truncate text-sm text-muted">
+              {role === 'admin' ? 'Administrator' : 'Faculty'}: {name}
+            </p>
           </div>
         )}
         <button
@@ -212,37 +190,32 @@ function PortalSidebar({ role, name, subtitle, details, links, collapsed, mobile
       </div>
 
       {!collapsed && details && details.length > 0 && (
-        <div className="space-y-3 border-b border-slate-800 p-4 animate-in">
-          {details.map((d, i) => (
-            <div key={d.label} className={`stagger-${Math.min(i + 1, 6)}`}>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{d.label}</p>
-              <p className="text-sm font-medium text-slate-100 font-mono truncate">{d.value}</p>
+        <dl className="space-y-2 border-b border-line p-4 text-sm">
+          {details.map((d) => (
+            <div key={d.label} className="flex justify-between gap-3">
+              <dt className="text-muted">{d.label}</dt>
+              <dd className="truncate font-semibold text-ink">{d.value}</dd>
             </div>
           ))}
-        </div>
+        </dl>
       )}
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {links.map((link, index) => {
+        {links.map((link) => {
           const Icon = link.icon || MODULE_ICONS[link.moduleId || ''] || <LayoutDashboard className="h-4 w-4" />;
-          const health = getModuleHealth(link.moduleId || '');
           const isActive = link.active;
 
           return (
             <Link
               key={link.href}
               href={link.href}
-              className={`
-                sidebar-link ${isActive ? 'sidebar-link-active' : ''} ${collapsed ? 'sidebar-link-collapsed' : ''}
-                animate-in stagger-${Math.min(index + 1, 6)}
-              `}
+              className={`sidebar-link ${isActive ? 'sidebar-link-active' : ''} ${collapsed ? 'sidebar-link-collapsed' : ''}`}
               title={collapsed ? link.label : undefined}
               aria-current={isActive ? 'page' : undefined}
               onClick={onClose}
             >
-              <span className="flex h-8 w-8 items-center justify-center relative">
+              <span className="flex h-8 w-8 items-center justify-center" aria-hidden="true">
                 {Icon}
-                <span className={`status-dot absolute -top-0.5 -right-0.5 ${healthColors[health]}`} />
               </span>
               {!collapsed && <span className="truncate">{link.label}</span>}
             </Link>
@@ -251,7 +224,7 @@ function PortalSidebar({ role, name, subtitle, details, links, collapsed, mobile
       </nav>
 
       {!collapsed && (
-        <div className="border-t border-slate-800 p-4 animate-in stagger-6">
+        <div className="border-t border-line p-4">
           <form action="/api/auth/logout" method="POST">
             <button type="submit" className="btn-secondary w-full gap-2 justify-center">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
@@ -262,7 +235,7 @@ function PortalSidebar({ role, name, subtitle, details, links, collapsed, mobile
       )}
 
       {collapsed && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 animate-in">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
           <form action="/api/auth/logout" method="POST">
             <button type="submit" className="btn-icon p-2" title="Logout">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
@@ -284,12 +257,12 @@ export function PrintHeader({
   name?: string;
 }) {
   return (
-    <div className="mb-4 hidden print:block print-header border-b-2 border-slate-900 pb-4">
-      <p className="text-sm font-medium text-slate-600">{ORGANIZATION.college}</p>
-      <p className="text-sm text-slate-500">{ORGANIZATION.department}</p>
-      <p className="text-lg font-bold text-slate-900">{title}</p>
-      {subtitle && <p className="text-sm text-slate-600">{subtitle}</p>}
-      {name && <p className="text-sm text-slate-500">{name}</p>}
+    <div className="mb-4 hidden print:block print-header border-b-2 border-line pb-4">
+      <p className="text-sm font-medium text-muted">{ORGANIZATION.college}</p>
+      <p className="text-sm text-muted">{ORGANIZATION.department}</p>
+      <p className="text-lg font-bold text-ink">{title}</p>
+      {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
+      {name && <p className="text-sm text-muted">{name}</p>}
     </div>
   );
 }
@@ -302,18 +275,18 @@ export function ViewToggle({
   onChange: (v: 'grid' | 'list') => void;
 }) {
   return (
-    <div className="flex rounded-lg border border-slate-700 bg-slate-900/50 print:hidden">
+    <div className="flex rounded-lg border border-line bg-surface print:hidden">
       <button
         type="button"
         onClick={() => onChange('grid')}
-        className={`px-3 py-1.5 text-sm font-medium transition ${view === 'grid' ? 'bg-cyber-teal text-midnight' : 'text-slate-400 hover:text-slate-100'}`}
+        className={`px-3 py-1.5 text-sm font-medium transition ${view === 'grid' ? 'bg-lagoon text-white' : 'text-muted hover:text-ink'}`}
       >
         Grid
       </button>
       <button
         type="button"
         onClick={() => onChange('list')}
-        className={`px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-cyber-teal text-midnight' : 'text-slate-400 hover:text-slate-100'}`}
+        className={`px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-lagoon text-white' : 'text-muted hover:text-ink'}`}
       >
         List
       </button>

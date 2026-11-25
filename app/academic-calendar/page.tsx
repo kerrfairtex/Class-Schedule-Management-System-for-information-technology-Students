@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/persistence/db';
 import { PublicHeader } from '@/components/public/PublicHeader';
+import { PublicFooter } from '@/components/public/PublicFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,11 +25,11 @@ export default async function AcademicCalendarPage() {
     }>;
 
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
+    <div className="min-h-screen">
       <PublicHeader active="/academic-calendar" />
       <div className="mx-auto max-w-4xl px-6 py-12">
         <h1 className="mb-6 text-4xl font-bold">Academic Calendar</h1>
-        <p className="mb-8 text-sm text-slate-400">
+        <p className="mb-8 text-sm text-muted">
           Academic years and semesters tracked by the CSMS.
           Per spec §22, there must be only one active/current term for the
           scheduling context.
@@ -37,32 +38,33 @@ export default async function AcademicCalendarPage() {
           {years.map((y) => (
             <article
               key={y.id}
-              className="flex items-center justify-between rounded border border-slate-700 bg-slate-900/50 p-4"
+              className="flex items-center justify-between rounded border border-line bg-surface p-4"
             >
               <div>
                 <h2 className="text-lg font-semibold">
                   Academic Year {y.label}
                 </h2>
                 {y.start_date && y.end_date && (
-                  <p className="text-sm text-slate-400">
-                    {y.start_date} → {y.end_date}
+                  <p className="text-sm text-muted">
+                    {y.start_date} to {y.end_date}
                   </p>
                 )}
               </div>
               {y.is_active === 1 ? (
-                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-wide text-emerald-300">
+                <span className="rounded-full border border-seagrass/40 bg-seagrass-50 px-3 py-1 text-xs text-seagrass">
                   Current
                 </span>
               ) : (
-                <span className="rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-wide text-slate-500">
+                <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">
                   Inactive
                 </span>
               )}
             </article>
           ))}
-          {years.length === 0 && <p className="text-slate-500">No academic years defined.</p>}
+          {years.length === 0 && <p className="text-muted">No academic years defined.</p>}
         </div>
       </div>
+      <PublicFooter />
     </div>
   );
 }

@@ -11,6 +11,8 @@ export const PUBLIC_PATHS = [
   '/',
   '/schedules',
   '/schedules/archive',
+  '/today',
+  '/announcements',
   '/sections',
   '/programs',
   '/courses',

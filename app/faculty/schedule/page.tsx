@@ -45,7 +45,7 @@ export default function FacultySchedulePage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 print:mb-2">
         <div>
           <h1 className="text-2xl font-bold">Teaching Schedule</h1>
-          <p className="text-sm text-slate-500">MOD-06 — View and print only</p>
+          <p className="text-sm text-muted">Your approved and published classes this semester.</p>
         </div>
         <div className="flex items-center gap-2">
           <ViewToggle view={view} onChange={setView} />

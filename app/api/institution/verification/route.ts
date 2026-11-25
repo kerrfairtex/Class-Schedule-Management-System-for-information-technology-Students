@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/persistence/db';
+import { campusNow } from '@/lib/modules/mod-03-schedule-engine/public-timetable';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,8 +19,9 @@ export async function GET() {
       .prepare(`SELECT
         (SELECT COUNT(*) FROM institutional_facts) as facts,
         (SELECT COUNT(*) FROM sources) as sources,
-        (SELECT COUNT(*) FROM institutional_facts WHERE review_due_at IS NOT NULL AND review_due_at < CURRENT_DATE::text) as review_overdue`)
-      .get() as { facts: number; sources: number; review_overdue: number };
+        (SELECT COUNT(*) FROM institutional_facts WHERE review_due_at IS NOT NULL AND review_due_at < ?) as review_overdue`)
+      // Dates are YYYY-MM-DD text; compare with the campus date (portable SQL).
+      .get(campusNow().date) as { facts: number; sources: number; review_overdue: number };
 
     // Last verification baseline (system setting)
     const baseline = await db
