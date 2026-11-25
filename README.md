@@ -138,6 +138,7 @@ idempotent and paired with a `.down.sql` rollback, run by hand:
 | `001_csms_app_role.sql` | Least-privilege `csms_app` login role (no password set). Also covers tables added later (default privileges, and policies on tables with row level security such as `room_bookings` and `announcements`). See below. |
 | `002_schedule_publish_workflow.sql` | Adds the schedule workflow columns the app relies on, plus unique indexes that stop double-booked rooms, faculty and sections. Refuses to run, changing nothing, if existing rows already clash. |
 | `003_bookings_announcements_evidence.sql` | `room_bookings` and `announcements` (with row level security), plus repo definitions of the evidence tables that already exist in production. **Run before deploying the code that uses them**; until then those pages show a notice or nothing. |
+| `004_flexible_class_times.sql` | Classes with their own day/start/end and a LEC/LAB part (existing classes back-filled from their period), subject lecture/lab units and hours, room types, section adviser and home room. **Required before deploying the flexible-times release**: the app reads these columns. Down file keeps the columns. |
 
 Fresh local databases get their schema from `initSchema()` in `lib/persistence/db.ts`
 (via `npm run seed`). Keep it in step with the migrations.
@@ -211,6 +212,27 @@ classes: `.page-title`, `.page-lead`, `.card`, `.btn-primary`, `.btn-secondary`,
 `.input-field`, `.select-field`, `.data-table`, `.notice-info|success|warning|error`,
 `.link`. Public pages use `PublicHeader` and `PublicFooter`; admin and faculty pages use
 `PortalLayout`.
+
+## Building a class schedule
+
+1. **Master List → Subjects:** subject code, descriptive title, lecture and lab units,
+   lecture and lab hours a week (e.g. IT 121: 2 lecture units + 1 lab unit, 2 lecture
+   hours + 3 lab hours).
+2. **Master List → Rooms:** mark each room as a lecture room or a laboratory.
+3. **Master List → Sections:** **Add sets** for a year level (BSIT-1A, 1B, ...), then
+   open each set to choose its adviser, home room and class size.
+4. **Schedule board → Add a class:** set, subject, lecture or lab part, instructor,
+   room, the days it meets (tick MWF, TTh, ...), start time and length (1 to 4 hours or
+   any end time). Conflicts are checked on every chosen day before saving. Or use
+   **Auto-fill drafts** for a set, which places each subject's lecture and lab hours.
+5. **Hours check** (choose a set on the board): scheduled vs required hours per subject
+   part, so nothing is missing or doubled.
+6. Drag a class to another day or time (it keeps its length), or select it to edit,
+   change status or delete. Then submit, approve and publish.
+
+A clash is any **overlap** on the same day for the same room, instructor or set
+(back-to-back is fine). Standard class periods (Terms and periods) remain the grid for
+faculty availability, the free-room search and auto-fill.
 
 ## Schedule publishing workflow
 

@@ -73,8 +73,8 @@ async function seedDatabase() {
   if (roomCount === 0) {
     await run('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)', itb.id, 'IT-101', 'IT Lecture Room 1', 50);
     await run('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)', itb.id, 'IT-102', 'IT Lecture Room 2', 45);
-    await run('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)', lab.id, 'LAB-1', 'Computer Lab 1', 40);
-    await run('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)', lab.id, 'LAB-2', 'Computer Lab 2', 35);
+    await run('INSERT INTO rooms (building_id, code, name, capacity, room_type) VALUES (?, ?, ?, ?, ?)', lab.id, 'LAB-1', 'Computer Lab 1', 45, 'LAB');
+    await run('INSERT INTO rooms (building_id, code, name, capacity, room_type) VALUES (?, ?, ?, ?, ?)', lab.id, 'LAB-2', 'Computer Lab 2', 45, 'LAB');
   }
 
   await ensureTimeSlots();
@@ -91,8 +91,16 @@ async function seedDatabase() {
       ['IT 221', 'Software Engineering', 3],
       ['IT 222', 'Networking 1', 3],
     ];
+    // Programming, data structures, web and networking have a lab part:
+    // 2 lecture units (2 hours) + 1 lab unit (3 hours a week).
+    const withLab = new Set(['IT 112', 'IT 121', 'IT 211', 'IT 222']);
     for (const [code, name, credits] of subjects) {
-      await run('INSERT INTO subjects (code, name, credit_hours, program_id) VALUES (?, ?, ?, ?)', code, name, credits, program.id);
+      const lab = withLab.has(String(code));
+      await run(
+        `INSERT INTO subjects (code, name, credit_hours, program_id, lec_units, lab_units, lec_hours, lab_hours)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        code, name, credits, program.id, lab ? 2 : credits, lab ? 1 : 0, lab ? 2 : credits, lab ? 3 : 0
+      );
     }
   }
 

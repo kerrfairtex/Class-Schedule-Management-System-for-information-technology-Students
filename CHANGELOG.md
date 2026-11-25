@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Flexible class times, lecture/lab, sets
+- **Added (database):** migration 004: class day/start/end and LEC/LAB part (existing
+  classes back-filled), subject lecture/lab units and hours, room types, section
+  adviser and home room. Run before deploying.
+- **Added:** classes of any length on any days (MWF, TTh, ...); conflicts are time
+  overlaps and name the clashing class; lab-in-lecture-room warning; edit any class;
+  drag to any day/time keeping its length; per-set hours check; auto-fill places
+  lecture and lab hours separately.
+- **Added:** subject "Descriptive title" with lecture/lab units and hours; room type;
+  section adviser, home room and class size; "Add sets" for a year level.
+- **Changed:** board, public timetables and the faculty schedule draw classes on a
+  real time axis, so a 3-hour lab looks three hours long; LEC/LAB shown everywhere.
+- **Fixed:** Master List labels are associated with their inputs.
+
 ### Production release: design system and department tools
 - **Added (database):** migration 003 with `room_bookings` and `announcements` (checks,
   indexes, row level security) and repo definitions of the evidence tables. Run it

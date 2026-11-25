@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Schedule } from '@/lib/domain/types';
 import { DAY_LABELS } from '@/lib/domain/constants';
+import { TimeGrid } from '@/components/TimeGrid';
 import {
   daysOf,
   formatRange,
@@ -26,7 +27,12 @@ const dayLabel = (d: string) => DAY_LABELS[d] ?? d;
 function ClassDetails({ e, mode }: { e: Schedule; mode: TimetableMode }) {
   return (
     <>
-      <p className="font-bold text-ink">{e.subject_code}</p>
+      <p className="font-bold text-ink">
+        {e.subject_code}{' '}
+        <span className={`rounded px-1 text-[10px] font-semibold ${e.component === 'LAB' ? 'bg-seagrass text-white' : 'bg-lagoon text-white'}`}>
+          {e.component === 'LAB' ? 'LAB' : 'LEC'}
+        </span>
+      </p>
       {mode !== 'faculty' && e.subject_name && <p className="text-ink-soft">{e.subject_name}</p>}
       <p className="mt-0.5 text-muted">
         {[
@@ -54,65 +60,31 @@ function ClassDetails({ e, mode }: { e: Schedule; mode: TimetableMode }) {
 }
 
 export function WeeklyTimetable({ caption, entries, slots, mode, now }: Props) {
-  const days = daysOf(slots);
+  // Days with standard periods, plus any day a class meets outside them.
+  const days = daysOf([...slots, ...entries.map((e) => ({ day_of_week: e.day_of_week ?? '' }))].filter((d) => d.day_of_week));
   const rows = rowsOf(slots);
-  const at = (day: string, start: string) => entries.filter((e) => e.day_of_week === day && e.start_time === start);
+  const bounds = rows.length ? { start: rows[0].start, end: rows.reduce((m, r) => (r.end > m ? r.end : m), rows[0].end) } : undefined;
   const isNow = (day: string, start: string, end: string) =>
     !!now && now.day === day && start <= now.time && now.time < end;
 
   return (
     <div>
-      {/* Wide screens: weekly grid */}
-      <div className="hidden overflow-x-auto rounded-lg border border-line bg-surface md:block">
-        <table className="w-full min-w-[760px] table-fixed border-collapse text-left text-xs">
-          <caption className="sr-only">{caption}</caption>
-          <thead>
-            <tr className="bg-paper-2">
-              <th scope="col" className="w-28 px-3 py-2 font-semibold text-ink-soft">Time</th>
-              {days.map((d) => (
-                <th
-                  key={d}
-                  scope="col"
-                  className={`px-3 py-2 font-semibold ${now?.day === d ? 'border-b-2 border-sand-dark text-ink' : 'text-ink-soft'}`}
-                >
-                  {dayLabel(d)}
-                  {now?.day === d && <span className="ml-1 font-normal text-muted">today</span>}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.start} className="border-t border-line">
-                <th scope="row" className="whitespace-nowrap px-3 py-2 align-top font-medium text-muted">
-                  {formatRange(r.start, r.end)}
-                </th>
-                {days.map((d) => {
-                  const cell = at(d, r.start);
-                  const current = isNow(d, r.start, r.end);
-                  return (
-                    <td key={d} className={`px-2 py-2 align-top ${current ? 'now-band' : ''}`}>
-                      {cell.length === 0 ? (
-                        <span className={mode === 'room' ? 'text-seagrass' : 'text-line-strong'}>
-                          {mode === 'room' ? 'Free' : <span aria-label="No class">–</span>}
-                        </span>
-                      ) : (
-                        <div className="space-y-2">
-                          {cell.map((e) => (
-                            <div key={e.id} className="rounded-r-md border-l-4 border-lagoon bg-lagoon-50/60 p-2">
-                              <ClassDetails e={e} mode={mode} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {current && <span className="sr-only"> (now)</span>}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Wide screens: real time axis, so 2-hour and 3-hour classes show their length */}
+      <div className="hidden md:block">
+        <TimeGrid
+          caption={caption}
+          days={days}
+          entries={entries}
+          bounds={bounds}
+          now={now}
+          renderBlock={(e) => (
+            <div className="h-full border-l-4 border-lagoon p-1.5">
+              <ClassDetails e={e} mode={mode} />
+            </div>
+          )}
+          blockClassName={(e) => (e.component === 'LAB' ? 'border-seagrass/40 bg-seagrass-50' : 'border-lagoon/30 bg-lagoon-50')}
+        />
+        {mode === 'room' && <p className="mt-2 text-xs text-muted">Times with no class are free.</p>}
       </div>
 
       {/* Phones: one list per day, today first */}

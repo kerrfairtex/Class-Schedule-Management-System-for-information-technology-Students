@@ -46,6 +46,10 @@ import {
   transitionSchedule,
   getSchedulingReferences,
   semesterNumberOf,
+  createClassMeetings,
+  updateSchedule,
+  moveSchedule,
+  getSectionLoad,
 } from '@/lib/modules/mod-03-schedule-engine/service';
 import { detectConflicts } from '@/lib/modules/mod-04-conflict-engine/validator';
 import { DATA_ENVIRONMENTS, setDataEnvironment } from '@/lib/modules/mod-08-database-service/settings';
@@ -174,18 +178,34 @@ export async function GET(request: Request) {
       });
     }
     case 'schedule-check': {
-      // Live conflict preview for the manual-entry form; read-only.
+      // Live conflict preview for the class form, one result per chosen day; read-only.
       const semester = await getActiveSemester();
       if (!semester) return NextResponse.json({ error: 'No active semester' }, { status: 400 });
-      const ids = ['section_id', 'subject_id', 'faculty_id', 'room_id', 'time_slot_id'] as const;
+      const ids = ['section_id', 'subject_id', 'faculty_id', 'room_id'] as const;
       const values = ids.map((k) => Number(searchParams.get(k)));
-      if (values.some((v) => !Number.isInteger(v) || v <= 0)) {
-        return NextResponse.json({ error: 'All five fields are required' }, { status: 400 });
+      const days = (searchParams.get('days') ?? '').split(',').filter(Boolean);
+      const start_time = searchParams.get('start_time') ?? '';
+      const end_time = searchParams.get('end_time') ?? '';
+      const exclude = Number(searchParams.get('exclude')) || undefined;
+      if (values.some((v) => !Number.isInteger(v) || v <= 0) || days.length === 0 || days.length > 7) {
+        return NextResponse.json({ error: 'Choose a section, subject, instructor, room and at least one day' }, { status: 400 });
       }
-      const [section_id, subject_id, faculty_id, room_id, time_slot_id] = values;
-      return NextResponse.json(
-        await detectConflicts({ section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id: semester.id })
-      );
+      const [section_id, subject_id, faculty_id, room_id] = values;
+      const component = searchParams.get('component') === 'LAB' ? 'LAB' : 'LEC';
+      const results: Record<string, unknown> = {};
+      for (const day_of_week of days) {
+        results[day_of_week] = await detectConflicts(
+          { section_id, subject_id, faculty_id, room_id, semester_id: semester.id, day_of_week, start_time, end_time, component },
+          exclude
+        );
+      }
+      return NextResponse.json({ days: results });
+    }
+    case 'section-load': {
+      const semester = await getActiveSemester();
+      const sectionId = Number(searchParams.get('sectionId'));
+      if (!semester || !sectionId) return NextResponse.json([]);
+      return NextResponse.json(await getSectionLoad(sectionId, semester.id));
     }
     case 'meta': {
       const semester = await getActiveSemester();
@@ -602,6 +622,49 @@ export async function POST(request: Request) {
         if (!validated.success) return invalidBody('Invalid move payload');
         const m = validated.data;
         return NextResponse.json(await updateScheduleTimeSlot(m.scheduleId, m.timeSlotId, session!.id));
+      }
+      case 'create-class': {
+        const v = z
+          .object({
+            section_id: z.number().int().positive(),
+            subject_id: z.number().int().positive(),
+            faculty_id: z.number().int().positive(),
+            room_id: z.number().int().positive(),
+            component: z.enum(['LEC', 'LAB']),
+            days: z.array(z.string()).min(1).max(7),
+            start_time: z.string(),
+            end_time: z.string(),
+          })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Fill in the section, subject, part, instructor, room, days and times');
+        const semester = await getActiveSemester();
+        if (!semester) return NextResponse.json({ error: 'No active semester' }, { status: 400 });
+        return NextResponse.json(await createClassMeetings({ ...v.data, semester_id: semester.id }, session!.id));
+      }
+      case 'update-schedule': {
+        const v = z
+          .object({
+            scheduleId: z.number().int().positive(),
+            faculty_id: z.number().int().positive().optional(),
+            room_id: z.number().int().positive().optional(),
+            component: z.enum(['LEC', 'LAB']).optional(),
+            day_of_week: z.string().optional(),
+            start_time: z.string().optional(),
+            end_time: z.string().optional(),
+          })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Invalid class changes');
+        const { scheduleId, ...changes } = v.data;
+        return NextResponse.json(await updateSchedule(scheduleId, changes, session!.id));
+      }
+      case 'move-schedule-time': {
+        const v = z
+          .object({ scheduleId: z.number().int().positive(), day_of_week: z.string(), start_time: z.string() })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Invalid move');
+        return NextResponse.json(
+          await moveSchedule(v.data.scheduleId, { day_of_week: v.data.day_of_week, start_time: v.data.start_time }, session!.id)
+        );
       }
       case 'delete-schedule': {
         const deleteSchema = z.object({
