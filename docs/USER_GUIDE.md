@@ -422,6 +422,36 @@ Two sections:
 
 ---
 
+#### 6.10 Terms and periods — `/admin/terms`
+
+- **Academic years:** add one as `2026-2027` (optional start and end dates), then add its
+  semesters (1st Semester, 2nd Semester, Summer).
+- **Make active:** exactly one semester is active. Switching changes what the schedule
+  board, auto-generation and the public site show; you are asked to confirm.
+- **Class periods:** add a period by day, start and end; overlapping periods on the same
+  day are refused. **Remove** works only for periods no class uses.
+
+#### 6.11 Room bookings — `/admin/bookings`
+
+Book a room for an exam, event, meeting or maintenance on a date and time. The booking is
+refused if it overlaps another booking in that room or a class that meets there on that
+weekday; the message names the clash. Bookings show on the public **Rooms** and **Today**
+pages. **Cancel** removes a booking.
+
+#### 6.12 Announcements — `/admin/announcements`
+
+Post a title and plain-text notice with a start date and an optional end date. Pinned
+notices come first. Each notice shows as **Scheduled**, **Showing** or **Ended**; open
+**Edit** to change it or **Delete** to remove it. The home page shows the newest three.
+
+#### 6.13 Audit log — `/admin/audit`
+
+Every change (who, when, what, details), newest first, 50 per page. Filter by action or
+record type; the address can be shared.
+
+> Room bookings and announcements need database migration 003. Until it is applied those
+> pages show a notice instead of the form.
+
 ### 7. Faculty Guide
 
 Faculty routes are prefixed with `/faculty/`. All require faculty role authentication.
@@ -513,6 +543,18 @@ Wrapped in `PortalLayout` with role `faculty`.
 
 ---
 
+#### 7.5 My availability — `/faculty/availability`
+
+Tap a period to switch it between **Available** and **Unavailable**; each change is
+saved at once. Periods you already teach are labelled. The schedule board warns the
+administrator before placing a class in an unavailable period.
+
+#### 7.6 Dashboard teaching load
+
+The faculty dashboard shows classes and hours per week, subjects and sections, hours by
+day, and today's classes with the current one highlighted. Approved classes that are not
+yet published are counted and flagged.
+
 ### 8. Student Guide (public site, no account)
 
 Students do **not** have accounts. Everything a student needs is on the public site,
@@ -549,7 +591,14 @@ If nothing is published yet, the page says so. Past years are under
 Availability reflects the published class schedule only; a room may still be booked for
 an exam or event.
 
-#### 8.3 Other public pages
+#### 8.3 Today and announcements
+
+- **`/today`**: every class meeting today, grouped by period, with the current period
+  highlighted and finished ones dimmed; today's room bookings below.
+- **`/announcements`**: current notices from the department (also the newest three on the
+  home page).
+
+#### 8.4 Other public pages
 
 | Page | What it shows |
 |---|---|

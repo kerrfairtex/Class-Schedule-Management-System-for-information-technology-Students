@@ -30,12 +30,13 @@ Application Layer
   MOD-02 Master List       MOD-06 Faculty Portal
   MOD-03 Schedule Engine   MOD-07 Public Student Access
   MOD-04 Conflict Engine   MOD-08 Database Service
+  MOD-09 Room Bookings     MOD-10 Announcements
                 │
                 ▼
 Domain Layer — Faculty, Subjects, Sections, Rooms, Schedules, etc.
                 │
                 ▼
-Persistence Layer — SQLite, Repository, Backup, Transactions
+Persistence Layer — PostgreSQL (prod) / SQLite (local), Backup, Transactions
 ```
 
 ## Modules
@@ -49,7 +50,9 @@ Persistence Layer — SQLite, Repository, Backup, Transactions
 | MOD-05 | Admin drag-and-drop schedule board with live validation |
 | MOD-06 | Faculty portal — view and print schedules (read-only) |
 | MOD-07 | Public student access — schedule finder by section/instructor, room availability, print (no account) |
-| MOD-08 | Database backup, audit logging, transactions |
+| MOD-08 | Database backup, audit logging and the audit log viewer, settings |
+| MOD-09 | Room bookings for exams, events, meetings, maintenance (no overlaps with classes) |
+| MOD-10 | Dated public announcements |
 
 ## Getting Started (local development)
 
@@ -132,8 +135,9 @@ idempotent and paired with a `.down.sql` rollback, run by hand:
 
 | File | What it does |
 |---|---|
-| `001_csms_app_role.sql` | Least-privilege `csms_app` login role (no password set) |
+| `001_csms_app_role.sql` | Least-privilege `csms_app` login role (no password set). On branch `feat/csms-app-role`, not merged yet |
 | `002_schedule_publish_workflow.sql` | Adds the schedule workflow columns the app relies on, plus unique indexes that stop double-booked rooms, faculty and sections. Refuses to run, changing nothing, if existing rows already clash. |
+| `003_bookings_announcements_evidence.sql` | `room_bookings` and `announcements` (with row level security), plus repo definitions of the evidence tables that already exist in production. **Run before deploying the code that uses them**; until then those pages show a notice or nothing. |
 
 Fresh local databases get their schema from `initSchema()` in `lib/persistence/db.ts`
 (via `npm run seed`). Keep it in step with the migrations.
@@ -170,6 +174,26 @@ Old `/student/*` links redirect to `/schedules`. Student records stay in the Mas
 List (sections need them), but they never get a login, and the API refuses the
 student role.
 
+## Design system
+
+One light theme, defined as tokens in `tailwind.config.ts` and component classes in
+`app/globals.css`. Use the tokens, not raw colours.
+
+| Token | Use |
+|---|---|
+| `paper`, `surface` | Page background, cards |
+| `ink`, `ink-soft`, `muted` | Text: main, secondary, hints |
+| `line`, `line-strong` | Borders, form-control borders |
+| `lagoon` | Primary actions and links |
+| `seagrass`, `coral` | Success / free, error / taken |
+| `sand` (`.now-band`) | The current period: the one accent moment |
+
+Type: Atkinson Hyperlegible for text, Archivo for headings (`font-display`). Shared
+classes: `.page-title`, `.page-lead`, `.card`, `.btn-primary`, `.btn-secondary`,
+`.input-field`, `.select-field`, `.data-table`, `.notice-info|success|warning|error`,
+`.link`. Public pages use `PublicHeader` and `PublicFooter`; admin and faculty pages use
+`PortalLayout`.
+
 ## Schedule publishing workflow
 
 Schedules are created on the **Schedule Board** (`/admin/schedule-board`) as **Draft**,
@@ -203,13 +227,17 @@ lib/
     ├── mod-02-master-list/
     ├── mod-03-schedule-engine/
     ├── mod-04-conflict-engine/
-    └── mod-08-database-service/
+    ├── mod-08-database-service/
+    ├── mod-09-room-bookings/
+    └── mod-10-announcements/
 app/
-├── admin/               # Dashboard, master list, schedule board, availability
-├── faculty/             # Dashboard + view-only schedule (grid/list/print)
-├── schedules/ rooms/    # Public schedule finder and room availability (no login)
+├── admin/               # Dashboard, schedule board, terms, bookings, announcements, audit, settings
+├── faculty/             # Dashboard (teaching load), schedule, own availability
+├── schedules/ today/ rooms/ announcements/   # Public pages (no login)
 ├── api/                 # REST API routes (presentation ↔ application layer)
-middleware.ts            # Route protection (MOD-01 RBAC)
+components/public/       # PublicHeader/Footer, WeeklyTimetable, SectionPicker
+db/migrations/           # Numbered, idempotent SQL with .down.sql rollbacks
+proxy.ts                 # Route protection (MOD-01 RBAC)
 lib/api/                 # Typed frontend API client
 ```
 
@@ -222,6 +250,8 @@ lib/api/                 # Typed frontend API client
 - [x] Phase 5: Unit tests for MOD-03/MOD-04
 - [x] Phase 5: Integration tests (auth + scheduling workflows)
 - [x] Phase 5: User acceptance testing (UAT) — see [docs/UAT.md](docs/UAT.md)
+- [x] Phase 6: Publishing workflow, public schedule finder and room availability, no student accounts
+- [x] Phase 7: Terms and periods, room bookings, announcements, audit log, faculty availability and load, design system
 
 ## Reference
 

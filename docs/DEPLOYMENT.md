@@ -77,12 +77,28 @@ be safe on the current production schema.
 bring it back.
 
 **Database:** run the matching `db/migrations/NNN_*.down.sql` as `postgres`. Down
-files remove only what their migration added and never drop data columns. If data was
+files remove only what their migration added. Read the header first: `003`'s down file
+drops the `room_bookings` and `announcements` tables and their rows, so back them up
+before running it; `002`'s keeps all columns. If data was
 damaged, restore the `csms` schema from the backup taken in step 2.2:
 `pg_restore --schema=csms --clean --if-exists -d "$DATABASE_URL" csms-YYYYMMDD.dump`
 (this replaces only `csms` objects; review before running on the shared database).
 
-## 5. Local development
+## 5. Release order for the current changes
+
+For PRs #43, #44 and the production-release PR, in this order:
+
+1. Back up the `csms` schema.
+2. Run `002_schedule_publish_workflow.sql` (optional for running the code; adds the
+   double-booking protection) and `003_bookings_announcements_evidence.sql`
+   (required for room bookings and announcements).
+3. Merge #43, then #44, then the release PR. Render deploys each merge.
+4. Post-deploy checks (above), plus: sign in as an administrator, open **Terms and
+   periods**, **Room bookings**, **Announcements** and **Audit log**.
+5. When the published timetable has been checked against registrar records, set
+   **Settings → Data environment** to VERIFIED so it appears on the public site.
+
+## 6. Local development
 
 See the README: keep `DATABASE_URL` empty and use `npm run seed` for a local SQLite
 database. Never copy the production `DATABASE_URL` into a local `.env`.
