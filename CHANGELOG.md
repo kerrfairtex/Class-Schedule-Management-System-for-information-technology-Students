@@ -23,6 +23,10 @@
   against double bookings. Must be run manually; see README.
 
 ### Security
+- New faculty, student and user accounts no longer get the shared default password
+  `faculty123` / `student123` when the admin leaves it blank. A random temporary
+  password is generated, shown once, and must be changed at first login. Typed
+  passwords must be at least 8 characters everywhere.
 - `/admin/conflicts`, `/admin/evidence`, `/admin/schedules` and `/admin/settings` now
   require the admin role; any logged-in user could open them before.
 - Security headers on every response: CSP, X-Frame-Options, nosniff, Referrer-Policy,
@@ -32,6 +36,21 @@
 
 ### Added
 - Custom 404 and error pages, `sitemap.xml`, `robots.txt`; optional `SITE_URL`.
+
+### Fixed
+- Dashboards and portal schedule pages (`PortalLayout`) are usable on phones: the
+  sidebar is an off-canvas drawer below the `lg` breakpoint.
+- `npm run seed` now creates the schema and demo data for a local SQLite database; it
+  used to do nothing, and the real seeder failed on SQLite.
+
+### Removed
+- Stale, unused `postgresql-schema.sql` and the no-op `scripts/seed.ts`.
+
+### Docs
+- README and `docs/DEPLOYMENT.md` now describe production as it is (Render + shared
+  Supabase PostgreSQL, `csms` schema): setup, env var names, migrations, deploy,
+  post-deploy checks and rollback. `.env.example` leaves `DATABASE_URL` empty so local
+  runs use SQLite instead of the shared database.
 
 ### Fixed
 - PostgreSQL adapter uses a connection pool instead of one shared client. Concurrent

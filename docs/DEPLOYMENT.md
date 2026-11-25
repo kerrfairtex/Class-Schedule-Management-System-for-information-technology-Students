@@ -1,82 +1,88 @@
 # Deployment Guide
 
-## Option A — Render (recommended for persistent SQLite)
+Production runs as a **Render web service** (Node 20) that auto-deploys the `main`
+branch, backed by **PostgreSQL on Supabase**.
 
-This app should run on Render as a **Node web service**. Do not deploy it as a static site.
+> **The Supabase project is a shared database.** Other apps use it too. CSMS owns only
+> the `csms` schema. The app checks at startup that its active schema is `csms` and
+> refuses to serve otherwise. Never run DDL, `DROP`, `TRUNCATE` or bulk `DELETE`
+> outside `csms`, and never point a local run, test or seed at it.
 
-### Prerequisites
-- GitHub repo connected to Render
-- Render account with ability to create Web Services and Disks
+## 1. Render web service
 
-### Create Web Service
-- Name: `csms-trac-bsit`
-- Runtime: Node
-- Plan: Free or Starter
-- Region: Singapore if available; otherwise nearest region
-- Branch: main
-- Auto-Deploy: enabled
+Render dashboard → the CSMS web service → **Settings**. These values are the source of
+truth; `render.yaml` in the repo is outdated (it describes a Render-hosted database and
+an SQLite disk, neither of which is used).
 
-### Disk
-- Name: `csms-data`
-- Mount Path: `/data`
-- Size: `1 GB`
-
-### Environment Variables
-| Key | Value |
+| Setting | Value |
 |---|---|
-| `CSMS_DATA_DIR` | `/data/csms-data` |
+| Runtime | Node 20 |
+| Branch | `main` (auto-deploy on) |
+| Build command | `npm install; npm run build` |
+| Start command | `node .next/standalone/server.js` |
+| Health check path | `/api/health` |
+
+Do **not** set `PORT`; Render provides it. Do **not** put
+`scripts/sync-demo-passwords.cjs` in the start command: it is for demo setups only and
+does nothing in production unless `CSMS_SYNC_DEMO_PASSWORDS=1`.
+
+### Environment variables (Render → Environment)
+
+| Name | Value |
+|---|---|
+| `DATABASE_URL` | Supabase **session pooler** URL (port 5432), `sslmode=require` |
+| `SESSION_SECRET` | 32+ random characters; changing it signs everyone out |
 | `NODE_ENV` | `production` |
-| `SESSION_SECRET` | 32+ byte random string |
-| `CSMS_ALLOW_UNSIGNED` | `0` in production |
+| `SITE_URL` | Optional; set when the app moves to its own domain |
+| `PG_POOL_MAX` | Optional; default 5. Keep it low: the database is shared |
 
-> Supabase/Postgres environment variables are not required for the current SQLite architecture. Add them only after the persistence layer is migrated away from `better-sqlite3`.
+Never set `CSMS_ALLOW_PRODUCTION_WRITES`, `CSMS_SYNC_DEMO_PASSWORDS` or
+`CSMS_DISABLE_MUST_CHANGE_PASSWORD` in production.
 
-### Build & Start
-- Build Command: `npm run build`
-- Start Command: `npm start`
-- Node Version: 20.x or 22.x
+## 2. Database changes (migrations)
 
-### Notes
-- First request auto-seeds the SQLite database under `/data/csms-data/csms.db`
-- Free tier spins down after inactivity; use Starter for always-on demo
-- If `better-sqlite3` fails to build, use a Debian-based Node image or add buildpack apt steps
+The app never changes the database schema on startup. Schema changes are numbered,
+additive, idempotent SQL files in `db/migrations/`, each with a `.down.sql` rollback.
 
-### Post-Deploy Checks
-- App loads on `*.onrender.com`
-- Login works for admin/faculty/student
-- Database file persists after redeploy
-- Backup endpoint creates `.db` files under `/data/csms-data/backups/`
+1. **Read the migration.** It must touch only the `csms` schema.
+2. **Back up**: Supabase dashboard → Database → Backups, or
+   `pg_dump --schema=csms --format=custom -f csms-YYYYMMDD.dump "$DATABASE_URL"`.
+3. **Run it** as `postgres` in the Supabase SQL editor (paste the file) or with `psql`.
+4. **Check** that it finished with `COMMIT`. Each migration runs in one transaction, so
+   a failure changes nothing.
 
----
+Run a migration **before** merging code that depends on it. Migrations are written to
+be safe on the current production schema.
 
-## Option B — Vercel (preview/demo only)
+## 3. Deploy
 
-### Notes
-- Fastest deploy path
-- SQLite is stored in `/tmp` and is ephemeral
-- Data can reset between deploys or cold starts
-- Suitable for preview URLs and time-boxed demos only
-- Render service configuration (disk mounts and Render blueprint settings) does not apply to Vercel deployments
+1. Run `bash scripts/verify.sh` locally (lint, tests, build, typecheck, secrets).
+2. Merge the pull request into `main`. Render builds and deploys automatically.
+   (GitHub Actions and the Vercel check are not part of this pipeline; see the PR for
+   local verification results.)
+3. Watch the deploy in the Render dashboard until it is **Live**.
 
-### Setup
-- Build Command: `npm run build`
-- Output: `.next`
-- Env vars: set `NODE_ENV=production` and `SESSION_SECRET`; omit Render-specific disk variables such as `CSMS_DATA_DIR`
+### Post-deploy checks
 
-### Caveats
-- Do not use for persistent capstone demo unless paired with Vercel KV/Blob
-- If persistent demo is required, use Render instead
+- `GET /api/health` returns `200` with `"database":"up"`.
+- `/` loads; the "Class Sections Scheduled" count matches published, non-DEMO classes.
+- Log in as an admin; open `/admin/schedule-board`; the board loads.
+- Response headers include `Content-Security-Policy` and `Strict-Transport-Security`.
+- `/robots.txt` and `/sitemap.xml` respond.
 
----
+## 4. Rollback
 
-## Option C — Supabase/Postgres (future migration)
+**Code:** Render dashboard → the service → **Events** → pick the last good deploy →
+**Rollback**. Then `git revert` the bad merge on `main` so the next auto-deploy does not
+bring it back.
 
-### When to Use
-- After capstone demo or if concurrent load exceeds SQLite limits
-- Requires schema/query migration from `better-sqlite3` to Prisma/Drizzle
+**Database:** run the matching `db/migrations/NNN_*.down.sql` as `postgres`. Down
+files remove only what their migration added and never drop data columns. If data was
+damaged, restore the `csms` schema from the backup taken in step 2.2:
+`pg_restore --schema=csms --clean --if-exists -d "$DATABASE_URL" csms-YYYYMMDD.dump`
+(this replaces only `csms` objects; review before running on the shared database).
 
-### Steps
-1. Create Supabase project
-2. Add `DATABASE_URL` to deployment environment
-3. Migrate schema and rewrite `lib/persistence/*` for Postgres
-4. Update backup strategy to `pg_dump` or managed restore
+## 5. Local development
+
+See the README: keep `DATABASE_URL` empty and use `npm run seed` for a local SQLite
+database. Never copy the production `DATABASE_URL` into a local `.env`.
