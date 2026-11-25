@@ -27,7 +27,7 @@ export function PublicHeader({ active }: { active?: string }) {
           <span className="hidden text-sm text-muted sm:inline">Class schedules</span>
         </Link>
         <Link href="/login" className="ml-auto py-3 text-sm text-muted hover:text-lagoon md:order-last md:ml-0">
-          Staff sign in
+          Sign-in
         </Link>
         <nav aria-label="Main" className="-mx-4 w-full overflow-x-auto px-4 md:mx-0 md:w-auto md:flex-1 md:px-0">
           <ul className="flex gap-1">
