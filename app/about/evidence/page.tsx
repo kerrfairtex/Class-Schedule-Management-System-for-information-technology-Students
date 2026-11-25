@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { PublicHeader } from '@/components/public/PublicHeader';
 import {
   EVIDENCE_SOURCES,
   INSTITUTIONAL_FACTS,
@@ -75,14 +75,9 @@ export default function EvidencePage() {
 
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
+      <PublicHeader />
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="mb-4">
-          <Link
-            href="/"
-            className="text-sm text-cyber-teal hover:text-cyber-cyan transition-colors"
-          >
-            ← Back to home
-          </Link>
         </div>
 
         <header className="mb-12 border-b border-slate-800 pb-8">

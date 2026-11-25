@@ -19,6 +19,7 @@ export default async function Page() {
   }));
   return (
     <DetailPage
+      active="/schedules"
       title="Class Sections Scheduled"
       subtitle="Published classes this semester"
       items={items}

@@ -1,12 +1,14 @@
 'use client';
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePrefersReducedMotion } from '@/lib/hooks/client-state';
+import { PublicHeader } from '@/components/public/PublicHeader';
 
 export type Item = { id: string | number; title: string; meta: string; tag?: string };
 
-export default function DetailPage({ title, subtitle, items, emptyText = 'Nothing here yet.' }: {
+export default function DetailPage({ title, subtitle, items, emptyText = 'Nothing here yet.', active }: {
   title: string; subtitle: string; items: Item[]; emptyText?: string;
+  /** Public nav entry to highlight, e.g. '/courses'. */
+  active?: string;
 }) {
   const [q, setQ] = useState('');
   const [animatedN, setN] = useState(0);
@@ -31,10 +33,8 @@ export default function DetailPage({ title, subtitle, items, emptyText = 'Nothin
 
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
+      <PublicHeader active={active} />
       <div className="mx-auto max-w-4xl px-6 py-12">
-        <Link href="/" className="mb-4 inline-block text-sm text-cyber-teal hover:text-cyber-cyan">
-          ← Back to home
-        </Link>
         <header className="mb-8 flex flex-wrap items-end gap-5">
           <div className="text-6xl font-bold leading-none tabular-nums text-cyber-teal sm:text-7xl">{n}</div>
           <div>

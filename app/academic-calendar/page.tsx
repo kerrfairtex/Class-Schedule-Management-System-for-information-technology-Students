@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { getDb } from '@/lib/persistence/db';
+import { PublicHeader } from '@/components/public/PublicHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,10 +25,8 @@ export default async function AcademicCalendarPage() {
 
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
+      <PublicHeader active="/academic-calendar" />
       <div className="mx-auto max-w-4xl px-6 py-12">
-        <Link href="/" className="mb-4 inline-block text-sm text-cyber-teal hover:text-cyber-cyan">
-          ← Back to home
-        </Link>
         <h1 className="mb-6 text-4xl font-bold">Academic Calendar</h1>
         <p className="mb-8 text-sm text-slate-400">
           Academic years and semesters tracked by the CSMS.

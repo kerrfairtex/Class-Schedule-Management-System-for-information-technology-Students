@@ -10,6 +10,7 @@ export const SITE_URL = (
 export const PUBLIC_PATHS = [
   '/',
   '/schedules',
+  '/schedules/archive',
   '/sections',
   '/programs',
   '/courses',

@@ -60,7 +60,7 @@ export default async function TermSchedules({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
       <div className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/schedules" className="mb-4 inline-block text-sm text-cyber-teal hover:text-cyber-cyan">
+        <Link href="/schedules/archive" className="mb-4 inline-block text-sm text-cyber-teal hover:text-cyber-cyan">
           ← All academic years
         </Link>
         <h1 className="mb-2 text-4xl font-bold">{year.label}</h1>

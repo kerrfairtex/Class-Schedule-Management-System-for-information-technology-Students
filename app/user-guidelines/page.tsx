@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SYSTEM_IDENTITY, ORGANIZATION } from '@/lib/domain/constants';
 import type { Metadata } from 'next';
+import { PublicHeader } from '@/components/public/PublicHeader';
 
 export const metadata: Metadata = {
   title: 'User Guidelines — TRAC BSIT CSMS',
@@ -11,11 +12,9 @@ export const metadata: Metadata = {
 export default function UserGuidelinesPage() {
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
+      <PublicHeader />
       <div className="mx-auto max-w-3xl px-6 py-12">
         <div className="mb-4">
-          <Link href="/" className="text-sm text-cyber-teal hover:text-cyber-cyan">
-            ← Back to home
-          </Link>
         </div>
 
         <header className="mb-8 border-b border-slate-800 pb-6">
