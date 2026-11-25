@@ -113,7 +113,7 @@ describe('Integration: Portal data contracts', () => {
     expect(schedules[0].day_of_week).toBe('monday');
   });
 
-  it('returns student section schedule for portal view', async () => {
+  it('returns a section schedule for the public timetable', async () => {
     await generateSchedulesForSection(fixtures.sectionId, fixtures.semesterId);
     const schedules = await getSchedulesBySection(fixtures.sectionId, fixtures.semesterId);
     expect(schedules.every((s) => s.section_code === 'BSIT-1A')).toBe(true);

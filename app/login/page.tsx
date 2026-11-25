@@ -4,8 +4,8 @@ import { ORGANIZATION } from '@/lib/domain/constants';
 export default function LoginPage() {
   return (
     <LoginForm
-      title="CSMS Login"
-      subtitle={`${ORGANIZATION.shortName} ${ORGANIZATION.departmentCode} Department`}
+      title="Staff Sign In"
+      subtitle={`Administrators and faculty · ${ORGANIZATION.shortName} ${ORGANIZATION.departmentCode}`}
     />
   );
 }

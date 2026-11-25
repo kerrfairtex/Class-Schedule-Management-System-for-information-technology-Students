@@ -204,8 +204,6 @@ export async function ensureSeeded() {
     { username: 'fac-001', role: 'faculty' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
     { username: 'fac-002', role: 'faculty' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
     { username: 'fac-003', role: 'faculty' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
-    { username: '2022-0001', role: 'student' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
-    { username: '2023-0001', role: 'student' as const, faculty_id: undefined, student_id: undefined, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
   ] as const;
 
   const seedDefaultUsers = process.env.SEED_DEFAULT_USERS !== '0';
@@ -217,30 +215,21 @@ export async function ensureSeeded() {
         'These MUST be removed before production deployment per spec §65.'
     );
 
-    // Resolve faculty_id and student_id for demo accounts from the database
+    // Resolve faculty_id for demo accounts (students have no accounts) from the database
     const faculty = db.prepare('SELECT id, employee_id FROM faculty').all() as {
       id: number;
       employee_id: string;
     }[];
     const facultyByEmployeeId = new Map(faculty.map(f => [f.employee_id.toLowerCase(), f.id]));
 
-    const students = db.prepare('SELECT id, student_id FROM students').all() as {
-      id: number;
-      student_id: string;
-    }[];
-    const studentsByStudentId = new Map(students.map(s => [s.student_id, s.id]));
-
     for (const account of DEMO_ACCOUNTS) {
       const password = getEnvPassword(account.passwordEnv, account.passwordFallback);
       const passwordHash = hashPassword(password);
 
       let resolvedFacultyId: number | undefined;
-      let resolvedStudentId: number | undefined;
 
       if (account.role === 'faculty') {
         resolvedFacultyId = facultyByEmployeeId.get(account.username);
-      } else if (account.role === 'student') {
-        resolvedStudentId = studentsByStudentId.get(account.username);
       }
 
       const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(account.username) as { id: number } | undefined;
@@ -249,13 +238,13 @@ export async function ensureSeeded() {
         // Update existing demo user's password hash and must_change_password flag
         db.prepare(
           'UPDATE users SET password_hash = ?, must_change_password = ?, faculty_id = ?, student_id = ? WHERE id = ?'
-        ).run(passwordHash, 0, resolvedFacultyId ?? null, resolvedStudentId ?? null, existingUser.id);
+        ).run(passwordHash, 0, resolvedFacultyId ?? null, null, existingUser.id);
       } else {
         // Create new demo user
         db.prepare(
           `INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password)
            VALUES (?, ?, ?, ?, ?, ?)`
-        ).run(account.username, passwordHash, account.role, resolvedFacultyId ?? null, resolvedStudentId ?? null, 0);
+        ).run(account.username, passwordHash, account.role, resolvedFacultyId ?? null, null, 0);
       }
     }
   }

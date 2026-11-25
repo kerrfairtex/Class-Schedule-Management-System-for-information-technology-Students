@@ -4,7 +4,7 @@
  *
  * The demo accounts (admin, fac-001..003, 2022-0001, 2023-0001) are seeded
  * by scripts/seed-production.ts. This script re-applies their passwords
- * from ADMIN_PASSWORD / FACULTY_PASSWORD / STUDENT_PASSWORD.
+ * from ADMIN_PASSWORD / FACULTY_PASSWORD.
  *
  * Safety rules
  * ------------
@@ -19,7 +19,7 @@
  *
  * Usage: CSMS_SYNC_DEMO_PASSWORDS=1 node scripts/sync-demo-passwords.cjs
  * Env:   DATABASE_URL (required), ADMIN_PASSWORD, FACULTY_PASSWORD,
- *        STUDENT_PASSWORD, CSMS_SYNC_DEMO_PASSWORDS=1 (required in production),
+ *        CSMS_SYNC_DEMO_PASSWORDS=1 (required in production),
  *        SEED_DEFAULT_USERS=0 disables the sync entirely.
  */
 
@@ -34,8 +34,6 @@ const DEMO_ACCOUNTS = [
   { username: 'fac-001', role: 'faculty', env: 'FACULTY_PASSWORD' },
   { username: 'fac-002', role: 'faculty', env: 'FACULTY_PASSWORD' },
   { username: 'fac-003', role: 'faculty', env: 'FACULTY_PASSWORD' },
-  { username: '2022-0001', role: 'student', env: 'STUDENT_PASSWORD' },
-  { username: '2023-0001', role: 'student', env: 'STUDENT_PASSWORD' },
 ];
 
 function log(message) {
@@ -71,12 +69,9 @@ async function main() {
       const faculty = account.role === 'faculty'
         ? await client.query('SELECT id FROM csms.faculty WHERE LOWER(employee_id) = LOWER($1) LIMIT 1', [account.username])
         : { rows: [] };
-      const student = account.role === 'student'
-        ? await client.query('SELECT id FROM csms.students WHERE student_id = $1 LIMIT 1', [account.username])
-        : { rows: [] };
 
       const facultyId = faculty.rows[0] ? faculty.rows[0].id : null;
-      const studentId = student.rows[0] ? student.rows[0].id : null;
+      const studentId = null; // students have no accounts
 
       const existing = await client.query('SELECT id FROM csms.users WHERE LOWER(username) = LOWER($1) LIMIT 1', [account.username]);
 

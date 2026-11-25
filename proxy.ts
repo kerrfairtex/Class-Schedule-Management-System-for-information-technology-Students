@@ -15,10 +15,7 @@ export function proxy(request: NextRequest) {
     pathname.startsWith('/admin/');
   const isFacultyDashboard =
     pathname.startsWith('/faculty/');
-  const isStudentDashboard =
-    pathname.startsWith('/student/');
-
-  if ((isAdminSubpage || isFacultyDashboard || isStudentDashboard) && !session) {
+  if ((isAdminSubpage || isFacultyDashboard) && !session) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -41,5 +38,5 @@ export function proxy(request: NextRequest) {
 export const config = {
   // Run on /admin/* and /faculty/* and /student/* subpages only.
   // PUBLIC list above exempts /admin, /faculty, /student root paths.
-  matcher: ['/admin/:path*', '/faculty/:path*', '/student/:path*'],
+  matcher: ['/admin/:path*', '/faculty/:path*'],
 };

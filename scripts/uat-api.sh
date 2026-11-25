@@ -69,13 +69,9 @@ echo "$RESP" | grep -q '"faculty"' && pass "Faculty API returns profile" || fail
 
 logout
 
-RESP=$(login "2022-0001" "student123")
-echo "$RESP" | grep -q '"redirect":"/student/dashboard"' && pass "Student login redirects to dashboard" || fail "Student login redirect"
-
-RESP=$(curl -s -b "$COOKIE_JAR" "$BASE/api/student")
-echo "$RESP" | grep -q '"student"' && pass "Student API returns profile" || fail "Student API profile"
-
-logout
+# Students have no accounts: the old portal redirects to the public schedules.
+CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$BASE/student/dashboard")
+[[ "$CODE" == 307*"/schedules" ]] && pass "Old student portal redirects to public schedules" || fail "Student portal redirect ($CODE)"
 
 # --- Admin workflows ---
 echo ""
@@ -126,13 +122,13 @@ FAC_SCHED=$(echo "$RESP" | python3 -c "import sys,json; print(len(json.load(sys.
 [[ "$FAC_SCHED" -ge 0 ]] && pass "Faculty schedule API responds (count=$FAC_SCHED)" || fail "Faculty schedule API"
 logout
 
-# --- Student section search ---
+# --- Public schedule and room pages (no login) ---
 echo ""
-echo "[Student Section Search]"
-login "2022-0001" "student123" > /dev/null
-RESP=$(curl -s -b "$COOKIE_JAR" "$BASE/api/student?section=BSIT-2A")
-echo "$RESP" | grep -q '"schedules"' && pass "Student section search works" || fail "Student section search"
-logout
+echo "[Public Student Access]"
+for path in "/schedules" "/schedules?section=BSIT-2A" "/rooms" "/rooms?room=IT-101"; do
+  CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE$path")
+  [[ "$CODE" == "200" ]] && pass "Public $path loads without login" || fail "Public $path ($CODE)"
+done
 
 # --- Middleware ---
 echo ""
