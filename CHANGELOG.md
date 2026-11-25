@@ -117,6 +117,15 @@
 
 ## Unreleased (database role)
 
+### Fixed (Supabase)
+- `001_csms_app_role.sql` failed on Supabase with "permission denied to alter role":
+  the SQL editor's `postgres` role is not a superuser, and only a holder may set
+  SUPERUSER/REPLICATION/BYPASSRLS (and, on Postgres 16+, CREATEDB/CREATEROLE), even
+  to switch them off. The role is now created with defaults (none of those), and the
+  migration stops with a clear message if an existing `csms_app` has any of them.
+  Tested against a non-superuser role on PostgreSQL 18: runs, re-runs, verify queries,
+  and the down file.
+
 ### Added
 - `db/migrations/001_csms_app_role.sql` (+ `.down.sql`): least-privilege `csms_app`
   login role limited to row access in the `csms` schema, with `search_path`, statement
