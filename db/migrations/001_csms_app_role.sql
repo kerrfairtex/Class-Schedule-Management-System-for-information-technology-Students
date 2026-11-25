@@ -14,7 +14,8 @@
 --     never commit it.
 --
 -- Rollback: db/migrations/001_csms_app_role.down.sql
--- Run as: postgres (Supabase SQL editor, or psql as the postgres user).
+-- Run as: postgres (Supabase SQL editor, or psql as the postgres user). Works
+-- without superuser rights, as Supabase's postgres role has none.
 
 BEGIN;
 
@@ -28,16 +29,30 @@ END $$;
 
 -- 1. The role: can log in, nothing else. No password yet (cannot log in until
 --    one is set). Connection limit keeps it from exhausting the shared pool.
+--
+--    Supabase: the SQL editor runs as `postgres`, which is NOT a superuser, and
+--    only a superuser may set SUPERUSER, REPLICATION or BYPASSRLS, even to
+--    switch them off (Postgres 16+ applies the same rule to CREATEDB and
+--    CREATEROLE). A new role has none of them by default, so only attributes
+--    postgres may set appear here.
+--    An existing csms_app with elevated attributes stops the migration.
 DO $$
+DECLARE
+  r pg_roles%ROWTYPE;
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'csms_app') THEN
-    CREATE ROLE csms_app LOGIN;
+  SELECT * INTO r FROM pg_roles WHERE rolname = 'csms_app';
+  IF NOT FOUND THEN
+    CREATE ROLE csms_app LOGIN NOINHERIT CONNECTION LIMIT 20;
+  ELSIF r.rolsuper OR r.rolbypassrls OR r.rolreplication OR r.rolcreaterole OR r.rolcreatedb THEN
+    -- Postgres 16+ lets only a role holding an attribute change it, and
+    -- Supabase's postgres holds none of these, so it cannot reduce them.
+    RAISE EXCEPTION
+      'A role named csms_app already exists with elevated attributes (superuser=%, bypassrls=%, replication=%, createrole=%, createdb=%). Drop it (DROP ROLE csms_app, or ask Supabase support if that is refused), then re-run. Nothing was changed.',
+      r.rolsuper, r.rolbypassrls, r.rolreplication, r.rolcreaterole, r.rolcreatedb;
+  ELSE
+    ALTER ROLE csms_app LOGIN NOINHERIT CONNECTION LIMIT 20;
   END IF;
 END $$;
-
-ALTER ROLE csms_app
-  NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS
-  CONNECTION LIMIT 20;
 
 -- 2. Session defaults applied at every login, so they hold even behind a
 --    pooler: queries resolve to csms only, and runaway queries are cut off.
