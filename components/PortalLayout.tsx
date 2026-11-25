@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useSyncExternalStore, useCallback } from 'react';
+import { useState, useSyncExternalStore, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, LayoutDashboard, Users, BookOpen, GraduationCap, Building2, Calendar, AlertTriangle, Activity, Server, Database } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Menu, X, LayoutDashboard, Users, BookOpen, GraduationCap, Building2, Calendar, AlertTriangle, Activity, Server, Database } from 'lucide-react';
 import { ORGANIZATION } from '@/lib/domain/constants';
 import { TelemetryBar } from './TelemetryBar';
 import { MetricCard, QuickLink } from './DashboardComponents';
@@ -75,11 +75,22 @@ export function PortalLayout({
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(stored === 'true');
 
+  // Below lg the sidebar is an off-canvas drawer; at lg and up it is fixed
+  // and can be collapsed to icons (that preference is remembered).
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   const toggleSidebar = () => {
     const next = !sidebarCollapsed;
     setSidebarCollapsed(next);
     localStorage.setItem(`sidebar-collapsed-${role}`, JSON.stringify(next));
   };
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMobileOpen(false);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
 
   const getModuleId = (href: string) => {
     const parts = href.split('/').filter(Boolean);
@@ -88,30 +99,45 @@ export function PortalLayout({
 
   return (
     <div className="flex min-h-screen bg-midnight">
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
       <PortalSidebar
         role={role}
         name={name}
         subtitle={subtitle || ORGANIZATION.departmentCode}
         details={details}
         links={links.map(l => ({ ...l, moduleId: l.moduleId || getModuleId(l.href) }))}
-        collapsed={sidebarCollapsed}
+        // The open drawer always shows labels; collapsing is a desktop option.
+        collapsed={sidebarCollapsed && !mobileOpen}
+        mobileOpen={mobileOpen}
         onToggle={toggleSidebar}
+        onClose={() => setMobileOpen(false)}
       />
-      <div className="flex-1 flex flex-col min-w-0 ml-72 transition-all duration-300 lg:ml-72" style={sidebarCollapsed ? { marginLeft: '5rem' } : {}}>
-        <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-40">
-          <div className="flex h-16 items-center justify-between px-6">
+      <div
+        className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}
+      >
+        <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-30 lg:hidden">
+          <div className="flex h-14 items-center gap-3 px-4">
             <button
-              onClick={toggleSidebar}
-              className="btn-icon lg:hidden"
-              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="btn-icon"
+              aria-label="Open navigation menu"
+              aria-expanded={mobileOpen}
+              aria-controls="portal-sidebar"
             >
-              {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+              <Menu className="h-5 w-5" />
             </button>
-            <div className="flex-1 lg:hidden" />
+            <p className="truncate text-sm font-semibold text-slate-100">{name}</p>
           </div>
         </header>
         {telemetry && <TelemetryBar data={telemetry} />}
-        <main className="flex-1 p-6 lg:p-8 pt-4">{children}</main>
+        <main className="flex-1 p-4 pt-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
@@ -124,10 +150,12 @@ interface PortalSidebarProps {
   details?: { label: string; value: string }[];
   links: { href: string; label: string; icon?: React.ReactNode; active?: boolean; moduleId?: string }[];
   collapsed: boolean;
+  mobileOpen: boolean;
   onToggle: () => void;
+  onClose: () => void;
 }
 
-function PortalSidebar({ role, name, subtitle, details, links, collapsed, onToggle }: PortalSidebarProps) {
+function PortalSidebar({ role, name, subtitle, details, links, collapsed, mobileOpen, onToggle, onClose }: PortalSidebarProps) {
   const healthColors = {
     healthy: 'text-emerald-400',
     warning: 'text-amber-400',
@@ -152,7 +180,11 @@ function PortalSidebar({ role, name, subtitle, details, links, collapsed, onTogg
   };
 
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
+    <aside
+      id="portal-sidebar"
+      aria-label={`${role} navigation`}
+      className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'translate-x-0' : 'invisible -translate-x-full'} lg:visible lg:translate-x-0`}
+    >
       <div className="flex h-16 items-center justify-between border-b border-slate-800 px-4">
         {!collapsed && (
           <div className="text-center">
@@ -162,12 +194,21 @@ function PortalSidebar({ role, name, subtitle, details, links, collapsed, onTogg
           </div>
         )}
         <button
+          type="button"
           onClick={onToggle}
-          className="btn-icon flex-shrink-0"
+          className="btn-icon hidden flex-shrink-0 lg:inline-flex"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           suppressHydrationWarning
         >
           {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn-icon flex-shrink-0 lg:hidden"
+          aria-label="Close navigation menu"
+        >
+          <X className="h-5 w-5" />
         </button>
       </div>
 
@@ -197,6 +238,8 @@ function PortalSidebar({ role, name, subtitle, details, links, collapsed, onTogg
                 animate-in stagger-${Math.min(index + 1, 6)}
               `}
               title={collapsed ? link.label : undefined}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={onClose}
             >
               <span className="flex h-8 w-8 items-center justify-center relative">
                 {Icon}
