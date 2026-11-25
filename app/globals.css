@@ -526,3 +526,20 @@
 .user-guide strong {
   @apply font-semibold text-slate-100;
 }
+
+/* Scroll reveal for [data-aos] (see app/page.tsx). Only active once JS has
+   added .reveal-ready, so content is never hidden without JS. */
+.reveal-ready [data-aos] {
+  opacity: 0;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal-ready [data-aos='fade-up'] {
+  transform: translateY(24px);
+}
+.reveal-ready [data-aos='fade-right'] {
+  transform: translateX(-24px);
+}
+.reveal-ready [data-aos].aos-animate {
+  opacity: 1;
+  transform: none;
+}

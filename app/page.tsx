@@ -15,27 +15,32 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    // Initialize AOS
-    if (typeof window !== 'undefined') {
-      // Load AOS CSS and JS dynamically
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/aos@next/dist/aos.css';
-      document.head.appendChild(link);
-
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/aos@next/dist/aos.js';
-      script.onload = () => {
-        // @ts-ignore - AOS types not available in this environment
-        (window as any).AOS.init({
-          duration: 800,
-          easing: 'slide',
-          once: true,
-          mirror: false
-        });
-      };
-      document.head.appendChild(script);
-    }
+    // Scroll reveal for [data-aos] elements. Replaces the unpinned AOS script
+    // that was loaded from unpkg at runtime: a supply-chain risk, and blocked
+    // by the Content-Security-Policy. Content stays visible without JS and
+    // for visitors who prefer reduced motion.
+    if (!('IntersectionObserver' in window)) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const root = document.documentElement;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add('aos-animate');
+          observer.unobserve(entry.target);
+        }
+      },
+      { rootMargin: '0px 0px -10% 0px' }
+    );
+    document.querySelectorAll<HTMLElement>('[data-aos]').forEach((el) => {
+      if (el.dataset.aosDelay) el.style.transitionDelay = `${el.dataset.aosDelay}ms`;
+      observer.observe(el);
+    });
+    root.classList.add('reveal-ready');
+    return () => {
+      observer.disconnect();
+      root.classList.remove('reveal-ready');
+    };
   }, []);
 
   return (
