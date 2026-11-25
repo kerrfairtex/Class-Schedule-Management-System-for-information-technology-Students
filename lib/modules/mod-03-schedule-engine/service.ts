@@ -1,11 +1,12 @@
 import { getDb, withTransaction } from '@/lib/persistence/db';
 import { detectConflicts, validateScheduleMove, validateForPublish } from '@/lib/modules/mod-04-conflict-engine/validator';
-import type { Schedule, ScheduleInput } from '@/lib/domain/types';
+import type { Schedule, ScheduleInput, ScheduleStatus } from '@/lib/domain/types';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
+import { scheduleVisibilitySql, type ScheduleAudience } from './visibility';
 
 const SCHEDULE_SELECT = `
   SELECT s.*,
-    sec.code AS section_code,
+    sec.code AS section_code, sec.year_level,
     sub.code AS subject_code, sub.name AS subject_name,
     f.first_name || ' ' || f.last_name AS faculty_name,
     r.code AS room_code, r.name AS room_name,
@@ -18,29 +19,83 @@ const SCHEDULE_SELECT = `
   JOIN time_slots ts ON ts.id = s.time_slot_id
 `;
 
-export async function getSchedulesBySemester(semesterId: number): Promise<Schedule[]> {
-  const db = await getDb();
-  return await db
-    .prepare(`${SCHEDULE_SELECT} WHERE s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`)
-    .all(semesterId) as Schedule[];
-}
-
-export async function getSchedulesBySection(sectionId: number, semesterId: number): Promise<Schedule[]> {
+export async function getSchedulesBySemester(
+  semesterId: number,
+  audience: ScheduleAudience = 'staff'
+): Promise<Schedule[]> {
   const db = await getDb();
   return await db
     .prepare(
-      `${SCHEDULE_SELECT} WHERE s.section_id = ? AND s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`
+      `${SCHEDULE_SELECT} WHERE s.semester_id = ? AND ${scheduleVisibilitySql(audience)}
+       ORDER BY sec.code, ts.day_of_week, ts.start_time`
+    )
+    .all(semesterId) as Schedule[];
+}
+
+export async function getSchedulesBySection(
+  sectionId: number,
+  semesterId: number,
+  audience: ScheduleAudience = 'staff'
+): Promise<Schedule[]> {
+  const db = await getDb();
+  return await db
+    .prepare(
+      `${SCHEDULE_SELECT} WHERE s.section_id = ? AND s.semester_id = ? AND ${scheduleVisibilitySql(audience)}
+       ORDER BY ts.day_of_week, ts.start_time`
     )
     .all(sectionId, semesterId) as Schedule[];
 }
 
-export async function getSchedulesByFaculty(facultyId: number, semesterId: number): Promise<Schedule[]> {
+export async function getSchedulesByFaculty(
+  facultyId: number,
+  semesterId: number,
+  audience: ScheduleAudience = 'staff'
+): Promise<Schedule[]> {
   const db = await getDb();
   return await db
     .prepare(
-      `${SCHEDULE_SELECT} WHERE s.faculty_id = ? AND s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`
+      `${SCHEDULE_SELECT} WHERE s.faculty_id = ? AND s.semester_id = ? AND ${scheduleVisibilitySql(audience)}
+       ORDER BY ts.day_of_week, ts.start_time`
     )
     .all(facultyId, semesterId) as Schedule[];
+}
+
+/** Schedules an anonymous visitor may see in the active semester. */
+export async function getPublicSchedules(): Promise<Schedule[]> {
+  const db = await getDb();
+  return await db
+    .prepare(
+      `${SCHEDULE_SELECT}
+       JOIN semesters sem ON sem.id = s.semester_id AND sem.is_active = 1
+       WHERE ${scheduleVisibilitySql('public')}
+       ORDER BY sec.code, sub.code, ts.day_of_week, ts.start_time`
+    )
+    .all() as Schedule[];
+}
+
+/** Number of class meetings an anonymous visitor may see this semester. */
+export async function countPublicSchedules(): Promise<number> {
+  const db = await getDb();
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS c FROM schedules s
+       JOIN semesters sem ON sem.id = s.semester_id AND sem.is_active = 1
+       WHERE ${scheduleVisibilitySql('public')}`
+    )
+    .get() as { c: number | string };
+  return Number(row.c);
+}
+
+/**
+ * The deployment's data environment (spec §64), stamped on every new
+ * schedule so DEMO fixtures can never be published to the public site.
+ */
+async function getDeploymentDataEnvironment(): Promise<string> {
+  const db = await getDb();
+  const row = await db
+    .prepare(`SELECT value FROM system_settings WHERE key = 'data_environment'`)
+    .get() as { value: string } | undefined;
+  return row?.value ?? 'DEMO';
 }
 
 export async function createSchedule(input: ScheduleInput, userId?: number): Promise<Schedule> {
@@ -49,11 +104,13 @@ export async function createSchedule(input: ScheduleInput, userId?: number): Pro
     throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
+  const dataEnvironment = await getDeploymentDataEnvironment();
   const db = await getDb();
   const result = await db
     .prepare(
-      `INSERT INTO schedules (section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO schedules
+         (section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id, status, data_environment)
+       VALUES (?, ?, ?, ?, ?, ?, 'DRAFT', ?)`
     )
     .run(
       input.section_id,
@@ -61,7 +118,8 @@ export async function createSchedule(input: ScheduleInput, userId?: number): Pro
       input.faculty_id,
       input.room_id,
       input.time_slot_id,
-      input.semester_id
+      input.semester_id,
+      dataEnvironment
     );
 
   // The PostgreSQL facade returns the generated id in `lastID` /
@@ -117,13 +175,7 @@ export async function deleteSchedule(scheduleId: number, userId?: number) {
  * returns { ok: false, conflicts } and the schedule is left APPROVED.
  */
 
-export type ScheduleStatus =
-  | 'DRAFT'
-  | 'PENDING_REVIEW'
-  | 'APPROVED'
-  | 'PUBLISHED'
-  | 'CANCELLED'
-  | 'ARCHIVED';
+export type { ScheduleStatus };
 
 const ALLOWED_TRANSITIONS: Record<ScheduleStatus, ScheduleStatus[]> = {
   DRAFT: ['PENDING_REVIEW', 'ARCHIVED'],
@@ -184,15 +236,17 @@ export async function transitionSchedule(
 
   const db = await getDb();
   const setPublishedAt = toStatus === 'PUBLISHED' ? ', published_at = CURRENT_TIMESTAMP' : '';
-  const setApprover = toStatus === 'APPROVED' || toStatus === 'PUBLISHED'
-    ? `, approved_by = ${userName ? `'${userName.replace(/'/g, "''")}'` : 'NULL'}`
-    : '';
+  const recordsApprover = toStatus === 'APPROVED' || toStatus === 'PUBLISHED';
+  const setApprover = recordsApprover ? ', approved_by = ?' : '';
+  const params = recordsApprover
+    ? [toStatus, userName ?? null, scheduleId]
+    : [toStatus, scheduleId];
 
   await db.prepare(
     `UPDATE schedules
      SET status = ?, updated_at = CURRENT_TIMESTAMP ${setPublishedAt} ${setApprover}
      WHERE id = ?`
-  ).run(toStatus, scheduleId);
+  ).run(...params);
 
   await logAudit(
     userId ?? null,

@@ -5,8 +5,8 @@ import { usePrefersReducedMotion } from '@/lib/hooks/client-state';
 
 export type Item = { id: string | number; title: string; meta: string; tag?: string };
 
-export default function DetailPage({ title, subtitle, items }: {
-  title: string; subtitle: string; items: Item[];
+export default function DetailPage({ title, subtitle, items, emptyText = 'Nothing here yet.' }: {
+  title: string; subtitle: string; items: Item[]; emptyText?: string;
 }) {
   const [q, setQ] = useState('');
   const [animatedN, setN] = useState(0);
@@ -51,7 +51,7 @@ export default function DetailPage({ title, subtitle, items }: {
         />
         {shown.length === 0 ? (
           <div className="glass-card p-8 text-center text-slate-400">
-            {items.length === 0 ? 'Nothing here yet.' : `No match for “${q}”. Try a shorter search.`}
+            {items.length === 0 ? emptyText : `No match for “${q}”. Try a shorter search.`}
           </div>
         ) : (
           <ul className="space-y-3">
