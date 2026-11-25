@@ -51,9 +51,16 @@ export interface Room {
   code: string;
   name: string;
   capacity: number;
+  room_type?: RoomType;
   building_code?: string;
   building_name?: string;
 }
+
+/** Lecture room or laboratory. */
+export type RoomType = 'LECTURE' | 'LAB';
+
+/** The part of a subject a class meeting covers. */
+export type ClassComponent = 'LEC' | 'LAB';
 
 export interface Subject {
   id: number;
@@ -61,6 +68,11 @@ export interface Subject {
   name: string;
   credit_hours: number;
   program_id: number;
+  /** Units and weekly contact hours, split into lecture and laboratory. */
+  lec_units?: number;
+  lab_units?: number;
+  lec_hours?: number;
+  lab_hours?: number;
 }
 
 export interface Curriculum {
@@ -130,8 +142,10 @@ export interface Schedule {
   subject_id: number;
   faculty_id: number;
   room_id: number;
-  time_slot_id: number;
+  /** The standard period it was placed in, if any; classes may have free times. */
+  time_slot_id: number | null;
   semester_id: number;
+  component?: ClassComponent;
   status?: ScheduleStatus;
   data_environment?: string;
   section_code?: string;
@@ -146,13 +160,21 @@ export interface Schedule {
   end_time?: string;
 }
 
+/**
+ * A class meeting to create or check. Give either `time_slot_id` (a standard
+ * period) or `day_of_week` + `start_time` + `end_time` (any time, "HH:MM").
+ */
 export interface ScheduleInput {
   section_id: number;
   subject_id: number;
   faculty_id: number;
   room_id: number;
-  time_slot_id: number;
   semester_id: number;
+  time_slot_id?: number | null;
+  day_of_week?: string;
+  start_time?: string;
+  end_time?: string;
+  component?: ClassComponent;
 }
 
 /**
@@ -164,13 +186,15 @@ export interface ScheduleInput {
  * - capacity    — section capacity exceeds room capacity (BLOCKING)
  * - availability — assignment outside permitted faculty/room availability (NON-BLOCKING)
  */
-export type ConflictKind = 'faculty' | 'room' | 'section' | 'time' | 'capacity' | 'availability';
+export type ConflictKind = 'faculty' | 'room' | 'section' | 'time' | 'capacity' | 'availability' | 'room-type';
 
 export interface Conflict {
   kind: ConflictKind;
   message: string;
   blocking: boolean;
   conflictingScheduleId?: number;
+  /** The clashing class, e.g. "IT 101 (BSIT-1A), Monday 8:00–9:00 AM". */
+  detail?: string;
 }
 
 export interface ConflictResult {

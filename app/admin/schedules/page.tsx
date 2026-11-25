@@ -42,16 +42,15 @@ export default async function AdminSchedulesPage() {
                   f.first_name || ' ' || f.last_name as faculty_name,
                   r.code as room_code, r.capacity as room_capacity,
                   sec.code as section_code, sec.capacity as section_capacity,
-                  ts.day_of_week, ts.start_time, ts.end_time,
+                  s.day_of_week, s.start_time, s.end_time,
                   sec.data_environment, r.data_environment as room_de
            FROM schedules s
            JOIN subjects sub ON sub.id = s.subject_id
            JOIN faculty f ON f.id = s.faculty_id
            JOIN rooms r ON r.id = s.room_id
            JOIN sections sec ON sec.id = s.section_id
-           JOIN time_slots ts ON ts.id = s.time_slot_id
            WHERE s.semester_id = ?
-           ORDER BY ts.day_of_week, ts.start_time`
+           ORDER BY s.day_of_week, s.start_time`
         )
         .all(activeSemester.id) as Array<{
           id: number;

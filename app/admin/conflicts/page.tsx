@@ -41,12 +41,11 @@ export default async function AdminConflictsPage() {
   const details: Detail[] = await Promise.all(conflicts.map(async (c) => {
     const row = await db
       .prepare(
-        `SELECT s.id, ts.day_of_week, ts.start_time, ts.end_time,
+        `SELECT s.id, s.day_of_week, s.start_time, s.end_time,
                 sub.code as subject_code, sec.code as section_code,
                 f.first_name || ' ' || f.last_name as faculty_name,
                 r.code as room_code
          FROM schedules s
-         JOIN time_slots ts ON ts.id = s.time_slot_id
          JOIN subjects sub ON sub.id = s.subject_id
          JOIN sections sec ON sec.id = s.section_id
          JOIN faculty f ON f.id = s.faculty_id

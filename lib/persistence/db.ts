@@ -291,6 +291,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   name TEXT NOT NULL,
   capacity INTEGER NOT NULL DEFAULT 40,
   data_environment TEXT NOT NULL DEFAULT 'DEMO',
+  room_type TEXT NOT NULL DEFAULT 'LECTURE' CHECK (room_type IN ('LECTURE', 'LAB')),
   UNIQUE(building_id, code)
 );
 CREATE TABLE IF NOT EXISTS subjects (
@@ -298,7 +299,12 @@ CREATE TABLE IF NOT EXISTS subjects (
   code TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   credit_hours INTEGER NOT NULL DEFAULT 3,
-  program_id INTEGER NOT NULL REFERENCES programs(id)
+  program_id INTEGER NOT NULL REFERENCES programs(id),
+  lec_units INTEGER NOT NULL DEFAULT 0,
+  lab_units INTEGER NOT NULL DEFAULT 0,
+  lec_hours NUMERIC(4,1) NOT NULL DEFAULT 0,
+  lab_hours NUMERIC(4,1) NOT NULL DEFAULT 0,
+  CHECK (lec_units BETWEEN 0 AND 12 AND lab_units BETWEEN 0 AND 12 AND lec_hours BETWEEN 0 AND 40 AND lab_hours BETWEEN 0 AND 40)
 );
 CREATE TABLE IF NOT EXISTS curriculum (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -315,7 +321,9 @@ CREATE TABLE IF NOT EXISTS sections (
   year_level INTEGER NOT NULL,
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
   capacity INTEGER NOT NULL DEFAULT 40,
-  data_environment TEXT NOT NULL DEFAULT 'DEMO'
+  data_environment TEXT NOT NULL DEFAULT 'DEMO',
+  adviser_id INTEGER REFERENCES faculty(id) ON DELETE SET NULL,
+  home_room_id INTEGER REFERENCES rooms(id) ON DELETE SET NULL
 );
 CREATE TABLE IF NOT EXISTS faculty (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -370,15 +378,20 @@ CREATE TABLE IF NOT EXISTS schedules (
   subject_id INTEGER NOT NULL REFERENCES subjects(id),
   faculty_id INTEGER NOT NULL REFERENCES faculty(id),
   room_id INTEGER NOT NULL REFERENCES rooms(id),
-  time_slot_id INTEGER NOT NULL REFERENCES time_slots(id),
+  time_slot_id INTEGER REFERENCES time_slots(id),
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
+  component TEXT NOT NULL DEFAULT 'LEC' CHECK (component IN ('LEC', 'LAB')),
+  day_of_week TEXT NOT NULL CHECK (day_of_week IN ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')),
+  start_time TEXT NOT NULL,
+  end_time TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'DRAFT'
     CHECK(status IN ('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'PUBLISHED', 'CANCELLED', 'ARCHIVED')),
   data_environment TEXT NOT NULL DEFAULT 'DEMO',
   published_at TEXT,
   approved_by TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  CHECK (start_time < end_time)
 );
 CREATE TABLE IF NOT EXISTS audit_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -394,6 +407,9 @@ CREATE INDEX IF NOT EXISTS idx_schedules_room ON schedules(room_id, time_slot_id
 CREATE INDEX IF NOT EXISTS idx_schedules_section ON schedules(section_id, time_slot_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_semester ON schedules(semester_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_semester_status ON schedules(semester_id, status);
+CREATE INDEX IF NOT EXISTS idx_schedules_room_day ON schedules(semester_id, day_of_week, room_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_faculty_day ON schedules(semester_id, day_of_week, faculty_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_section_day ON schedules(semester_id, day_of_week, section_id);
 -- One active class per room, faculty member and section per slot. Cancelled
 -- and archived rows no longer occupy the slot. Mirrors migration 002.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_schedules_room_slot
@@ -508,6 +524,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   name TEXT NOT NULL,
   capacity INTEGER NOT NULL DEFAULT 40,
   data_environment TEXT NOT NULL DEFAULT 'DEMO',
+  room_type TEXT NOT NULL DEFAULT 'LECTURE' CHECK (room_type IN ('LECTURE', 'LAB')),
   UNIQUE(building_id, code)
 );
 CREATE TABLE IF NOT EXISTS subjects (
@@ -515,7 +532,12 @@ CREATE TABLE IF NOT EXISTS subjects (
   code TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   credit_hours INTEGER NOT NULL DEFAULT 3,
-  program_id INTEGER NOT NULL REFERENCES programs(id)
+  program_id INTEGER NOT NULL REFERENCES programs(id),
+  lec_units INTEGER NOT NULL DEFAULT 0,
+  lab_units INTEGER NOT NULL DEFAULT 0,
+  lec_hours NUMERIC(4,1) NOT NULL DEFAULT 0,
+  lab_hours NUMERIC(4,1) NOT NULL DEFAULT 0,
+  CHECK (lec_units BETWEEN 0 AND 12 AND lab_units BETWEEN 0 AND 12 AND lec_hours BETWEEN 0 AND 40 AND lab_hours BETWEEN 0 AND 40)
 );
 CREATE TABLE IF NOT EXISTS curriculum (
   id SERIAL PRIMARY KEY,
@@ -532,7 +554,9 @@ CREATE TABLE IF NOT EXISTS sections (
   year_level INTEGER NOT NULL,
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
   capacity INTEGER NOT NULL DEFAULT 40,
-  data_environment TEXT NOT NULL DEFAULT 'DEMO'
+  data_environment TEXT NOT NULL DEFAULT 'DEMO',
+  adviser_id INTEGER REFERENCES faculty(id) ON DELETE SET NULL,
+  home_room_id INTEGER REFERENCES rooms(id) ON DELETE SET NULL
 );
 CREATE TABLE IF NOT EXISTS faculty (
   id SERIAL PRIMARY KEY,
@@ -587,15 +611,20 @@ CREATE TABLE IF NOT EXISTS schedules (
   subject_id INTEGER NOT NULL REFERENCES subjects(id),
   faculty_id INTEGER NOT NULL REFERENCES faculty(id),
   room_id INTEGER NOT NULL REFERENCES rooms(id),
-  time_slot_id INTEGER NOT NULL REFERENCES time_slots(id),
+  time_slot_id INTEGER REFERENCES time_slots(id),
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
+  component TEXT NOT NULL DEFAULT 'LEC' CHECK (component IN ('LEC', 'LAB')),
+  day_of_week TEXT NOT NULL CHECK (day_of_week IN ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')),
+  start_time TEXT NOT NULL,
+  end_time TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'DRAFT'
     CHECK(status IN ('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'PUBLISHED', 'CANCELLED', 'ARCHIVED')),
   data_environment TEXT NOT NULL DEFAULT 'DEMO',
   published_at TEXT,
   approved_by TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  CHECK (start_time < end_time)
 );
 CREATE TABLE IF NOT EXISTS audit_logs (
   id SERIAL PRIMARY KEY,
@@ -611,6 +640,9 @@ CREATE INDEX IF NOT EXISTS idx_schedules_room ON schedules(room_id, time_slot_id
 CREATE INDEX IF NOT EXISTS idx_schedules_section ON schedules(section_id, time_slot_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_semester ON schedules(semester_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_semester_status ON schedules(semester_id, status);
+CREATE INDEX IF NOT EXISTS idx_schedules_room_day ON schedules(semester_id, day_of_week, room_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_faculty_day ON schedules(semester_id, day_of_week, faculty_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_section_day ON schedules(semester_id, day_of_week, section_id);
 -- One active class per room, faculty member and section per slot. Cancelled
 -- and archived rows no longer occupy the slot. Mirrors migration 002.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_schedules_room_slot

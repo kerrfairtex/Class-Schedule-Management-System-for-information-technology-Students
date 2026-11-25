@@ -1,88 +1,140 @@
 import { getDb } from '@/lib/persistence/db';
-import type { Conflict, ConflictResult, ScheduleInput } from '@/lib/domain/types';
-
-/** Cancelled and archived classes no longer hold their room, teacher or slot. */
-const OCCUPIES_SLOT = `status NOT IN ('CANCELLED', 'ARCHIVED')`;
+import type { ClassComponent, Conflict, ConflictResult, ScheduleInput } from '@/lib/domain/types';
+import { DAY_LABELS, WEEK_ORDER } from '@/lib/domain/constants';
 
 /**
- * Spec section 33/34: detect all conflicts for a proposed schedule.
- * Returns BLOCKING (must resolve before PUBLISHED) and NON-BLOCKING
- * (advisories that may be overridden) categories separately.
+ * MOD-04 conflict detection (spec §33/§34).
  *
- * Existing callers that read `conflicts: string[]` (legacy) are supported
- * by the `__legacyConflicts` property below for one release cycle.
+ * Classes have free start and end times, so a clash is an OVERLAP on the same
+ * day, not "the same period": a 7:30–9:30 lecture clashes with an 8:30–9:30
+ * class in the same room. Back-to-back classes (one ends 9:30, the next
+ * starts 9:30) do not clash.
  */
-export async function detectConflicts(
-  input: ScheduleInput,
+
+/** Cancelled and archived classes no longer hold their room, teacher or slot. */
+const OCCUPIES_SLOT = `s.status NOT IN ('CANCELLED', 'ARCHIVED')`;
+
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** A class meeting with its time resolved. */
+export interface TimedInput {
+  section_id: number;
+  subject_id: number;
+  faculty_id: number;
+  room_id: number;
+  semester_id: number;
+  time_slot_id: number | null;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  component: ClassComponent;
+}
+
+export class ScheduleTimeError extends Error {}
+
+const to12h = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+};
+
+/**
+ * Turn a period id or an explicit day/start/end into one timed meeting.
+ * Explicit times win; a period fills in whatever is missing.
+ */
+export async function resolveTimes(input: ScheduleInput): Promise<TimedInput> {
+  let { day_of_week: day, start_time: start, end_time: end } = input;
+  const slotId = input.time_slot_id ?? null;
+  if ((!day || !start || !end) && slotId) {
+    const db = await getDb();
+    const slot = (await db
+      .prepare('SELECT day_of_week, start_time, end_time FROM time_slots WHERE id = ?')
+      .get(slotId)) as { day_of_week: string; start_time: string; end_time: string } | undefined;
+    if (!slot) throw new ScheduleTimeError('That period no longer exists.');
+    day ??= slot.day_of_week;
+    start ??= slot.start_time;
+    end ??= slot.end_time;
+  }
+  if (!day || !(WEEK_ORDER as readonly string[]).includes(day)) throw new ScheduleTimeError('Choose a day.');
+  if (!start || !end || !TIME.test(start) || !TIME.test(end)) throw new ScheduleTimeError('Times must be HH:MM.');
+  if (end <= start) throw new ScheduleTimeError('The class must end after it starts.');
+  return {
+    section_id: input.section_id,
+    subject_id: input.subject_id,
+    faculty_id: input.faculty_id,
+    room_id: input.room_id,
+    semester_id: input.semester_id,
+    time_slot_id: slotId,
+    day_of_week: day,
+    start_time: start,
+    end_time: end,
+    component: input.component === 'LAB' ? 'LAB' : 'LEC',
+  };
+}
+
+interface Clash {
+  id: number;
+  subject_code: string;
+  section_code: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+}
+
+const describe = (c: Clash) =>
+  `${c.subject_code} (${c.section_code}), ${DAY_LABELS[c.day_of_week] ?? c.day_of_week} ${to12h(c.start_time)}–${to12h(c.end_time)}`;
+
+/** First active class in the same semester and day whose time overlaps. */
+async function firstOverlap(
+  column: 'faculty_id' | 'room_id' | 'section_id',
+  t: TimedInput,
   excludeScheduleId?: number
-): Promise<ConflictResult> {
+): Promise<Clash | undefined> {
+  const db = await getDb();
+  const exclude = excludeScheduleId ? 'AND s.id <> ?' : '';
+  const params: unknown[] = [t[column], t.semester_id, t.day_of_week, t.end_time, t.start_time];
+  if (excludeScheduleId) params.push(excludeScheduleId);
+  return (await db
+    .prepare(
+      `SELECT s.id, sub.code AS subject_code, sec.code AS section_code, s.day_of_week, s.start_time, s.end_time
+       FROM schedules s
+       JOIN subjects sub ON sub.id = s.subject_id
+       JOIN sections sec ON sec.id = s.section_id
+       WHERE s.${column} = ? AND s.semester_id = ? AND s.day_of_week = ?
+         AND s.start_time < ? AND ? < s.end_time
+         AND ${OCCUPIES_SLOT} ${exclude}
+       ORDER BY s.start_time LIMIT 1`
+    )
+    .get(...params)) as Clash | undefined;
+}
+
+/**
+ * All conflicts for a proposed class meeting: BLOCKING ones must be fixed
+ * before saving or publishing; NON-BLOCKING ones are warnings the admin may
+ * accept.
+ */
+export async function detectConflicts(input: ScheduleInput, excludeScheduleId?: number): Promise<ConflictResult> {
+  const t = await resolveTimes(input);
   const db = await getDb();
   const blocking: Conflict[] = [];
   const nonBlocking: Conflict[] = [];
-  const exclude = excludeScheduleId ? 'AND id != ?' : '';
-  const baseParams = excludeScheduleId
-    ? [input.time_slot_id, input.semester_id, excludeScheduleId]
-    : [input.time_slot_id, input.semester_id];
 
-  // ── Faculty conflict (BLOCKING) — spec §33 ──────────────────────────
-  const facultyConflict = await db
-    .prepare(
-      `SELECT id FROM schedules
-       WHERE faculty_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}
-         AND ${OCCUPIES_SLOT}`
-    )
-    .get(input.faculty_id, ...baseParams) as { id: number } | undefined;
-  if (facultyConflict) {
-    blocking.push({
-      kind: 'faculty',
-      message: 'Faculty is already assigned to another class at this time',
-      blocking: true,
-      conflictingScheduleId: facultyConflict.id,
-    });
+  const checks = [
+    ['faculty_id', 'faculty', 'Faculty is already assigned to another class at this time'],
+    ['room_id', 'room', 'Room is already booked at this time'],
+    ['section_id', 'section', 'Section already has a class at this time'],
+  ] as const;
+  for (const [column, kind, message] of checks) {
+    const clash = await firstOverlap(column, t, excludeScheduleId);
+    if (clash) {
+      blocking.push({ kind, message, blocking: true, conflictingScheduleId: clash.id, detail: describe(clash) });
+    }
   }
 
-  // ── Room conflict (BLOCKING) — spec §33 ─────────────────────────────
-  const roomConflict = await db
-    .prepare(
-      `SELECT id FROM schedules
-       WHERE room_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}
-         AND ${OCCUPIES_SLOT}`
-    )
-    .get(input.room_id, ...baseParams) as { id: number } | undefined;
-  if (roomConflict) {
-    blocking.push({
-      kind: 'room',
-      message: 'Room is already booked at this time',
-      blocking: true,
-      conflictingScheduleId: roomConflict.id,
-    });
-  }
+  const [sectionRow, roomRow] = await Promise.all([
+    db.prepare('SELECT capacity FROM sections WHERE id = ?').get(t.section_id),
+    db.prepare('SELECT capacity, room_type FROM rooms WHERE id = ?').get(t.room_id),
+  ]) as [{ capacity: number | null } | undefined, { capacity: number | null; room_type?: string } | undefined];
 
-  // ── Section conflict (BLOCKING) — spec §33 ──────────────────────────
-  const sectionConflict = await db
-    .prepare(
-      `SELECT id FROM schedules
-       WHERE section_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}
-         AND ${OCCUPIES_SLOT}`
-    )
-    .get(input.section_id, ...baseParams) as { id: number } | undefined;
-  if (sectionConflict) {
-    blocking.push({
-      kind: 'section',
-      message: 'Section already has a class at this time',
-      blocking: true,
-      conflictingScheduleId: sectionConflict.id,
-    });
-  }
-
-  // ── Capacity conflict (BLOCKING) — spec §33 ─────────────────────────
-  // Section capacity should not exceed room capacity.
-  const sectionRow = await db
-    .prepare('SELECT capacity FROM sections WHERE id = ?')
-    .get(input.section_id) as { capacity: number | null } | undefined;
-  const roomRow = await db
-    .prepare('SELECT capacity FROM rooms WHERE id = ?')
-    .get(input.room_id) as { capacity: number | null } | undefined;
   if (
     sectionRow &&
     roomRow &&
@@ -98,20 +150,22 @@ export async function detectConflicts(
     });
   }
 
-  // ── Faculty availability (NON-BLOCKING) — spec §33 ──────────────────
-  // Listed as a conflict but doesn't block publication — admin may override.
-  const availability = await db
+  // Faculty marked unavailable in any standard period this class overlaps.
+  const unavailable = await db
     .prepare(
-      `SELECT is_available FROM faculty_availability
-       WHERE faculty_id = ? AND time_slot_id = ?`
+      `SELECT ts.start_time, ts.end_time FROM faculty_availability fa
+       JOIN time_slots ts ON ts.id = fa.time_slot_id
+       WHERE fa.faculty_id = ? AND fa.is_available = 0
+         AND ts.day_of_week = ? AND ts.start_time < ? AND ? < ts.end_time
+       LIMIT 1`
     )
-    .get(input.faculty_id, input.time_slot_id) as { is_available: number } | undefined;
-  if (availability && availability.is_available === 0) {
-    nonBlocking.push({
-      kind: 'availability',
-      message: 'Faculty is not available at this time slot',
-      blocking: false,
-    });
+    .get(t.faculty_id, t.day_of_week, t.end_time, t.start_time);
+  if (unavailable) {
+    nonBlocking.push({ kind: 'availability', message: 'Faculty is not available at this time slot', blocking: false });
+  }
+
+  if (t.component === 'LAB' && roomRow?.room_type === 'LECTURE') {
+    nonBlocking.push({ kind: 'room-type', message: 'This lab class is in a lecture room, not a laboratory', blocking: false });
   }
 
   return {
@@ -122,85 +176,96 @@ export async function detectConflicts(
   };
 }
 
+type StoredSchedule = ScheduleInput & { id: number; day_of_week: string; start_time: string; end_time: string };
+
+async function stored(scheduleId: number): Promise<StoredSchedule | undefined> {
+  const db = await getDb();
+  return (await db.prepare('SELECT * FROM schedules WHERE id = ?').get(scheduleId)) as StoredSchedule | undefined;
+}
+
+const notFound = (): ConflictResult => ({
+  hasConflict: true,
+  hasBlockingConflict: true,
+  blockingConflicts: [{ kind: 'time', message: 'Schedule not found', blocking: true }],
+  nonBlockingConflicts: [],
+});
+
+/**
+ * Conflicts for moving a class. `target` is a period id or a new day/start;
+ * the class keeps its length unless `end_time` is given.
+ */
 export async function validateScheduleMove(
   scheduleId: number,
-  newTimeSlotId: number
+  target: number | { day_of_week: string; start_time: string; end_time?: string }
 ): Promise<ConflictResult> {
-  const db = await getDb();
-  const schedule = await db
-    .prepare('SELECT * FROM schedules WHERE id = ?')
-    .get(scheduleId) as (ScheduleInput & { id: number }) | undefined;
-  if (!schedule) {
-    return {
-      hasConflict: true,
-      hasBlockingConflict: true,
-      blockingConflicts: [
-        { kind: 'time', message: 'Schedule not found', blocking: true },
-      ],
-      nonBlockingConflicts: [],
-    };
-  }
+  const s = await stored(scheduleId);
+  if (!s) return notFound();
+  const times = await movedTimes(s, target);
+  return detectConflicts({ ...s, ...times, time_slot_id: times.time_slot_id }, scheduleId);
+}
 
-  return detectConflicts(
-    {
-      section_id: schedule.section_id,
-      subject_id: schedule.subject_id,
-      faculty_id: schedule.faculty_id,
-      room_id: schedule.room_id,
-      time_slot_id: newTimeSlotId,
-      semester_id: schedule.semester_id,
-    },
-    scheduleId
-  );
+const minutes = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+const hhmm = (mins: number) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+
+/** New day/start/end for a moved class, keeping its length by default. */
+export async function movedTimes(
+  s: { start_time: string; end_time: string },
+  target: number | { day_of_week: string; start_time: string; end_time?: string }
+): Promise<{ day_of_week: string; start_time: string; end_time: string; time_slot_id: number | null }> {
+  const length = minutes(s.end_time) - minutes(s.start_time);
+  if (typeof target === 'number') {
+    const db = await getDb();
+    const slot = (await db
+      .prepare('SELECT day_of_week, start_time FROM time_slots WHERE id = ?')
+      .get(target)) as { day_of_week: string; start_time: string } | undefined;
+    if (!slot) throw new ScheduleTimeError('That period no longer exists.');
+    const end = minutes(slot.start_time) + length;
+    if (end >= 24 * 60) throw new ScheduleTimeError('The class would run past midnight.');
+    return { day_of_week: slot.day_of_week, start_time: slot.start_time, end_time: hhmm(end), time_slot_id: target };
+  }
+  if (!TIME.test(target.start_time)) throw new ScheduleTimeError('Times must be HH:MM.');
+  const end = target.end_time ?? hhmm(minutes(target.start_time) + length);
+  if (minutes(target.start_time) + length >= 24 * 60 && !target.end_time) {
+    throw new ScheduleTimeError('The class would run past midnight.');
+  }
+  return { day_of_week: target.day_of_week, start_time: target.start_time, end_time: end, time_slot_id: null };
 }
 
 /**
- * Detect all blocking conflicts across the entire schedule set for a given
- * semester. Used by /admin/conflicts and the publish-time validator.
+ * All blocking conflicts in a semester. Used by /admin/conflicts and the
+ * publish-time validator.
  */
 export async function detectAllConflictsInSemester(semesterId: number): Promise<Array<{
   scheduleId: number;
   conflicts: Conflict[];
 }>> {
   const db = await getDb();
-  const schedules = await db
+  const schedules = (await db
     .prepare(
-      `SELECT id, section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id
-       FROM schedules
-       WHERE semester_id = ?
-         AND status NOT IN ('ARCHIVED','CANCELLED')`
+      `SELECT id, section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id,
+              day_of_week, start_time, end_time, component
+       FROM schedules s
+       WHERE s.semester_id = ? AND ${OCCUPIES_SLOT}`
     )
-    .all(semesterId) as Array<ScheduleInput & { id: number }>;
+    .all(semesterId)) as StoredSchedule[];
 
   const out: Array<{ scheduleId: number; conflicts: Conflict[] }> = [];
   for (const s of schedules) {
     const r = await detectConflicts(s, s.id);
-    if (r.blockingConflicts.length > 0) {
-      out.push({ scheduleId: s.id, conflicts: r.blockingConflicts });
-    }
+    if (r.blockingConflicts.length > 0) out.push({ scheduleId: s.id, conflicts: r.blockingConflicts });
   }
   return out;
 }
 
 /**
- * Spec section 34: a schedule shall not become PUBLISHED if a blocking
- * conflict exists. Returns the validation result so the caller can surface
- * the conflicts in the UI.
+ * Spec §34: a schedule shall not become PUBLISHED while a blocking conflict
+ * exists.
  */
 export async function validateForPublish(scheduleId: number): Promise<ConflictResult> {
-  const db = await getDb();
-  const schedule = await db
-    .prepare('SELECT * FROM schedules WHERE id = ?')
-    .get(scheduleId) as (ScheduleInput & { id: number }) | undefined;
-  if (!schedule) {
-    return {
-      hasConflict: true,
-      hasBlockingConflict: true,
-      blockingConflicts: [
-        { kind: 'time', message: 'Schedule not found', blocking: true },
-      ],
-      nonBlockingConflicts: [],
-    };
-  }
-  return detectConflicts(schedule, schedule.id);
+  const s = await stored(scheduleId);
+  if (!s) return notFound();
+  return detectConflicts(s, s.id);
 }
