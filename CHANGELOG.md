@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+### Students use the public site (no accounts)
+- **Removed (breaking):** student login, `/student/*` pages and `/api/student`. Old links
+  redirect to `/schedules`; old student logins are refused with a pointer to the public
+  pages. Existing student user rows are left in the database, unused.
+- **Added:** `/schedules` finder (by section or instructor, weekly grid or per-day list,
+  class list, print, shareable links) and `/rooms` availability (free now on campus time,
+  find a free room, weekly room schedule). Shared public navigation on all public pages.
+- **Added:** `/forgot-password` page (the login form linked to a 404).
+- **Changed:** landing page calls to action point students to schedules and rooms;
+  "Staff sign in" for admins and faculty; broken `/admin` and `/student` footer links
+  replaced.
+- **Changed:** `/faculty` no longer shows employee IDs (login usernames) and runs on SQLite.
+
+### Admin and faculty portals
+- **Added:** Settings → Data environment (DEMO / VERIFIED / PRODUCTION), audited,
+  optionally applied to the active semester's schedules: the switch that makes
+  published classes public.
+- **Changed:** one complete admin menu on every admin page (Schedule Status, Conflicts,
+  Settings and Evidence had none) and a faculty menu with Change Password.
+- **Fixed:** Settings listed the shared database's `public` tables (other apps) and
+  rendered them blank; it now lists only CSMS tables.
+
+### Security
+- **Fixed:** the login rate limiter exempted "demo" usernames, including `admin`, so the
+  production admin account accepted unlimited password guesses. Throttling is now per
+  account (5 failures/15 min) and per IP (20 failures/15 min) with no exemptions.
+
 ### Schedule board and publishing (MOD-05)
 - **Fixed:** draft schedules were public. The landing-page count, `/sections` and the
   student and faculty portals listed every schedule; they now follow one visibility

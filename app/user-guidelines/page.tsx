@@ -47,17 +47,21 @@ export default function UserGuidelinesPage() {
             </li>
             <li>
               <span className="font-medium text-slate-200">Faculty:</span>{' '}
-              View assigned teaching loads, schedule boards, and faculty availability. Log in at{' '}
+              View your teaching schedule and print it. Sign in at{' '}
               <Link href="/login" className="text-cyber-teal hover:text-cyber-cyan">
                 Faculty Login
               </Link>
               .
             </li>
             <li>
-              <span className="font-medium text-slate-200">Students:</span>{' '}
-              View your personal class schedule and academic calendar. Log in at{' '}
-              <Link href="/login" className="text-cyber-teal hover:text-cyber-cyan">
-                Student Login
+              <span className="font-medium text-slate-200">Students and visitors:</span>{' '}
+              No account needed. Find any section&apos;s timetable on{' '}
+              <Link href="/schedules" className="text-cyber-teal hover:text-cyber-cyan">
+                Class Schedules
+              </Link>{' '}
+              and see which rooms are free on{' '}
+              <Link href="/rooms" className="text-cyber-teal hover:text-cyber-cyan">
+                Rooms
               </Link>
               .
             </li>

@@ -19,7 +19,7 @@ The developer list represents the system developers and does not constitute the 
 ## Architecture
 
 ```
-Desktop Browser (Admin / Faculty / Student)
+Browser: public site (students, visitors) + Admin / Faculty portals
                 │
                 ▼
 Presentation Layer — Dashboard, Schedule Board, Reports, Auth
@@ -28,7 +28,7 @@ Presentation Layer — Dashboard, Schedule Board, Reports, Auth
 Application Layer
   MOD-01 Authentication    MOD-05 Manual Adjustment
   MOD-02 Master List       MOD-06 Faculty Portal
-  MOD-03 Schedule Engine   MOD-07 Student Portal
+  MOD-03 Schedule Engine   MOD-07 Public Student Access
   MOD-04 Conflict Engine   MOD-08 Database Service
                 │
                 ▼
@@ -48,7 +48,7 @@ Persistence Layer — SQLite, Repository, Backup, Transactions
 | MOD-04 | Conflict detection (faculty, room, section overlaps) |
 | MOD-05 | Admin drag-and-drop schedule board with live validation |
 | MOD-06 | Faculty portal — view and print schedules (read-only) |
-| MOD-07 | Student portal — search, view, and print schedules (read-only) |
+| MOD-07 | Public student access — schedule finder by section/instructor, room availability, print (no account) |
 | MOD-08 | Database backup, audit logging, transactions |
 
 ## Getting Started (local development)
@@ -90,7 +90,6 @@ runs against production.
 |------|----------|----------------|----------|
 | Admin | `admin` | `admin123` | `ADMIN_PASSWORD` |
 | Faculty | `fac-001` | `faculty123` | `FACULTY_PASSWORD` |
-| Student | `2022-0001` | `student123` | `STUDENT_PASSWORD` |
 
 Accounts that admins create in the app have no default password: leave the password
 blank and a random temporary password is generated and shown once.
@@ -151,11 +150,25 @@ Names only; never commit values. `.env.example` lists them.
 | `SITE_URL` | Optional | Public origin for sitemap, robots.txt and Open Graph (defaults to the Render URL) |
 | `PG_POOL_MAX` | Optional | PostgreSQL pool size (default 5) |
 | `CSMS_DATA_DIR` | Local | SQLite directory (default `./data`) |
-| `ADMIN_PASSWORD`, `FACULTY_PASSWORD`, `STUDENT_PASSWORD` | Local | Passwords for the local demo accounts |
+| `ADMIN_PASSWORD`, `FACULTY_PASSWORD` | Local | Passwords for the local demo accounts |
 | `SEED_DEFAULT_USERS` | Local | `0` to skip creating demo accounts |
 | `CSMS_ALLOW_PRODUCTION_WRITES` | Never set by default | `1` overrides the production-database guard. Only for a deliberate, reviewed production fix |
 | `CSMS_SYNC_DEMO_PASSWORDS` | Never in production | `1` lets the start script sync demo passwords |
 | `CSMS_DISABLE_MUST_CHANGE_PASSWORD` | Testing only | `1` skips the forced password change |
+
+## Students: no account needed
+
+Students and visitors use the public site; only administrators and faculty sign in.
+
+- **`/schedules`**: pick a section (or an instructor) to get the weekly timetable and
+  class list; shareable `?section=` / `?faculty=` links and a print button.
+- **`/rooms`**: which rooms are free right now (campus time, Asia/Manila), a "find a
+  free room" search by day and period, and each room's weekly schedule.
+- `/faculty`, `/courses`, `/academic-calendar`, `/contact`.
+
+Old `/student/*` links redirect to `/schedules`. Student records stay in the Master
+List (sections need them), but they never get a login, and the API refuses the
+student role.
 
 ## Schedule publishing workflow
 
@@ -168,8 +181,11 @@ either manually or by auto-generation, and move through:
 |---|---|
 | Admin (board, `/admin/schedules`) | Every status |
 | Faculty portal | Approved and Published |
-| Student portal | Published |
-| Public site (`/`, `/sections`, `/schedules`) | Published, and only when the deployment's `data_environment` setting is `VERIFIED` or `PRODUCTION` (DEMO data is never public) |
+| Public site and students (`/`, `/schedules`, `/rooms`, `/faculty`, `/sections`) | Published, and only when the deployment's `data_environment` setting is `VERIFIED` or `PRODUCTION` (DEMO data is never public) |
+
+To make published classes public, an admin sets **Settings → Data environment** to
+VERIFIED (optionally applied to the active semester's existing schedules) once the
+data has been checked against registrar records.
 
 Published classes are locked: cancel one instead of moving or deleting it. Moving a
 class that is pending review or approved returns it to Draft. Publishing is refused
@@ -191,7 +207,7 @@ lib/
 app/
 ├── admin/               # Dashboard, master list, schedule board, availability
 ├── faculty/             # Dashboard + view-only schedule (grid/list/print)
-├── student/             # Dashboard + view-only schedule (search/grid/list/print)
+├── schedules/ rooms/    # Public schedule finder and room availability (no login)
 ├── api/                 # REST API routes (presentation ↔ application layer)
 middleware.ts            # Route protection (MOD-01 RBAC)
 lib/api/                 # Typed frontend API client

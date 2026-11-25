@@ -8,11 +8,10 @@
 
 > **Warning:** These are development defaults. Rotate all passwords before capstone submission or any shared deployment.
 
-| Role | Username | Password |
-|------|----------|----------|
+| Role | Username | Password (local only) | Override |
+|------|----------|----------|----------|
 | Admin | `admin` | `admin123` | `ADMIN_PASSWORD` |
 | Faculty | `fac-001` | `faculty123` | `FACULTY_PASSWORD` |
-| Student | `2022-0001` | `student123` | `STUDENT_PASSWORD` |
 
 ## Browser UAT Checklist
 
@@ -24,7 +23,7 @@
 | 2 | Admin login lands on `/admin/dashboard` | PASS |
 | 3 | Logout returns to homepage | PASS |
 | 4 | Faculty login lands on `/faculty/dashboard` | PASS |
-| 5 | Student login lands on `/student/dashboard` | PASS |
+| 5 | Student account sign-in is refused with a link to `/schedules`; `/student/*` redirects to `/schedules` | Not yet run |
 
 ### Admin Portal (MOD-02, MOD-05, MOD-08)
 
@@ -47,14 +46,14 @@
 | 15 | Print / PDF button present | PASS |
 | 16 | Navigation between dashboard and schedule works | PASS |
 
-### Student Portal (MOD-07)
+### Public Student Access (MOD-07, no account)
 
 | # | Test Case | Result |
 |---|-----------|--------|
-| 17 | Dashboard shows stats and student info | PASS |
-| 18 | Schedule page loads section timetable | PASS |
-| 19 | Section search toggle and input work | PASS |
-| 20 | Grid/list toggle and print button work | PASS |
+| 17 | `/schedules`: choosing a section shows its weekly timetable and class list | Not yet run |
+| 18 | `/schedules?faculty=…`: instructor timetable; print button works | Not yet run |
+| 19 | `/rooms`: free/in-use now, find a free room by day and period, room weekly view | Not yet run |
+| 20 | At 360px the timetable shows as a per-day list | Not yet run |
 
 ## API UAT Checklist
 
@@ -65,7 +64,7 @@ Run with: `npm run test:uat` or `./scripts/uat-api.sh`
 | 1 | Unauthenticated admin API returns 401 | PASS |
 | 2 | Admin login + stats endpoint | PASS |
 | 3 | Faculty login + profile API | PASS |
-| 4 | Student login + profile API | PASS |
+| 4 | Old student portal redirects to public schedules | Not yet run |
 | 5 | Schedule generation for section | PASS |
 | 6 | Schedules exist after generation | PASS |
 | 7 | Schedule options endpoint | PASS |
@@ -73,7 +72,7 @@ Run with: `npm run test:uat` or `./scripts/uat-api.sh`
 | 9 | Database backup (MOD-08) | PASS |
 | 10 | Audit log endpoint (MOD-08) | PASS |
 | 11 | Faculty schedule view with data | PASS |
-| 12 | Student section search | PASS |
+| 12 | Public `/schedules?section=` and `/rooms` load without login | Not yet run |
 | 13 | Route protection middleware | PASS |
 
 ## Automated Regression
