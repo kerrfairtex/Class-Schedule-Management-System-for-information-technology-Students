@@ -100,3 +100,23 @@ export function generateRandomPassword(length: number = 16): string {
   }
   return result;
 }
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * The first password for a new login. An admin-typed password must be at
+ * least 8 characters; when none is given, a random temporary one is made
+ * and the user must change it at first login. There is no shared default
+ * password: one would let anyone sign in to every account an admin forgot
+ * to set.
+ */
+export function initialPassword(
+  raw: unknown
+): { password: string; temporary: boolean } | { error: string } {
+  const typed = raw === undefined || raw === null ? '' : String(raw);
+  if (typed === '') return { password: generateRandomPassword(), temporary: true };
+  if (typed.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+  }
+  return { password: typed, temporary: false };
+}
