@@ -32,8 +32,9 @@ const PRODUCTION_HOSTS = [
 /**
  * The Supabase project refs that hold production data.
  *
- * A project ref is the part right after "postgres." in the connection
- * string. It identifies the database even if the host changes.
+ * A project ref is the 20-character id after "<role>." in a pooler username
+ * or in a direct "db.<ref>.supabase.co" host. It identifies the database
+ * even if the host or login role changes.
  */
 const PRODUCTION_PROJECT_REFS = [
   'qqgwnqylngdddtrgrocc',
@@ -62,8 +63,12 @@ function parseDatabaseUrl(url: string): { host: string; projectRef: string } {
     const hostMatch = /@([^/:?]+)/.exec(url);
     host = hostMatch ? hostMatch[1] : '';
   }
-  const refMatch = /postgres\.([a-z0-9]{10,})/.exec(url);
-  projectRef = refMatch ? refMatch[1] : '';
+  // The ref appears as the pooler username suffix (`<role>.<ref>`, for any
+  // role such as postgres or csms_app) or in the direct host (`db.<ref>.supabase.co`).
+  const refMatch =
+    /\/\/[a-z_][a-z0-9_]*\.([a-z0-9]{20})[:@]/i.exec(url) ??
+    /@db\.([a-z0-9]{20})\.supabase\.co\b/i.exec(url);
+  projectRef = refMatch ? refMatch[1].toLowerCase() : '';
   return { host, projectRef };
 }
 

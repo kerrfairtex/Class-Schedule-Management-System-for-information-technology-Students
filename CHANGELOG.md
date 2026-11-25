@@ -114,3 +114,14 @@
   Render start. Hard-coded fallback passwords were removed; accounts without an env
   password are skipped. All its queries are qualified with `csms.`.
 - `scripts/seed-render-db.ts` now calls the production-database guard.
+
+## Unreleased (database role)
+
+### Added
+- `db/migrations/001_csms_app_role.sql` (+ `.down.sql`): least-privilege `csms_app`
+  login role limited to row access in the `csms` schema, with `search_path`, statement
+  and idle-transaction timeouts set at login. Not applied automatically; see README.
+
+### Fixed
+- Production guard now recognises the project ref for any login role
+  (`csms_app.<ref>`) and on direct `db.<ref>.supabase.co` hosts.
