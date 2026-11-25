@@ -44,7 +44,7 @@ Two roles sign in; students use the public site without an account:
 https://class-schedule-management-system-for-1myk.onrender.com
 ```
 
-**Step 2:** Students: click **Find my class schedule** or **Free rooms now**; no account needed. Administrators and faculty: click **Staff sign in** in the navbar (leads to `/login`).
+**Step 2:** Students: click **Find my class schedule** or **Free rooms now**; no account needed. Administrators and faculty: click **Sign-in** in the navbar (leads to `/login`).
 
 **Step 3:** On the login page, enter your credentials and click **Sign In**.
 
@@ -62,8 +62,8 @@ The landing page at `/` is publicly accessible. It is structured as follows:
 
 #### 4.1 Navigation Bar (top)
 - **Left:** Institution name (TRAC) and department code/location — non-clickable branding.
-- **Desktop:** **Schedules**, **Rooms**, **Faculty**, **About**, and **Staff sign in** (`/login`).
-- **Mobile:** **Schedules**, **Rooms** and **Staff**.
+- **Desktop:** **Schedules**, **Rooms**, **Faculty**, **About**, and **Sign-in** (`/login`).
+- **Mobile:** **Schedules**, **Rooms** and **Sign-in**.
 
 #### 4.2 Hero Section
 - Large heading: **Class Schedule Management System**
@@ -115,8 +115,8 @@ Plus developer attribution: "Developers: Jimlani Paiji K., Albashrie Mashul A., 
 #### 5.1 How to Reach the Login Page
 
 Click any of these:
-- **Staff sign in** in the navbar (**Staff** on mobile)
-- **Staff sign in** in the footer
+- **Sign-in** in the navbar (also on mobile)
+- **Sign-in** in the footer
 - Direct URL: `https://class-schedule-management-system-for-1myk.onrender.com/login`
 
 All three navbar portal links point to the same login page; role selection happens server-side after authentication based on the user's account.
@@ -941,7 +941,7 @@ Complete list of all user-facing routes:
 
 1. Open `https://class-schedule-management-system-for-1myk.onrender.com` in a web browser.
 2. Review the landing page — see TRAC branding, statistics, and feature cards.
-3. Click **Staff sign in** in the navbar.
+3. Click **Sign-in** in the navbar.
 4. Enter your username and password on the login page.
 5. Click **Sign In**.
 6. The system authenticates your credentials and redirects you to:
@@ -1075,8 +1075,8 @@ Error messages appear in red alert boxes:
 **Verified UI** (from `app/page.tsx`, `components/PortalLayout.tsx`):
 
 #### 21.1 Mobile Navbar Behavior
-- On mobile (`md:hidden`), the navbar shows **Schedules**, **Rooms** and **Staff**.
-- On desktop (`md:flex`), it shows **Schedules**, **Rooms**, **Faculty**, **About** and **Staff sign in**.
+- On mobile (`md:hidden`), the navbar shows **Schedules**, **Rooms** and **Sign-in**.
+- On desktop (`md:flex`), it shows **Schedules**, **Rooms**, **Faculty**, **About** and **Sign-in**.
 
 #### 21.2 Mobile Sidebar Behavior
 - The sidebar in portal pages has a toggle button (chevron icons) visible on `lg:hidden`.

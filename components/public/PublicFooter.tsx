@@ -32,7 +32,7 @@ export function PublicFooter() {
           <ul className="mt-3 space-y-2 text-sm">
             <li><Link className="text-ink-soft hover:text-lagoon" href="/about">About TRAC BSIT</Link></li>
             <li><Link className="text-ink-soft hover:text-lagoon" href="/user-guide">User guide</Link></li>
-            <li><Link className="text-ink-soft hover:text-lagoon" href="/login">Staff sign in</Link></li>
+            <li><Link className="text-ink-soft hover:text-lagoon" href="/login">Sign-in</Link></li>
           </ul>
         </nav>
 

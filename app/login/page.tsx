@@ -4,7 +4,7 @@ import { ORGANIZATION } from '@/lib/domain/constants';
 export default function LoginPage() {
   return (
     <LoginForm
-      title="Staff Sign In"
+      title="Sign-in"
       subtitle={`Administrators and faculty · ${ORGANIZATION.shortName} ${ORGANIZATION.departmentCode}`}
     />
   );
