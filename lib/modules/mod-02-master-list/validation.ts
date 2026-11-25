@@ -231,6 +231,9 @@ export function friendlyDbError(err: unknown): string {
     if (constraint.startsWith('sections_code')) return 'That Section Code already exists';
     if (constraint.startsWith('users_username')) return 'That Username already exists';
     if (constraint.startsWith('rooms_building_id_code')) return 'That Room Code already exists in this building';
+    if (constraint === 'uq_schedules_room_slot') return 'Room is already booked at this time';
+    if (constraint === 'uq_schedules_faculty_slot') return 'Faculty is already assigned to another class at this time';
+    if (constraint === 'uq_schedules_section_slot') return 'Section already has a class at this time';
     return 'That record already exists';
   }
   if (code === '23503' || /foreign key constraint/i.test(raw)) {

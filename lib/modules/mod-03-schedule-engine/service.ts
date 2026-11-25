@@ -2,7 +2,26 @@ import { getDb, withTransaction } from '@/lib/persistence/db';
 import { detectConflicts, validateScheduleMove, validateForPublish } from '@/lib/modules/mod-04-conflict-engine/validator';
 import type { Schedule, ScheduleInput, ScheduleStatus } from '@/lib/domain/types';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
+import { DomainError } from '@/lib/modules/mod-02-master-list/validation';
 import { scheduleVisibilitySql, type ScheduleAudience } from './visibility';
+import { ALLOWED_TRANSITIONS, EDITABLE_STATUSES } from '@/lib/domain/schedule-status';
+
+/**
+ * Throws unless the class may still be moved or deleted. Editing a class
+ * under review or approved sends it back to DRAFT so it is reviewed again.
+ */
+async function requireEditable(scheduleId: number, verb: string): Promise<ScheduleStatus> {
+  const status = await currentStatus(scheduleId);
+  if (!status) throw new DomainError('That schedule no longer exists');
+  if (!EDITABLE_STATUSES.includes(status)) {
+    throw new DomainError(
+      status === 'PUBLISHED'
+        ? `Cannot ${verb} a published class. Cancel it instead, then create a replacement.`
+        : `Cannot ${verb} a ${status.toLowerCase()} class.`
+    );
+  }
+  return status;
+}
 
 const SCHEDULE_SELECT = `
   SELECT s.*,
@@ -98,10 +117,13 @@ async function getDeploymentDataEnvironment(): Promise<string> {
   return row?.value ?? 'DEMO';
 }
 
-export async function createSchedule(input: ScheduleInput, userId?: number): Promise<Schedule> {
+export async function createSchedule(
+  input: ScheduleInput,
+  userId?: number
+): Promise<Schedule & { warnings: string[] }> {
   const conflict = await detectConflicts(input);
   if (conflict.hasBlockingConflict) {
-    throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
+    throw new DomainError(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
   const dataEnvironment = await getDeploymentDataEnvironment();
@@ -127,9 +149,10 @@ export async function createSchedule(input: ScheduleInput, userId?: number): Pro
   // PostgreSQL, which became NaN and failed against int4 columns.
   const insertedId = result.lastInsertRowid ?? result.lastID;
   await logAudit(userId ?? null, 'CREATE', 'schedule', insertedId ?? null, JSON.stringify(input));
-  return await db
-    .prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`)
-    .get(insertedId) as Schedule;
+  const created = await db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(insertedId) as Schedule;
+  // Non-blocking advisories (e.g. faculty marked unavailable) are allowed but
+  // must be shown to the admin, not silently dropped.
+  return { ...created, warnings: conflict.nonBlockingConflicts.map((c) => c.message) };
 }
 
 export async function updateScheduleTimeSlot(
@@ -137,21 +160,24 @@ export async function updateScheduleTimeSlot(
   timeSlotId: number,
   userId?: number
 ): Promise<Schedule> {
+  const status = await requireEditable(scheduleId, 'move');
   const conflict = await validateScheduleMove(scheduleId, timeSlotId);
   if (conflict.hasBlockingConflict) {
-    throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
+    throw new DomainError(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
   const db = await getDb();
   await db.prepare(
-    'UPDATE schedules SET time_slot_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+    `UPDATE schedules SET time_slot_id = ?, status = 'DRAFT', updated_at = CURRENT_TIMESTAMP WHERE id = ?`
   ).run(timeSlotId, scheduleId);
 
-  await logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}`);
+  const reset = status === 'DRAFT' ? '' : `; ${status} → DRAFT`;
+  await logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}${reset}`);
   return await db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(scheduleId) as Schedule;
 }
 
 export async function deleteSchedule(scheduleId: number, userId?: number) {
+  await requireEditable(scheduleId, 'delete');
   const db = await getDb();
   await db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
   await logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
@@ -176,15 +202,6 @@ export async function deleteSchedule(scheduleId: number, userId?: number) {
  */
 
 export type { ScheduleStatus };
-
-const ALLOWED_TRANSITIONS: Record<ScheduleStatus, ScheduleStatus[]> = {
-  DRAFT: ['PENDING_REVIEW', 'ARCHIVED'],
-  PENDING_REVIEW: ['DRAFT', 'APPROVED', 'ARCHIVED'],
-  APPROVED: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
-  PUBLISHED: ['CANCELLED', 'ARCHIVED'],
-  CANCELLED: ['ARCHIVED'],
-  ARCHIVED: [],
-};
 
 export interface TransitionResult {
   ok: boolean;
@@ -259,6 +276,28 @@ export async function transitionSchedule(
   return { ok: true, fromStatus, toStatus };
 }
 
+/** Curriculum semester (1 or 2) for a semester name like "1st Semester". */
+export function semesterNumberOf(name: string | undefined): number {
+  return name?.includes('1') ? 1 : 2;
+}
+
+/**
+ * What the manual-entry form needs to offer only sensible choices: the
+ * curriculum (which subjects a section takes this semester) and which
+ * faculty are qualified to teach each subject.
+ */
+export async function getSchedulingReferences(): Promise<{
+  curriculum: { program_id: number; subject_id: number; year_level: number; semester_number: number }[];
+  facultySubjects: { faculty_id: number; subject_id: number }[];
+}> {
+  const db = await getDb();
+  const [curriculum, facultySubjects] = await Promise.all([
+    db.prepare('SELECT program_id, subject_id, year_level, semester_number FROM curriculum').all(),
+    db.prepare('SELECT faculty_id, subject_id FROM faculty_subjects').all(),
+  ]);
+  return { curriculum, facultySubjects };
+}
+
 export async function generateSchedulesForSection(
   sectionId: number,
   semesterId: number,
@@ -273,7 +312,7 @@ export async function generateSchedulesForSection(
   const semester = await db
     .prepare('SELECT name FROM semesters WHERE id = ?')
     .get(semesterId) as { name: string } | undefined;
-  const semesterNumber = semester?.name.includes('1') ? 1 : 2;
+  const semesterNumber = semesterNumberOf(semester?.name);
 
   const subjects = await db
     .prepare(

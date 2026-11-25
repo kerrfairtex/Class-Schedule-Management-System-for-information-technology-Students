@@ -6,7 +6,12 @@ export const DAY_LABELS: Record<string, string> = {
   wednesday: 'Wednesday',
   thursday: 'Thursday',
   friday: 'Friday',
+  saturday: 'Saturday',
+  sunday: 'Sunday',
 };
+
+/** Calendar order for any day that has time slots (the board shows only those). */
+export const WEEK_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
 export const TIME_SLOTS = [
   { start: '07:30', end: '08:30', label: '7:30 - 8:30' },

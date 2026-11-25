@@ -43,7 +43,10 @@ import {
   deleteSchedule,
   generateSchedulesForSection,
   transitionSchedule,
+  getSchedulingReferences,
+  semesterNumberOf,
 } from '@/lib/modules/mod-03-schedule-engine/service';
+import { detectConflicts } from '@/lib/modules/mod-04-conflict-engine/validator';
 import { createBackup } from '@/lib/modules/mod-08-database-service/backup';
 import { getAuditLogs, logAudit } from '@/lib/modules/mod-08-database-service/audit';
 import { createUser } from '@/lib/modules/mod-01-auth/service';
@@ -149,7 +152,23 @@ export async function GET(request: Request) {
         rooms: await getRooms(),
         timeSlots: await getTimeSlots(),
         semester,
+        semesterNumber: semesterNumberOf(semester?.name),
+        ...(await getSchedulingReferences()),
       });
+    }
+    case 'schedule-check': {
+      // Live conflict preview for the manual-entry form; read-only.
+      const semester = await getActiveSemester();
+      if (!semester) return NextResponse.json({ error: 'No active semester' }, { status: 400 });
+      const ids = ['section_id', 'subject_id', 'faculty_id', 'room_id', 'time_slot_id'] as const;
+      const values = ids.map((k) => Number(searchParams.get(k)));
+      if (values.some((v) => !Number.isInteger(v) || v <= 0)) {
+        return NextResponse.json({ error: 'All five fields are required' }, { status: 400 });
+      }
+      const [section_id, subject_id, faculty_id, room_id, time_slot_id] = values;
+      return NextResponse.json(
+        await detectConflicts({ section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id: semester.id })
+      );
     }
     case 'meta': {
       const semester = await getActiveSemester();
@@ -585,7 +604,11 @@ export async function POST(request: Request) {
           session!.username
         );
         if (!result.ok) {
-          return NextResponse.json(result, { status: 409 });
+          // The client reads `error`; include the blocking conflicts so the
+          // admin knows what to fix before publishing.
+          const reasons = result.blockingConflicts?.map((c) => c.message) ?? [];
+          const error = [result.message, ...reasons].filter(Boolean).join(': ');
+          return NextResponse.json({ ...result, error }, { status: 409 });
         }
         return NextResponse.json(result);
       }
