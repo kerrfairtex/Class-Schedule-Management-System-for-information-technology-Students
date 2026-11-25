@@ -49,6 +49,7 @@ export const AdminPostSchema = z.object({
     'transition-schedule',
     'reset-password',
     'set-data-environment',
+    'create-section-sets',
     'create-academic-year',
     'add-semester',
     'activate-semester',

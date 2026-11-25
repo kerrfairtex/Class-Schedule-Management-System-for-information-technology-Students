@@ -91,6 +91,11 @@ export interface Section {
   program_id: number;
   year_level: number;
   semester_id: number;
+  capacity?: number;
+  adviser_id?: number | null;
+  home_room_id?: number | null;
+  adviser_name?: string | null;
+  home_room_code?: string | null;
 }
 
 export interface Faculty {

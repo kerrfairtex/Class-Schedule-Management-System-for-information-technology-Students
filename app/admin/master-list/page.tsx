@@ -18,6 +18,8 @@ interface Meta {
   sections: { id: number; code: string }[];
   buildings: { id: number; code: string }[];
   subjects: { id: number; code: string; name: string }[];
+  faculty?: { id: number; code: string }[];
+  rooms?: { id: number; code: string }[];
   semester: { id: number; name: string } | null;
 }
 
@@ -226,6 +228,21 @@ export default function MasterListPage() {
           ))}
         </div>
 
+        {meta && tab === 'sections' && !showForm && (
+          <AddSetsForm
+            programs={meta.programs}
+            onDone={(msg) => {
+              setMessage(msg);
+              setError('');
+              loadData();
+            }}
+            onError={(msg) => {
+              setError(msg);
+              setMessage('');
+            }}
+          />
+        )}
+
         {meta && showForm && (
           <MasterListForm
             tab={tab}
@@ -353,11 +370,11 @@ function getColumns(tab: Tab): string[] {
     case 'students':
       return ['Student ID', 'Name', 'Section', 'Email'];
     case 'subjects':
-      return ['Code', 'Name', 'Credits'];
+      return ['Subject code', 'Descriptive title', 'Units (lec/lab)', 'Hours a week (lec/lab)'];
     case 'sections':
-      return ['Code', 'Year Level'];
+      return ['Code', 'Year', 'Class size', 'Adviser', 'Home room'];
     case 'rooms':
-      return ['Building', 'Code', 'Name', 'Capacity'];
+      return ['Building', 'Code', 'Name', 'Type', 'Capacity'];
     case 'users':
       return ['Username', 'Role', 'External ID', 'Active', 'Must Change Password'];
     default:
@@ -407,11 +424,15 @@ function formatRows(tab: Tab, data: Record<string, unknown>[]): Record<string, u
           _id: item.id,
           code: item.code,
           name: item.name,
-          credit_hours: item.credit_hours,
           program_id: item.program_id,
-          Code: item.code,
-          Name: item.name,
-          Credits: item.credit_hours,
+          lec_units: item.lec_units,
+          lab_units: item.lab_units,
+          lec_hours: Number(item.lec_hours ?? 0),
+          lab_hours: Number(item.lab_hours ?? 0),
+          'Subject code': item.code,
+          'Descriptive title': item.name,
+          'Units (lec/lab)': `${item.credit_hours} (${item.lec_units ?? item.credit_hours}/${item.lab_units ?? 0})`,
+          'Hours a week (lec/lab)': `${Number(item.lec_hours ?? 0)}/${Number(item.lab_hours ?? 0)}`,
         };
       case 'sections':
         return {
@@ -420,8 +441,14 @@ function formatRows(tab: Tab, data: Record<string, unknown>[]): Record<string, u
           year_level: item.year_level,
           program_id: item.program_id,
           semester_id: item.semester_id,
+          capacity: item.capacity,
+          adviser_id: item.adviser_id ?? '',
+          home_room_id: item.home_room_id ?? '',
           Code: item.code,
-          'Year Level': item.year_level,
+          Year: item.year_level,
+          'Class size': item.capacity,
+          Adviser: item.adviser_name ?? 'None',
+          'Home room': item.home_room_code ?? 'None',
         };
       case 'rooms':
         return {
@@ -430,9 +457,11 @@ function formatRows(tab: Tab, data: Record<string, unknown>[]): Record<string, u
           name: item.name,
           capacity: item.capacity,
           building_id: item.building_id,
+          room_type: item.room_type ?? 'LECTURE',
           Building: item.building_code,
           Code: item.code,
           Name: item.name,
+          Type: item.room_type === 'LAB' ? 'Laboratory' : 'Lecture room',
           Capacity: item.capacity,
         };
       case 'users':
@@ -455,4 +484,68 @@ function formatRows(tab: Tab, data: Record<string, unknown>[]): Record<string, u
         return item;
     }
   });
+}
+
+/** Add the next N sets (block sections) for a year level, e.g. BSIT-1A to 1C. */
+function AddSetsForm({
+  programs,
+  onDone,
+  onError,
+}: {
+  programs: { id: number; code: string }[];
+  onDone: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    setBusy(true);
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-section-sets',
+          program_id: Number(form.get('program_id')),
+          year_level: Number(form.get('year_level')),
+          count: Number(form.get('count')),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not add sets');
+      onDone(`Added ${data.codes.join(', ')}. Open a set to choose its adviser and home room.`);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Could not add sets');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="card mb-6 flex flex-wrap items-end gap-3">
+      <p className="w-full text-sm font-bold">Add sets for a year level</p>
+      <label>
+        <span className="label-field">Program</span>
+        <select name="program_id" className="select-field" defaultValue={programs[0]?.id} required>
+          {programs.map((p) => (
+            <option key={p.id} value={p.id}>{p.code}</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span className="label-field">Year level</span>
+        <input name="year_level" type="number" min={1} max={8} defaultValue={1} className="input-field w-24" required />
+      </label>
+      <label>
+        <span className="label-field">How many sets</span>
+        <input name="count" type="number" min={1} max={12} defaultValue={2} className="input-field w-24" required />
+      </label>
+      <button type="submit" className="btn-primary" disabled={busy}>
+        {busy ? 'Adding…' : 'Add sets'}
+      </button>
+      <p className="hint w-full">Codes continue from the existing sets: if BSIT-1A exists, 2 sets adds BSIT-1B and BSIT-1C.</p>
+    </form>
+  );
 }

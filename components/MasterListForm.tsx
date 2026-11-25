@@ -22,6 +22,8 @@ interface Meta {
   sections: { id: number; code: string }[];
   buildings: { id: number; code: string }[];
   subjects: { id: number; code: string; name: string }[];
+  faculty?: { id: number; code: string }[];
+  rooms?: { id: number; code: string }[];
   semester: { id: number; name: string } | null;
 }
 
@@ -111,8 +113,12 @@ export function MasterListForm({
       case 'subjects': {
         body.code = toText(raw.code, 'code', errors, { max: 32 });
         body.name = toText(raw.name, 'name', errors, { max: 160 });
-        body.credit_hours = toInt(raw.credit_hours, 'credit_hours', errors, { min: 0, max: 12 });
         body.program_id = toInt(raw.program_id, 'program_id', errors, { min: 1 });
+        // Total units = lecture + lab units (computed on the server).
+        body.lec_units = toInt(raw.lec_units ?? '0', 'lec_units', errors, { min: 0, max: 12 });
+        body.lab_units = toInt(raw.lab_units ?? '0', 'lab_units', errors, { min: 0, max: 12 });
+        body.lec_hours = raw.lec_hours === '' ? undefined : Number(raw.lec_hours);
+        body.lab_hours = raw.lab_hours === '' ? undefined : Number(raw.lab_hours);
         break;
       }
       case 'sections': {
@@ -125,6 +131,9 @@ export function MasterListForm({
           errors,
           { min: 1 }
         );
+        body.capacity = raw.capacity ? toInt(raw.capacity, 'capacity', errors, { min: 1, max: 500 }) : undefined;
+        body.adviser_id = raw.adviser_id ? toInt(raw.adviser_id, 'adviser_id', errors, { min: 1 }) : undefined;
+        body.home_room_id = raw.home_room_id ? toInt(raw.home_room_id, 'home_room_id', errors, { min: 1 }) : undefined;
         break;
       }
       case 'rooms': {
@@ -132,6 +141,7 @@ export function MasterListForm({
         body.code = toText(raw.code, 'code', errors, { max: 32 });
         body.name = toText(raw.name, 'name', errors, { max: 160 });
         body.capacity = toInt(raw.capacity, 'capacity', errors, { min: 1, max: 2000 });
+        body.room_type = raw.room_type || 'LECTURE';
         break;
       }
       case 'users': {
@@ -278,15 +288,38 @@ export function MasterListForm({
 
       {tab === 'subjects' && (
         <>
-          <Field name="code" label="Subject Code" required defaultValue={defaults.code} error={fieldErrors.code} />
-          <Field name="name" label="Subject Name" required defaultValue={defaults.name} error={fieldErrors.name} />
+          <Field name="code" label="Subject code" required placeholder="IT 121" defaultValue={defaults.code} error={fieldErrors.code} />
           <Field
-            name="credit_hours"
-            label="Credit Hours"
-            type="number"
-            defaultValue={defaults.credit_hours ?? '3'}
+            name="name"
+            label="Descriptive title"
             required
-            error={fieldErrors.credit_hours}
+            placeholder="Data Structures and Algorithms"
+            defaultValue={defaults.name}
+            error={fieldErrors.name}
+          />
+          <Field name="lec_units" label="Lecture units" type="number" min="0" max="12" defaultValue={defaults.lec_units ?? '3'} required error={fieldErrors.lec_units} />
+          <Field name="lab_units" label="Lab units" type="number" min="0" max="12" defaultValue={defaults.lab_units ?? '0'} required error={fieldErrors.lab_units} />
+          <Field
+            name="lec_hours"
+            label="Lecture hours a week"
+            type="number"
+            step="0.5"
+            min="0"
+            max="40"
+            defaultValue={defaults.lec_hours}
+            error={fieldErrors.lec_hours}
+            hint="Leave blank to use one hour per lecture unit"
+          />
+          <Field
+            name="lab_hours"
+            label="Lab hours a week"
+            type="number"
+            step="0.5"
+            min="0"
+            max="40"
+            defaultValue={defaults.lab_hours}
+            error={fieldErrors.lab_hours}
+            hint="Often 3 hours per lab unit"
           />
           <Select
             name="program_id"
@@ -318,6 +351,9 @@ export function MasterListForm({
             required
             error={fieldErrors.year_level}
           />
+          <Field name="capacity" label="Class size" type="number" min="1" max="500" defaultValue={defaults.capacity ?? '40'} error={fieldErrors.capacity} hint="Rooms smaller than this are flagged" />
+          <Select name="adviser_id" label="Adviser" options={meta.faculty ?? []} defaultValue={defaults.adviser_id} error={fieldErrors.adviser_id} emptyLabel="No adviser yet" />
+          <Select name="home_room_id" label="Home room" options={meta.rooms ?? []} defaultValue={defaults.home_room_id} error={fieldErrors.home_room_id} emptyLabel="No home room" />
           <input type="hidden" name="semester_id" value={defaults.semester_id || meta.semester?.id || ''} />
           <div className="text-sm text-muted">
             Active semester: {meta.semester?.name ?? 'None'}
@@ -344,6 +380,18 @@ export function MasterListForm({
             defaultValue={defaults.capacity ?? '40'}
             required
             error={fieldErrors.capacity}
+          />
+          <Select
+            name="room_type"
+            label="Room type"
+            options={[]}
+            stringOptions={[
+              { value: 'LECTURE', label: 'Lecture room' },
+              { value: 'LAB', label: 'Laboratory' },
+            ]}
+            required
+            defaultValue={defaults.room_type ?? 'LECTURE'}
+            error={fieldErrors.room_type}
           />
         </>
       )}
@@ -418,6 +466,9 @@ function Field({
   defaultValue,
   error,
   hint,
+  step,
+  min,
+  max,
 }: {
   name: string;
   label: string;
@@ -427,21 +478,29 @@ function Field({
   defaultValue?: string;
   error?: string;
   hint?: string;
+  step?: string;
+  min?: string;
+  max?: string;
 }) {
+  const id = `ml-${name}`;
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-ink-soft">{label}</label>
+      <label htmlFor={id} className="label-field">{label}</label>
       <input
+        id={id}
         name={name}
         type={type}
+        step={step}
+        min={min}
+        max={max}
         required={required}
         placeholder={placeholder}
         defaultValue={defaultValue}
         className={`input-field ${error ? 'input-field-error' : ''}`}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${name}-error` : undefined}
+        aria-describedby={error ? `${name}-error` : hint ? `${name}-hint` : undefined}
       />
-      {hint && !error && <p className="mt-1 text-xs text-muted">{hint}</p>}
+      {hint && !error && <p id={`${name}-hint`} className="hint">{hint}</p>}
       {error && (
         <p id={`${name}-error`} className="mt-1 text-xs text-coral">
           {error}
@@ -458,6 +517,8 @@ function Select({
   required,
   defaultValue,
   error,
+  emptyLabel = 'Select...',
+  stringOptions,
 }: {
   name: string;
   label: string;
@@ -465,11 +526,16 @@ function Select({
   required?: boolean;
   defaultValue?: string;
   error?: string;
+  emptyLabel?: string;
+  /** For non-numeric choices such as room type. */
+  stringOptions?: { value: string; label: string }[];
 }) {
+  const id = `ml-${name}`;
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-ink-soft">{label}</label>
+      <label htmlFor={id} className="label-field">{label}</label>
       <select
+        id={id}
         name={name}
         required={required}
         defaultValue={defaultValue ?? ''}
@@ -477,7 +543,12 @@ function Select({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-error` : undefined}
       >
-        <option value="">Select...</option>
+        {!stringOptions && <option value="">{emptyLabel}</option>}
+        {stringOptions?.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
         {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.code}
