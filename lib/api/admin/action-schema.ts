@@ -56,6 +56,7 @@ export const AdminPostSchema = z.object({
   sectionId: z.number().optional(),
   scheduleId: z.number().optional(),
   timeSlotId: z.number().optional(),
+  toStatus: z.string().optional(),
   facultyId: z.number().optional(),
   isAvailable: z.boolean().optional(),
   code: zText.optional(),

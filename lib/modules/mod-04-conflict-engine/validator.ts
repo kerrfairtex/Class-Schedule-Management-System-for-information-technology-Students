@@ -1,6 +1,9 @@
 import { getDb } from '@/lib/persistence/db';
 import type { Conflict, ConflictResult, ScheduleInput } from '@/lib/domain/types';
 
+/** Cancelled and archived classes no longer hold their room, teacher or slot. */
+const OCCUPIES_SLOT = `status NOT IN ('CANCELLED', 'ARCHIVED')`;
+
 /**
  * Spec section 33/34: detect all conflicts for a proposed schedule.
  * Returns BLOCKING (must resolve before PUBLISHED) and NON-BLOCKING
@@ -25,7 +28,8 @@ export async function detectConflicts(
   const facultyConflict = await db
     .prepare(
       `SELECT id FROM schedules
-       WHERE faculty_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}`
+       WHERE faculty_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}
+         AND ${OCCUPIES_SLOT}`
     )
     .get(input.faculty_id, ...baseParams) as { id: number } | undefined;
   if (facultyConflict) {
@@ -41,7 +45,8 @@ export async function detectConflicts(
   const roomConflict = await db
     .prepare(
       `SELECT id FROM schedules
-       WHERE room_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}`
+       WHERE room_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}
+         AND ${OCCUPIES_SLOT}`
     )
     .get(input.room_id, ...baseParams) as { id: number } | undefined;
   if (roomConflict) {
@@ -57,7 +62,8 @@ export async function detectConflicts(
   const sectionConflict = await db
     .prepare(
       `SELECT id FROM schedules
-       WHERE section_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}`
+       WHERE section_id = ? AND time_slot_id = ? AND semester_id = ? ${exclude}
+         AND ${OCCUPIES_SLOT}`
     )
     .get(input.section_id, ...baseParams) as { id: number } | undefined;
   if (sectionConflict) {

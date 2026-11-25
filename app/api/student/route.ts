@@ -26,7 +26,8 @@ export async function GET(request: Request) {
     const student = await db
     .prepare('SELECT s.*, sec.code AS section_code FROM students s JOIN sections sec ON sec.id = s.section_id WHERE s.id = ?')
       .get(session.studentId) as { section_id: number; section_code: string };
-    const schedules = await getSchedulesBySection(student.section_id, semester.id);
+    // Students see only PUBLISHED classes; admins previewing see everything.
+    const schedules = await getSchedulesBySection(student.section_id, semester.id, 'student');
     return NextResponse.json({ student, schedules, semester });
   }
 
@@ -36,7 +37,8 @@ export async function GET(request: Request) {
     .prepare('SELECT * FROM sections WHERE code = ?')
       .get(sectionCode) as { id: number } | undefined;
     if (!section) return NextResponse.json({ error: 'Section not found' }, { status: 404 });
-    const schedules = await getSchedulesBySection(section.id, semester.id);
+    const audience = session?.role === 'admin' ? 'staff' : 'student';
+    const schedules = await getSchedulesBySection(section.id, semester.id, audience);
     return NextResponse.json({ schedules, semester, sectionCode });
   }
 

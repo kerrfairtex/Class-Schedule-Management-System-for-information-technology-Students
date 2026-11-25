@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Playfair_Display, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { SYSTEM_IDENTITY } from '@/lib/domain/constants';
+import { SITE_URL } from '@/lib/site';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -22,6 +23,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: `${SYSTEM_IDENTITY.product} — ${SYSTEM_IDENTITY.short}`,
   description: `Academic scheduling and timetable management platform for ${SYSTEM_IDENTITY.program} of ${SYSTEM_IDENTITY.institution}.`,
   applicationName: SYSTEM_IDENTITY.product,

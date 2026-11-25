@@ -1,11 +1,31 @@
 import { getDb, withTransaction } from '@/lib/persistence/db';
 import { detectConflicts, validateScheduleMove, validateForPublish } from '@/lib/modules/mod-04-conflict-engine/validator';
-import type { Schedule, ScheduleInput } from '@/lib/domain/types';
+import type { Schedule, ScheduleInput, ScheduleStatus } from '@/lib/domain/types';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
+import { DomainError } from '@/lib/modules/mod-02-master-list/validation';
+import { scheduleVisibilitySql, type ScheduleAudience } from './visibility';
+import { ALLOWED_TRANSITIONS, EDITABLE_STATUSES } from '@/lib/domain/schedule-status';
+
+/**
+ * Throws unless the class may still be moved or deleted. Editing a class
+ * under review or approved sends it back to DRAFT so it is reviewed again.
+ */
+async function requireEditable(scheduleId: number, verb: string): Promise<ScheduleStatus> {
+  const status = await currentStatus(scheduleId);
+  if (!status) throw new DomainError('That schedule no longer exists');
+  if (!EDITABLE_STATUSES.includes(status)) {
+    throw new DomainError(
+      status === 'PUBLISHED'
+        ? `Cannot ${verb} a published class. Cancel it instead, then create a replacement.`
+        : `Cannot ${verb} a ${status.toLowerCase()} class.`
+    );
+  }
+  return status;
+}
 
 const SCHEDULE_SELECT = `
   SELECT s.*,
-    sec.code AS section_code,
+    sec.code AS section_code, sec.year_level,
     sub.code AS subject_code, sub.name AS subject_name,
     f.first_name || ' ' || f.last_name AS faculty_name,
     r.code AS room_code, r.name AS room_name,
@@ -18,42 +38,101 @@ const SCHEDULE_SELECT = `
   JOIN time_slots ts ON ts.id = s.time_slot_id
 `;
 
-export async function getSchedulesBySemester(semesterId: number): Promise<Schedule[]> {
-  const db = await getDb();
-  return await db
-    .prepare(`${SCHEDULE_SELECT} WHERE s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`)
-    .all(semesterId) as Schedule[];
-}
-
-export async function getSchedulesBySection(sectionId: number, semesterId: number): Promise<Schedule[]> {
+export async function getSchedulesBySemester(
+  semesterId: number,
+  audience: ScheduleAudience = 'staff'
+): Promise<Schedule[]> {
   const db = await getDb();
   return await db
     .prepare(
-      `${SCHEDULE_SELECT} WHERE s.section_id = ? AND s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`
+      `${SCHEDULE_SELECT} WHERE s.semester_id = ? AND ${scheduleVisibilitySql(audience)}
+       ORDER BY sec.code, ts.day_of_week, ts.start_time`
+    )
+    .all(semesterId) as Schedule[];
+}
+
+export async function getSchedulesBySection(
+  sectionId: number,
+  semesterId: number,
+  audience: ScheduleAudience = 'staff'
+): Promise<Schedule[]> {
+  const db = await getDb();
+  return await db
+    .prepare(
+      `${SCHEDULE_SELECT} WHERE s.section_id = ? AND s.semester_id = ? AND ${scheduleVisibilitySql(audience)}
+       ORDER BY ts.day_of_week, ts.start_time`
     )
     .all(sectionId, semesterId) as Schedule[];
 }
 
-export async function getSchedulesByFaculty(facultyId: number, semesterId: number): Promise<Schedule[]> {
+export async function getSchedulesByFaculty(
+  facultyId: number,
+  semesterId: number,
+  audience: ScheduleAudience = 'staff'
+): Promise<Schedule[]> {
   const db = await getDb();
   return await db
     .prepare(
-      `${SCHEDULE_SELECT} WHERE s.faculty_id = ? AND s.semester_id = ? ORDER BY ts.day_of_week, ts.start_time`
+      `${SCHEDULE_SELECT} WHERE s.faculty_id = ? AND s.semester_id = ? AND ${scheduleVisibilitySql(audience)}
+       ORDER BY ts.day_of_week, ts.start_time`
     )
     .all(facultyId, semesterId) as Schedule[];
 }
 
-export async function createSchedule(input: ScheduleInput, userId?: number): Promise<Schedule> {
+/** Schedules an anonymous visitor may see in the active semester. */
+export async function getPublicSchedules(): Promise<Schedule[]> {
+  const db = await getDb();
+  return await db
+    .prepare(
+      `${SCHEDULE_SELECT}
+       JOIN semesters sem ON sem.id = s.semester_id AND sem.is_active = 1
+       WHERE ${scheduleVisibilitySql('public')}
+       ORDER BY sec.code, sub.code, ts.day_of_week, ts.start_time`
+    )
+    .all() as Schedule[];
+}
+
+/** Number of class meetings an anonymous visitor may see this semester. */
+export async function countPublicSchedules(): Promise<number> {
+  const db = await getDb();
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS c FROM schedules s
+       JOIN semesters sem ON sem.id = s.semester_id AND sem.is_active = 1
+       WHERE ${scheduleVisibilitySql('public')}`
+    )
+    .get() as { c: number | string };
+  return Number(row.c);
+}
+
+/**
+ * The deployment's data environment (spec §64), stamped on every new
+ * schedule so DEMO fixtures can never be published to the public site.
+ */
+async function getDeploymentDataEnvironment(): Promise<string> {
+  const db = await getDb();
+  const row = await db
+    .prepare(`SELECT value FROM system_settings WHERE key = 'data_environment'`)
+    .get() as { value: string } | undefined;
+  return row?.value ?? 'DEMO';
+}
+
+export async function createSchedule(
+  input: ScheduleInput,
+  userId?: number
+): Promise<Schedule & { warnings: string[] }> {
   const conflict = await detectConflicts(input);
   if (conflict.hasBlockingConflict) {
-    throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
+    throw new DomainError(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
+  const dataEnvironment = await getDeploymentDataEnvironment();
   const db = await getDb();
   const result = await db
     .prepare(
-      `INSERT INTO schedules (section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO schedules
+         (section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id, status, data_environment)
+       VALUES (?, ?, ?, ?, ?, ?, 'DRAFT', ?)`
     )
     .run(
       input.section_id,
@@ -61,7 +140,8 @@ export async function createSchedule(input: ScheduleInput, userId?: number): Pro
       input.faculty_id,
       input.room_id,
       input.time_slot_id,
-      input.semester_id
+      input.semester_id,
+      dataEnvironment
     );
 
   // The PostgreSQL facade returns the generated id in `lastID` /
@@ -69,9 +149,10 @@ export async function createSchedule(input: ScheduleInput, userId?: number): Pro
   // PostgreSQL, which became NaN and failed against int4 columns.
   const insertedId = result.lastInsertRowid ?? result.lastID;
   await logAudit(userId ?? null, 'CREATE', 'schedule', insertedId ?? null, JSON.stringify(input));
-  return await db
-    .prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`)
-    .get(insertedId) as Schedule;
+  const created = await db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(insertedId) as Schedule;
+  // Non-blocking advisories (e.g. faculty marked unavailable) are allowed but
+  // must be shown to the admin, not silently dropped.
+  return { ...created, warnings: conflict.nonBlockingConflicts.map((c) => c.message) };
 }
 
 export async function updateScheduleTimeSlot(
@@ -79,21 +160,24 @@ export async function updateScheduleTimeSlot(
   timeSlotId: number,
   userId?: number
 ): Promise<Schedule> {
+  const status = await requireEditable(scheduleId, 'move');
   const conflict = await validateScheduleMove(scheduleId, timeSlotId);
   if (conflict.hasBlockingConflict) {
-    throw new Error(conflict.blockingConflicts.map((c) => c.message).join('; '));
+    throw new DomainError(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
   const db = await getDb();
   await db.prepare(
-    'UPDATE schedules SET time_slot_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+    `UPDATE schedules SET time_slot_id = ?, status = 'DRAFT', updated_at = CURRENT_TIMESTAMP WHERE id = ?`
   ).run(timeSlotId, scheduleId);
 
-  await logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}`);
+  const reset = status === 'DRAFT' ? '' : `; ${status} → DRAFT`;
+  await logAudit(userId ?? null, 'UPDATE', 'schedule', scheduleId, `time_slot_id=${timeSlotId}${reset}`);
   return await db.prepare(`${SCHEDULE_SELECT} WHERE s.id = ?`).get(scheduleId) as Schedule;
 }
 
 export async function deleteSchedule(scheduleId: number, userId?: number) {
+  await requireEditable(scheduleId, 'delete');
   const db = await getDb();
   await db.prepare('DELETE FROM schedules WHERE id = ?').run(scheduleId);
   await logAudit(userId ?? null, 'DELETE', 'schedule', scheduleId);
@@ -117,22 +201,7 @@ export async function deleteSchedule(scheduleId: number, userId?: number) {
  * returns { ok: false, conflicts } and the schedule is left APPROVED.
  */
 
-export type ScheduleStatus =
-  | 'DRAFT'
-  | 'PENDING_REVIEW'
-  | 'APPROVED'
-  | 'PUBLISHED'
-  | 'CANCELLED'
-  | 'ARCHIVED';
-
-const ALLOWED_TRANSITIONS: Record<ScheduleStatus, ScheduleStatus[]> = {
-  DRAFT: ['PENDING_REVIEW', 'ARCHIVED'],
-  PENDING_REVIEW: ['DRAFT', 'APPROVED', 'ARCHIVED'],
-  APPROVED: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
-  PUBLISHED: ['CANCELLED', 'ARCHIVED'],
-  CANCELLED: ['ARCHIVED'],
-  ARCHIVED: [],
-};
+export type { ScheduleStatus };
 
 export interface TransitionResult {
   ok: boolean;
@@ -184,15 +253,17 @@ export async function transitionSchedule(
 
   const db = await getDb();
   const setPublishedAt = toStatus === 'PUBLISHED' ? ', published_at = CURRENT_TIMESTAMP' : '';
-  const setApprover = toStatus === 'APPROVED' || toStatus === 'PUBLISHED'
-    ? `, approved_by = ${userName ? `'${userName.replace(/'/g, "''")}'` : 'NULL'}`
-    : '';
+  const recordsApprover = toStatus === 'APPROVED' || toStatus === 'PUBLISHED';
+  const setApprover = recordsApprover ? ', approved_by = ?' : '';
+  const params = recordsApprover
+    ? [toStatus, userName ?? null, scheduleId]
+    : [toStatus, scheduleId];
 
   await db.prepare(
     `UPDATE schedules
      SET status = ?, updated_at = CURRENT_TIMESTAMP ${setPublishedAt} ${setApprover}
      WHERE id = ?`
-  ).run(toStatus, scheduleId);
+  ).run(...params);
 
   await logAudit(
     userId ?? null,
@@ -203,6 +274,28 @@ export async function transitionSchedule(
   );
 
   return { ok: true, fromStatus, toStatus };
+}
+
+/** Curriculum semester (1 or 2) for a semester name like "1st Semester". */
+export function semesterNumberOf(name: string | undefined): number {
+  return name?.includes('1') ? 1 : 2;
+}
+
+/**
+ * What the manual-entry form needs to offer only sensible choices: the
+ * curriculum (which subjects a section takes this semester) and which
+ * faculty are qualified to teach each subject.
+ */
+export async function getSchedulingReferences(): Promise<{
+  curriculum: { program_id: number; subject_id: number; year_level: number; semester_number: number }[];
+  facultySubjects: { faculty_id: number; subject_id: number }[];
+}> {
+  const db = await getDb();
+  const [curriculum, facultySubjects] = await Promise.all([
+    db.prepare('SELECT program_id, subject_id, year_level, semester_number FROM curriculum').all(),
+    db.prepare('SELECT faculty_id, subject_id FROM faculty_subjects').all(),
+  ]);
+  return { curriculum, facultySubjects };
 }
 
 export async function generateSchedulesForSection(
@@ -219,7 +312,7 @@ export async function generateSchedulesForSection(
   const semester = await db
     .prepare('SELECT name FROM semesters WHERE id = ?')
     .get(semesterId) as { name: string } | undefined;
-  const semesterNumber = semester?.name.includes('1') ? 1 : 2;
+  const semesterNumber = semesterNumberOf(semester?.name);
 
   const subjects = await db
     .prepare(

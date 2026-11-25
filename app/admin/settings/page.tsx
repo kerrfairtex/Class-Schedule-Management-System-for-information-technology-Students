@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { requireAdmin } from '@/lib/auth';
 import { getDb } from '@/lib/persistence/db';
 
 export const dynamic = 'force-dynamic';
@@ -8,6 +9,7 @@ export const metadata = {
 };
 
 export default async function AdminSettingsPage() {
+  await requireAdmin();
   const db = await getDb();
   const settings = await db
     .prepare(`SELECT key, value, description, updated_at FROM system_settings ORDER BY key`)

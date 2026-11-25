@@ -19,6 +19,6 @@ export async function GET() {
     .prepare('SELECT * FROM faculty WHERE id = ?')
     .get(session.facultyId);
 
-  const schedules = await getSchedulesByFaculty(session.facultyId, semester.id);
+  const schedules = await getSchedulesByFaculty(session.facultyId, semester.id, 'faculty');
   return NextResponse.json({ faculty, schedules, semester });
 }

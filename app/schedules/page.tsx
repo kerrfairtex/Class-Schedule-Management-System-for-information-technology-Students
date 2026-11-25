@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/persistence/db';
+import { countPublicSchedules } from '@/lib/modules/mod-03-schedule-engine/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,11 +41,8 @@ export default async function SchedulesPage() {
     if (!years.has(r.ay_id)) years.set(r.ay_id, { id: r.ay_id, label: r.label, active: r.ay_active });
   }
 
-  // Per spec §35: public schedule = PUBLISHED status only.
-  // Currently no schedules exist in seed (none published), so we show 0.
-  const published = await db
-    .prepare(`SELECT COUNT(*) as c FROM schedules WHERE status = 'PUBLISHED'`)
-    .get() as { c: number };
+  // Spec §35/§63: count only what the public may see this semester.
+  const published = { c: await countPublicSchedules() };
 
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
@@ -55,8 +53,8 @@ export default async function SchedulesPage() {
         <h1 className="mb-2 text-4xl font-bold">Class Schedules</h1>
         <p className="mb-8 text-slate-400">
           Per spec §35, only PUBLISHED schedules appear publicly.
-          Currently <strong className="text-slate-100">{published.c}</strong> schedule(s) have been
-          published.
+          Currently <strong className="text-slate-100">{published.c}</strong> class schedule(s) are
+          published for the current semester.
         </p>
 
         <h2 className="mb-3 text-xl font-semibold">Academic Years</h2>

@@ -115,6 +115,15 @@ export interface FacultyAvailability {
   is_available: number;
 }
 
+/** Schedule workflow states (spec §32–§34). */
+export type ScheduleStatus =
+  | 'DRAFT'
+  | 'PENDING_REVIEW'
+  | 'APPROVED'
+  | 'PUBLISHED'
+  | 'CANCELLED'
+  | 'ARCHIVED';
+
 export interface Schedule {
   id: number;
   section_id: number;
@@ -123,7 +132,10 @@ export interface Schedule {
   room_id: number;
   time_slot_id: number;
   semester_id: number;
+  status?: ScheduleStatus;
+  data_environment?: string;
   section_code?: string;
+  year_level?: number;
   subject_code?: string;
   subject_name?: string;
   faculty_name?: string;

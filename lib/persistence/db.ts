@@ -271,6 +271,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   code TEXT NOT NULL,
   name TEXT NOT NULL,
   capacity INTEGER NOT NULL DEFAULT 40,
+  data_environment TEXT NOT NULL DEFAULT 'DEMO',
   UNIQUE(building_id, code)
 );
 CREATE TABLE IF NOT EXISTS subjects (
@@ -294,7 +295,8 @@ CREATE TABLE IF NOT EXISTS sections (
   program_id INTEGER NOT NULL REFERENCES programs(id),
   year_level INTEGER NOT NULL,
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
-  capacity INTEGER NOT NULL DEFAULT 40
+  capacity INTEGER NOT NULL DEFAULT 40,
+  data_environment TEXT NOT NULL DEFAULT 'DEMO'
 );
 CREATE TABLE IF NOT EXISTS faculty (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -351,6 +353,11 @@ CREATE TABLE IF NOT EXISTS schedules (
   room_id INTEGER NOT NULL REFERENCES rooms(id),
   time_slot_id INTEGER NOT NULL REFERENCES time_slots(id),
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
+  status TEXT NOT NULL DEFAULT 'DRAFT'
+    CHECK(status IN ('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'PUBLISHED', 'CANCELLED', 'ARCHIVED')),
+  data_environment TEXT NOT NULL DEFAULT 'DEMO',
+  published_at TEXT,
+  approved_by TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -367,6 +374,22 @@ CREATE INDEX IF NOT EXISTS idx_schedules_faculty ON schedules(faculty_id, time_s
 CREATE INDEX IF NOT EXISTS idx_schedules_room ON schedules(room_id, time_slot_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_section ON schedules(section_id, time_slot_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_semester ON schedules(semester_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_semester_status ON schedules(semester_id, status);
+-- One active class per room, faculty member and section per slot. Cancelled
+-- and archived rows no longer occupy the slot. Mirrors migration 002.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_schedules_room_slot
+  ON schedules(semester_id, time_slot_id, room_id) WHERE status NOT IN ('CANCELLED', 'ARCHIVED');
+CREATE UNIQUE INDEX IF NOT EXISTS uq_schedules_faculty_slot
+  ON schedules(semester_id, time_slot_id, faculty_id) WHERE status NOT IN ('CANCELLED', 'ARCHIVED');
+CREATE UNIQUE INDEX IF NOT EXISTS uq_schedules_section_slot
+  ON schedules(semester_id, time_slot_id, section_id) WHERE status NOT IN ('CANCELLED', 'ARCHIVED');
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  description TEXT,
+  updated_by TEXT,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
   `;
 
   const pgSql = `
@@ -409,6 +432,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   code TEXT NOT NULL,
   name TEXT NOT NULL,
   capacity INTEGER NOT NULL DEFAULT 40,
+  data_environment TEXT NOT NULL DEFAULT 'DEMO',
   UNIQUE(building_id, code)
 );
 CREATE TABLE IF NOT EXISTS subjects (
@@ -432,7 +456,8 @@ CREATE TABLE IF NOT EXISTS sections (
   program_id INTEGER NOT NULL REFERENCES programs(id),
   year_level INTEGER NOT NULL,
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
-  capacity INTEGER NOT NULL DEFAULT 40
+  capacity INTEGER NOT NULL DEFAULT 40,
+  data_environment TEXT NOT NULL DEFAULT 'DEMO'
 );
 CREATE TABLE IF NOT EXISTS faculty (
   id SERIAL PRIMARY KEY,
@@ -489,6 +514,11 @@ CREATE TABLE IF NOT EXISTS schedules (
   room_id INTEGER NOT NULL REFERENCES rooms(id),
   time_slot_id INTEGER NOT NULL REFERENCES time_slots(id),
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
+  status TEXT NOT NULL DEFAULT 'DRAFT'
+    CHECK(status IN ('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'PUBLISHED', 'CANCELLED', 'ARCHIVED')),
+  data_environment TEXT NOT NULL DEFAULT 'DEMO',
+  published_at TEXT,
+  approved_by TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -505,6 +535,22 @@ CREATE INDEX IF NOT EXISTS idx_schedules_faculty ON schedules(faculty_id, time_s
 CREATE INDEX IF NOT EXISTS idx_schedules_room ON schedules(room_id, time_slot_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_section ON schedules(section_id, time_slot_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_semester ON schedules(semester_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_semester_status ON schedules(semester_id, status);
+-- One active class per room, faculty member and section per slot. Cancelled
+-- and archived rows no longer occupy the slot. Mirrors migration 002.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_schedules_room_slot
+  ON schedules(semester_id, time_slot_id, room_id) WHERE status NOT IN ('CANCELLED', 'ARCHIVED');
+CREATE UNIQUE INDEX IF NOT EXISTS uq_schedules_faculty_slot
+  ON schedules(semester_id, time_slot_id, faculty_id) WHERE status NOT IN ('CANCELLED', 'ARCHIVED');
+CREATE UNIQUE INDEX IF NOT EXISTS uq_schedules_section_slot
+  ON schedules(semester_id, time_slot_id, section_id) WHERE status NOT IN ('CANCELLED', 'ARCHIVED');
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  description TEXT,
+  updated_by TEXT,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
   `;
 
   database.exec(usePostgres ? pgSql : sqliteSql);

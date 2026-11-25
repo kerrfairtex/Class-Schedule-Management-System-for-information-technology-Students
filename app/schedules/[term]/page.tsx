@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/persistence/db';
+import { scheduleVisibilitySql } from '@/lib/modules/mod-03-schedule-engine/visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,22 +28,24 @@ export default async function TermSchedules({ params }: PageProps) {
   // (VERIFIED, PRODUCTION) — DEMO records must never appear in public schedules.
   const published = await db
     .prepare(
-      `SELECT s.id, sub.code as subject_code, sub.name as subject_name,
+      `SELECT s.id, sec.code as section_code, sub.code as subject_code, sub.name as subject_name,
               f.first_name || ' ' || f.last_name as faculty_name,
               r.code as room_code, ts.start_time, ts.end_time, ts.day_of_week,
               s.status, s.data_environment
        FROM schedules s
+       JOIN sections sec ON sec.id = s.section_id
        JOIN subjects sub ON sub.id = s.subject_id
        JOIN faculty f ON f.id = s.faculty_id
        JOIN rooms r ON r.id = s.room_id
        JOIN time_slots ts ON ts.id = s.time_slot_id
-       WHERE s.semester_id IN (${semesters.map((s) => s.id).join(',') || 'NULL'})
-         AND s.status = 'PUBLISHED'
-         AND s.data_environment IN ('VERIFIED','PRODUCTION')
-       ORDER BY ts.day_of_week, ts.start_time`
+       JOIN semesters sem ON sem.id = s.semester_id
+       WHERE sem.academic_year_id = ?
+         AND ${scheduleVisibilitySql('public')}
+       ORDER BY sec.code, ts.day_of_week, ts.start_time`
     )
-    .all() as Array<{
+    .all(yearId) as Array<{
       id: number;
+      section_code: string;
       subject_code: string;
       subject_name: string;
       faculty_name: string;
@@ -73,9 +76,11 @@ export default async function TermSchedules({ params }: PageProps) {
             been authorized for public display.
           </div>
         ) : (
-          <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-slate-700 text-xs uppercase tracking-wide text-slate-400">
               <tr>
+                <th className="py-2 pr-4">Section</th>
                 <th className="py-2 pr-4">Day</th>
                 <th className="py-2 pr-4">Time</th>
                 <th className="py-2 pr-4">Subject</th>
@@ -86,6 +91,7 @@ export default async function TermSchedules({ params }: PageProps) {
             <tbody>
               {published.map((p) => (
                 <tr key={p.id} className="border-b border-slate-800">
+                  <td className="py-2 pr-4 font-medium">{p.section_code}</td>
                   <td className="py-2 pr-4 capitalize">{p.day_of_week}</td>
                   <td className="py-2 pr-4">{p.start_time}–{p.end_time}</td>
                   <td className="py-2 pr-4">{p.subject_code} {p.subject_name}</td>
@@ -95,6 +101,7 @@ export default async function TermSchedules({ params }: PageProps) {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

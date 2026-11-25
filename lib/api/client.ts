@@ -1,4 +1,4 @@
-import type { Schedule, ScheduleInput } from '@/lib/domain/types';
+import type { ConflictResult, Schedule, ScheduleInput, ScheduleStatus } from '@/lib/domain/types';
 
 export async function apiPost<T>(url: string, body: Record<string, unknown>): Promise<T> {
   const res = await fetch(url, {
@@ -19,12 +19,15 @@ export async function apiGet<T>(url: string): Promise<T> {
 }
 
 export interface ScheduleOptions {
-  sections: { id: number; code: string }[];
+  sections: { id: number; code: string; program_id: number; year_level: number; capacity: number }[];
   subjects: { id: number; code: string; name: string }[];
   faculty: { id: number; employee_id: string; first_name: string; last_name: string }[];
-  rooms: { id: number; code: string; name: string }[];
+  rooms: { id: number; code: string; name: string; capacity: number }[];
   timeSlots: { id: number; day_of_week: string; start_time: string; end_time: string }[];
   semester: { id: number; name: string } | null;
+  semesterNumber: number;
+  curriculum: { program_id: number; subject_id: number; year_level: number; semester_number: number }[];
+  facultySubjects: { faculty_id: number; subject_id: number }[];
 }
 
 export const scheduleApi = {
@@ -35,7 +38,16 @@ export const scheduleApi = {
         ? `/api/admin?resource=schedules&sectionId=${sectionId}`
         : '/api/admin?resource=schedules'
     ),
-  create: (data: ScheduleInput) => apiPost<Schedule>('/api/admin', { action: 'create-schedule', data }),
+  create: (data: ScheduleInput) =>
+    apiPost<Schedule & { warnings: string[] }>('/api/admin', { action: 'create-schedule', data }),
+  check: (input: Omit<ScheduleInput, 'semester_id'>) =>
+    apiGet<ConflictResult>(
+      `/api/admin?resource=schedule-check&${new URLSearchParams(
+        Object.entries(input).map(([k, v]) => [k, String(v)])
+      )}`
+    ),
+  transition: (scheduleId: number, toStatus: ScheduleStatus) =>
+    apiPost<{ ok: boolean }>('/api/admin', { action: 'transition-schedule', scheduleId, toStatus }),
   move: (scheduleId: number, timeSlotId: number) =>
     apiPost<Schedule>('/api/admin', { action: 'move-schedule', scheduleId, timeSlotId }),
   delete: (scheduleId: number) =>

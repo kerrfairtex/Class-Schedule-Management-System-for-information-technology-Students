@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "seed": "tsx scripts/seed.ts",
+    "seed": "tsx scripts/seed-db.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:uat": "vitest run __tests__/uat.test.ts",

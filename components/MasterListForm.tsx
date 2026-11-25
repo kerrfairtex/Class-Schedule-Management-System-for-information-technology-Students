@@ -195,7 +195,13 @@ export function MasterListForm({
         }
         throw new Error(data.error || 'Failed to save record');
       }
-      onSuccess(isEdit ? 'Record updated successfully' : 'Record created successfully');
+      onSuccess(
+        isEdit
+          ? 'Record updated successfully'
+          : data.temporaryPassword
+            ? `Record created. Temporary password: ${data.temporaryPassword} — give it to the user privately; they must change it at first login. It will not be shown again.`
+            : 'Record created successfully'
+      );
       onCancel();
       (e.target as HTMLFormElement).reset();
     } catch (err) {
@@ -234,7 +240,7 @@ export function MasterListForm({
         <>
           <Field name="employee_id" label="Employee ID" required defaultValue={defaults.employee_id} error={fieldErrors.employee_id} />
           {mode === 'create' && (
-            <Field name="password" label="Login Password" placeholder="faculty123" error={fieldErrors.password} />
+            <Field name="password" label="Login Password" placeholder="Leave blank to generate a temporary password" error={fieldErrors.password} />
           )}
           <Field name="first_name" label="First Name" required defaultValue={defaults.first_name} error={fieldErrors.first_name} />
           <Field name="last_name" label="Last Name" required defaultValue={defaults.last_name} error={fieldErrors.last_name} />
@@ -269,7 +275,7 @@ export function MasterListForm({
             hint="e.g. 2022-0001 or 20250001"
           />
           {mode === 'create' && (
-            <Field name="password" label="Login Password" placeholder="student123" error={fieldErrors.password} />
+            <Field name="password" label="Login Password" placeholder="Leave blank to generate a temporary password" error={fieldErrors.password} />
           )}
           <Field name="first_name" label="First Name" required defaultValue={defaults.first_name} error={fieldErrors.first_name} />
           <Field name="last_name" label="Last Name" required defaultValue={defaults.last_name} error={fieldErrors.last_name} />
@@ -361,7 +367,7 @@ export function MasterListForm({
         <>
           <Field name="username" label="Username" required defaultValue={defaults.username} error={fieldErrors.username} />
           {mode === 'create' && (
-            <Field name="password" label="Password" placeholder="min. 8 characters" error={fieldErrors.password} />
+            <Field name="password" label="Password" placeholder="Leave blank to generate a temporary password" error={fieldErrors.password} />
           )}
           <Select
             name="role"
