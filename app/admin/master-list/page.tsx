@@ -184,14 +184,14 @@ export default function MasterListPage() {
   const columns = getColumns(tab);
 
   return (
-    <div className="flex min-h-screen bg-midnight">
+    <div className="flex min-h-screen flex-col md:flex-row bg-midnight">
       <PortalSidebar
         title="Admin"
         name="Administrator"
         subtitle={ORGANIZATION.departmentCode}
         links={ADMIN_LINKS}
       />
-      <main className="flex-1 p-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-100">Master List</h1>

@@ -17,8 +17,8 @@ interface PortalSidebarProps {
 
 export function PortalSidebar({ title, name, subtitle, details, links }: PortalSidebarProps) {
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white print:hidden">
-      <div className="border-b border-slate-200 p-6 text-center">
+    <aside className="flex w-full shrink-0 flex-col border-b border-slate-200 bg-white print:hidden md:w-72 md:border-b-0 md:border-r">
+      <div className="border-b border-slate-200 p-4 text-center md:p-6">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{title}</p>
         <h2 className="mt-2 text-lg font-semibold text-slate-900">{name}</h2>
         {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
@@ -33,12 +33,13 @@ export function PortalSidebar({ title, name, subtitle, details, links }: PortalS
           ))}
         </div>
       )}
-      <nav className="flex-1 space-y-1 p-4">
+      <nav aria-label={`${title} navigation`} className="flex flex-1 gap-1 overflow-x-auto p-2 md:block md:space-y-1 md:p-4">
         {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
+            aria-current={link.active ? 'page' : undefined}
+            className={`block shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition ${
               link.active
                 ? 'bg-primary text-white'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
