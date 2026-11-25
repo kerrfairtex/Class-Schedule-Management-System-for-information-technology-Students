@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { requireAdmin } from '@/lib/auth';
 import { getDb } from '@/lib/persistence/db';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default async function AdminEvidencePage() {
+  await requireAdmin();
   const db = await getDb();
   const facts = await db
     .prepare(

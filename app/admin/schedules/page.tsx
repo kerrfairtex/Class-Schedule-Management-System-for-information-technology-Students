@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { requireAdmin } from '@/lib/auth';
 import { getDb } from '@/lib/persistence/db';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default async function AdminSchedulesPage() {
+  await requireAdmin();
   const db = await getDb();
   const activeSemester = await db
     .prepare(`SELECT id, name FROM semesters WHERE is_active = 1`)

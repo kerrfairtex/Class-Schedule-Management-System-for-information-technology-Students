@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { requireAdmin } from '@/lib/auth';
 import { getDb } from '@/lib/persistence/db';
 import { detectAllConflictsInSemester } from '@/lib/modules/mod-04-conflict-engine/validator';
 
@@ -9,6 +10,7 @@ export const metadata = {
 };
 
 export default async function AdminConflictsPage() {
+  await requireAdmin();
   const db = await getDb();
   const activeSemester = await db
     .prepare(`SELECT id, name FROM semesters WHERE is_active = 1`)
