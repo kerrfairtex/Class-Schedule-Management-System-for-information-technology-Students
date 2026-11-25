@@ -26,17 +26,33 @@ export function formatTime(hhmm: string): string {
 
 export const formatRange = (start: string, end: string) => `${formatTime(start)}–${formatTime(end)}`;
 
-/** Current campus weekday ("monday") and time ("HH:MM"). */
-export function campusNow(now: Date = new Date()): { day: string; time: string } {
+/** Current campus weekday ("monday"), time ("HH:MM") and date ("YYYY-MM-DD"). */
+export function campusNow(now: Date = new Date()): { day: string; time: string; date: string } {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: CAMPUS_TIME_ZONE,
     weekday: 'long',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
   }).formatToParts(now);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
-  return { day: get('weekday').toLowerCase(), time: `${get('hour')}:${get('minute')}` };
+  return {
+    day: get('weekday').toLowerCase(),
+    time: `${get('hour')}:${get('minute')}`,
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+  };
+}
+
+/** Weekday name ("monday") of a calendar date "YYYY-MM-DD". */
+export function weekdayOf(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  // UTC on purpose: a bare calendar date has no time zone.
+  return ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
+    new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+  ];
 }
 
 const dayRank = (d: string) => {
@@ -86,4 +102,37 @@ export function roomStatusAt(
 export function freeRoomIds(entries: Schedule[], roomIds: number[], day: string, time: string): number[] {
   const busy = new Set(entries.filter((e) => occupies(e, day, time)).map((e) => e.room_id));
   return roomIds.filter((id) => !busy.has(id));
+}
+
+const minutes = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+
+/** Weekly teaching load for a set of class meetings. */
+export function teachingLoad(entries: Schedule[]): {
+  meetings: number;
+  hours: number;
+  subjects: number;
+  sections: number;
+  byDay: { day: string; meetings: number; hours: number }[];
+} {
+  const byDay = new Map<string, { meetings: number; minutes: number }>();
+  let total = 0;
+  for (const e of entries) {
+    const m = e.start_time && e.end_time ? Math.max(minutes(e.end_time) - minutes(e.start_time), 0) : 0;
+    total += m;
+    const d = byDay.get(e.day_of_week ?? '') ?? { meetings: 0, minutes: 0 };
+    byDay.set(e.day_of_week ?? '', { meetings: d.meetings + 1, minutes: d.minutes + m });
+  }
+  const round = (m: number) => Math.round((m / 60) * 10) / 10;
+  return {
+    meetings: entries.length,
+    hours: round(total),
+    subjects: new Set(entries.map((e) => e.subject_id)).size,
+    sections: new Set(entries.map((e) => e.section_id)).size,
+    byDay: Array.from(byDay, ([day, v]) => ({ day, meetings: v.meetings, hours: round(v.minutes) })).sort(
+      (a, b) => dayRank(a.day) - dayRank(b.day)
+    ),
+  };
 }

@@ -32,9 +32,9 @@ describe('public timetable helpers', () => {
 
   it('reads the campus clock in Manila time, not server UTC', () => {
     // 2026-11-23 is a Monday. 01:00 UTC is 09:00 in Manila.
-    expect(campusNow(new Date('2026-11-23T01:00:00Z'))).toEqual({ day: 'monday', time: '09:00' });
+    expect(campusNow(new Date('2026-11-23T01:00:00Z'))).toEqual({ day: 'monday', time: '09:00', date: '2026-11-23' });
     // 23:30 UTC Sunday is already Monday 07:30 in Manila.
-    expect(campusNow(new Date('2026-11-22T23:30:00Z'))).toEqual({ day: 'monday', time: '07:30' });
+    expect(campusNow(new Date('2026-11-22T23:30:00Z'))).toEqual({ day: 'monday', time: '07:30', date: '2026-11-23' });
   });
 
   it('orders days by the week and rows by time', () => {
