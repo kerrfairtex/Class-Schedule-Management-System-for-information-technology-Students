@@ -218,7 +218,7 @@ export function MasterListForm({
             onCancel();
             setFieldErrors({});
           }}
-          className="text-sm text-slate-500 hover:text-slate-300"
+          className="text-sm text-muted hover:text-ink-soft"
         >
           Cancel
         </button>
@@ -319,7 +319,7 @@ export function MasterListForm({
             error={fieldErrors.year_level}
           />
           <input type="hidden" name="semester_id" value={defaults.semester_id || meta.semester?.id || ''} />
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-muted">
             Active semester: {meta.semester?.name ?? 'None'}
           </div>
         </>
@@ -430,7 +430,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-300">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-ink-soft">{label}</label>
       <input
         name={name}
         type={type}
@@ -441,9 +441,9 @@ function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-error` : undefined}
       />
-      {hint && !error && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+      {hint && !error && <p className="mt-1 text-xs text-muted">{hint}</p>}
       {error && (
-        <p id={`${name}-error`} className="mt-1 text-xs text-red-400">
+        <p id={`${name}-error`} className="mt-1 text-xs text-coral">
           {error}
         </p>
       )}
@@ -468,7 +468,7 @@ function Select({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-300">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-ink-soft">{label}</label>
       <select
         name={name}
         required={required}
@@ -485,7 +485,7 @@ function Select({
         ))}
       </select>
       {error && (
-        <p id={`${name}-error`} className="mt-1 text-xs text-red-400">
+        <p id={`${name}-error`} className="mt-1 text-xs text-coral">
           {error}
         </p>
       )}

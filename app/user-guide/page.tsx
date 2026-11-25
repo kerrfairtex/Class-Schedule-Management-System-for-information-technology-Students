@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
-import Link from "next/link";
 import { renderMarkdown } from "@/lib/markdown";
 import { PublicHeader } from '@/components/public/PublicHeader';
+import { PublicFooter } from '@/components/public/PublicFooter';
 
 export const dynamic = "force-dynamic";
 
@@ -20,19 +20,20 @@ export default function UserGuidePage() {
   const md = lines.slice(3).join("\n");
   const html = renderMarkdown(md);
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
+    <div className="min-h-screen">
       <PublicHeader />
       <div className="mx-auto max-w-5xl px-6 py-12">
         <div className="mb-6">
         </div>
-        <h1 className="mb-2 text-4xl font-bold text-slate-100">
+        <h1 className="mb-2 text-4xl font-bold text-ink">
           Class Schedule Management System
         </h1>
-        <p className="mb-10 text-lg text-slate-400">
+        <p className="mb-10 text-lg text-muted">
           Complete User Guide — based on the verified frontend implementation
         </p>
         <article className="user-guide" dangerouslySetInnerHTML={{ __html: html }} />
       </div>
+      <PublicFooter />
     </div>
   );
 }

@@ -49,9 +49,9 @@ export function ChangePasswordForm({ mustChange }: ChangePasswordFormProps) {
 
   if (success) {
     return (
-      <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-center">
-        <p className="text-emerald-400 font-medium">Password changed successfully</p>
-        <p className="text-slate-400 text-sm mt-2">Redirecting...</p>
+      <div className="rounded-lg border border-seagrass/40 bg-seagrass-50 p-4 text-center">
+        <p className="text-seagrass font-medium">Password changed successfully</p>
+        <p className="text-muted text-sm mt-2">Redirecting...</p>
       </div>
     );
   }
@@ -59,14 +59,14 @@ export function ChangePasswordForm({ mustChange }: ChangePasswordFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-400">
+        <div className="rounded-lg border border-coral/40 bg-coral-50 p-3 text-sm text-coral">
           {error}
         </div>
       )}
 
       {!mustChange && (
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
+          <label className="block text-sm font-medium text-ink-soft mb-1">
             Current Password
           </label>
           <input
@@ -81,7 +81,7 @@ export function ChangePasswordForm({ mustChange }: ChangePasswordFormProps) {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1">
+        <label className="block text-sm font-medium text-ink-soft mb-1">
           New Password
         </label>
         <input
@@ -93,11 +93,11 @@ export function ChangePasswordForm({ mustChange }: ChangePasswordFormProps) {
           minLength={8}
           autoComplete="new-password"
         />
-        <p className="text-xs text-slate-500 mt-1">Minimum 8 characters</p>
+        <p className="text-xs text-muted mt-1">Minimum 8 characters</p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1">
+        <label className="block text-sm font-medium text-ink-soft mb-1">
           Confirm New Password
         </label>
         <input

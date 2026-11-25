@@ -1,26 +1,27 @@
-import type { Metadata } from 'next';
-import { Inter, Playfair_Display, JetBrains_Mono } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Archivo, Atkinson_Hyperlegible } from 'next/font/google';
 import './globals.css';
 import { SYSTEM_IDENTITY } from '@/lib/domain/constants';
 import { SITE_URL } from '@/lib/site';
 
-const inter = Inter({
+// Body: Atkinson Hyperlegible, designed for legibility (small phones, bright
+// daylight). Headings: Archivo, a sturdy civic grotesque.
+const body = Atkinson_Hyperlegible({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['400', '700'],
+  variable: '--font-body',
   display: 'swap',
 });
 
-const playfair = Playfair_Display({
+const display = Archivo({
   subsets: ['latin'],
-  variable: '--font-playfair',
+  variable: '--font-display',
   display: 'swap',
 });
 
-const jetbrains = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
-  display: 'swap',
-});
+export const viewport: Viewport = {
+  themeColor: '#0B6B70',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -40,8 +41,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} ${jetbrains.variable} dark`}>
-      <body className="font-sans">{children}</body>
+    <html lang="en" className={`${body.variable} ${display.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

@@ -3,6 +3,7 @@ import { assertNotProductionDatabase } from '@/lib/guards/production-database';
 import { hashPassword } from '@/lib/modules/mod-01-auth/service';
 import { ensureTimeSlots } from '@/lib/modules/mod-02-master-list/service';
 import { ORGANIZATION } from '@/lib/domain/constants';
+import { ensureEvidenceSeeded } from '@/lib/persistence/seed';
 
 async function seedDatabase() {
   // Refuse to write to the production database by accident.
@@ -177,6 +178,9 @@ async function seedDatabase() {
       }
     }
   }
+
+  // Evidence layer (sources, verified institutional facts, contacts) for /about and /contact.
+  await ensureEvidenceSeeded();
 
   console.log('Database seeded successfully');
   process.exit(0);

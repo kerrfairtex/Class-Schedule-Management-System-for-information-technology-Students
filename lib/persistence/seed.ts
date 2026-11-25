@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/persistence/db';
-import { createUser, hashPassword } from '@/lib/modules/mod-01-auth/service';
+import { hashPassword } from '@/lib/modules/mod-01-auth/service';
 import { ensureTimeSlots } from '@/lib/modules/mod-02-master-list/service';
-import { DAYS, TIME_SLOTS, ORGANIZATION } from '@/lib/domain/constants';
+import { ORGANIZATION } from '@/lib/domain/constants';
 import {
   EVIDENCE_SOURCES,
   INSTITUTIONAL_FACTS,

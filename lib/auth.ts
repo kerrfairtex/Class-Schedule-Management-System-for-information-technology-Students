@@ -13,3 +13,10 @@ export async function requireAdmin() {
   if (!session || session.role !== 'admin') redirect('/login');
   return session;
 }
+
+/** Server pages under /faculty call this first; returns the faculty session. */
+export async function requireFaculty() {
+  const session = await getSession();
+  if (!session || session.role !== 'faculty' || !session.facultyId) redirect('/login');
+  return session as typeof session & { facultyId: number };
+}

@@ -26,10 +26,6 @@ export function ScheduleGrid({
 }: ScheduleGridProps) {
   const timeSlots = getUniqueTimeSlots(schedules);
 
-  function getEntry(day: string, startTime: string) {
-    return schedules.find((s) => s.day_of_week === day && s.start_time === startTime);
-  }
-
   // Apply filters
   let filteredSchedules = schedules;
   if (filters) {
@@ -52,14 +48,14 @@ export function ScheduleGrid({
   }
 
   return (
-    <div className="schedule-grid animate-in">
+    <div className="schedule-grid">
       <div className="overflow-x-auto">
         <table className="schedule-grid-table">
           <thead>
             <tr className="schedule-grid-header">
-              <th className="px-3 py-3 text-left font-medium text-xs uppercase tracking-wider w-24">TIME</th>
+              <th className="px-3 py-3 text-left font-medium text-xs w-24">TIME</th>
               {DAYS.map((day) => (
-                <th key={day} className="px-3 py-3 text-left font-medium text-xs uppercase tracking-wider">
+                <th key={day} className="px-3 py-3 text-left font-medium text-xs">
                   {DAY_LABELS[day]}
                 </th>
               ))}
@@ -67,7 +63,7 @@ export function ScheduleGrid({
           </thead>
           <tbody>
             {timeSlots.map((slot, idx) => (
-              <tr key={slot} className={idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-950/50'}>
+              <tr key={slot} className={idx % 2 === 0 ? 'bg-surface' : 'bg-surface'}>
                 <td className="schedule-grid-time-col w-24">
                   {formatTimeLabel(slot, schedules)}
                 </td>
@@ -83,16 +79,16 @@ export function ScheduleGrid({
                               categoryLabel={getCourseCategoryLabel(entry.subject_code || '')}
                             />
                             {showSection && entry.section_code && (
-                              <span className="schedule-block-meta font-mono">{entry.section_code}</span>
+                              <span className="schedule-block-meta">{entry.section_code}</span>
                             )}
                           </div>
                           <p className="schedule-block-title mt-1 truncate">{entry.subject_name}</p>
-                          <p className="schedule-block-meta font-mono">{entry.room_code}</p>
+                          <p className="schedule-block-meta">{entry.room_code}</p>
                           {showFaculty && entry.faculty_name && (
                             <p className="schedule-block-meta">{entry.faculty_name}</p>
                           )}
                           {showSection && entry.section_code && (
-                            <p className="schedule-block-meta font-mono">{entry.section_code}</p>
+                            <p className="schedule-block-meta">{entry.section_code}</p>
                           )}
                         </div>
                       ) : (
@@ -112,7 +108,7 @@ export function ScheduleGrid({
 
 function CourseBadgeInline({ subjectCode, categoryLabel }: { subjectCode: string; categoryLabel: string }) {
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono">
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/10 text-[10px]">
       {categoryLabel}
     </span>
   );

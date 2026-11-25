@@ -2,14 +2,13 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { PortalSidebar } from '@/components/Sidebar';
 import { ScheduleBoard, STATUS_BADGE, useScheduleBoardData } from '@/components/ScheduleBoard';
 import { ManualScheduleForm } from '@/components/ManualScheduleForm';
 import { scheduleApi } from '@/lib/api/client';
-import { ORGANIZATION } from '@/lib/domain/constants';
 import { STATUS_LABEL } from '@/lib/domain/schedule-status';
 import type { ScheduleStatus } from '@/lib/domain/types';
 import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
+import { PortalLayout } from '@/components/PortalLayout';
 
 /** One-click workflow steps applied to every matching class in the current view. */
 const BULK_STEPS: { from: ScheduleStatus; to: ScheduleStatus; label: string }[] = [
@@ -90,20 +89,18 @@ export default function ScheduleBoardPage() {
   const adminLinks = navFor(ADMIN_NAV, '/admin/schedule-board');
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <PortalSidebar title="Admin" name="Administrator" subtitle={ORGANIZATION.departmentCode} links={adminLinks} />
-      <main className="min-w-0 flex-1 p-4 sm:p-8">
+    <PortalLayout role="admin" name="Administrator" links={adminLinks}>
         <h1 className="mb-2 text-2xl font-bold">Schedule Board</h1>
-        <p className="mb-6 text-sm text-slate-500">
+        <p className="mb-6 text-sm text-muted">
           MOD-03 Generation · MOD-04 Conflict Detection · MOD-05 Manual Adjustment
         </p>
 
         <div aria-live="polite">
           {message && (
-            <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">{message}</div>
+            <div className="mb-4 rounded-lg bg-lagoon-50 px-4 py-3 text-sm text-lagoon-dark">{message}</div>
           )}
           {error && (
-            <div role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+            <div role="alert" className="mb-4 rounded-lg bg-coral-50 px-4 py-3 text-sm text-coral">{error}</div>
           )}
         </div>
 
@@ -124,7 +121,7 @@ export default function ScheduleBoardPage() {
             }}
           />
           <div className="flex items-center gap-2">
-            <label htmlFor="section-filter" className="text-sm font-medium text-slate-600">
+            <label htmlFor="section-filter" className="text-sm font-medium text-muted">
               Filter section:
             </label>
             <select
@@ -143,8 +140,8 @@ export default function ScheduleBoardPage() {
           </div>
         </div>
 
-        <section aria-labelledby="workflow-heading" className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
-          <h2 id="workflow-heading" className="mb-3 text-sm font-semibold text-slate-700">
+        <section aria-labelledby="workflow-heading" className="mb-6 rounded-xl border border-line bg-white p-4">
+          <h2 id="workflow-heading" className="mb-3 text-sm font-semibold text-ink-soft">
             Publishing workflow {sectionFilter ? '(this section)' : '(all sections)'}
           </h2>
           <ul className="mb-3 flex flex-wrap gap-2">
@@ -170,7 +167,7 @@ export default function ScheduleBoardPage() {
         </section>
 
         <div className="mb-6 flex flex-wrap gap-2">
-          <span className="self-center text-sm font-medium text-slate-600">Auto-generate drafts (MOD-03):</span>
+          <span className="self-center text-sm font-medium text-muted">Auto-generate drafts (MOD-03):</span>
           {sections.map((s) => (
             <button key={s.id} type="button" onClick={() => generateForSection(s.id)} className="btn-secondary text-sm">
               {s.code}
@@ -194,7 +191,6 @@ export default function ScheduleBoardPage() {
           }}
           onRefresh={refresh}
         />
-      </main>
-    </div>
+    </PortalLayout>
   );
 }

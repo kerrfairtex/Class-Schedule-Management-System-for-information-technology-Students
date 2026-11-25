@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PortalSidebar } from '@/components/Sidebar';
 import { MasterListForm, type EditingRecord } from '@/components/MasterListForm';
-import { ORGANIZATION } from '@/lib/domain/constants';
 import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
+import { PortalLayout } from '@/components/PortalLayout';
 import {
   masterListAction,
   type MasterListTab,
@@ -180,18 +179,11 @@ export default function MasterListPage() {
   const columns = getColumns(tab);
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-midnight">
-      <PortalSidebar
-        title="Admin"
-        name="Administrator"
-        subtitle={ORGANIZATION.departmentCode}
-        links={ADMIN_LINKS}
-      />
-      <main className="min-w-0 flex-1 p-4 sm:p-8">
+    <PortalLayout role="admin" name="Administrator" links={ADMIN_LINKS}>
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-100">Master List</h1>
-            <p className="text-sm text-slate-400">MOD-02 — System source of truth</p>
+            <h1 className="text-2xl font-bold text-ink">Master List</h1>
+            <p className="text-sm text-muted">MOD-02 — System source of truth</p>
           </div>
           <button onClick={handleBackup} className="btn-secondary">
             Backup Database (MOD-08)
@@ -199,7 +191,7 @@ export default function MasterListPage() {
         </div>
 
         {message && (
-          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          <div className="mb-4 rounded-lg border border-seagrass/40 bg-seagrass-50 px-4 py-3 text-sm text-seagrass">
             {message}
             {backupFile && (
               <a
@@ -213,20 +205,20 @@ export default function MasterListPage() {
           </div>
         )}
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mb-4 rounded-lg border border-coral/40 bg-coral-50 px-4 py-3 text-sm text-coral">
             {error}
           </div>
         )}
 
-        <div className="mb-6 flex gap-2 border-b border-slate-800">
+        <div className="mb-6 flex gap-2 border-b border-line">
           {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`px-4 py-2 text-sm font-medium ${
                 tab === t.key
-                  ? 'border-b-2 border-cyber-teal text-cyber-teal'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'border-b-2 border-lagoon text-lagoon'
+                  : 'text-muted hover:text-ink'
               }`}
             >
               {t.label}
@@ -259,16 +251,16 @@ export default function MasterListPage() {
           </button>
         )}
 
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/60">
+        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full text-sm">
-            <thead className="bg-slate-800/60">
+            <thead className="bg-surface">
               <tr>
                 {columns.map((col) => (
-                  <th key={col} className="px-4 py-3 text-left font-medium text-slate-300">
+                  <th key={col} className="px-4 py-3 text-left font-medium text-ink-soft">
                     {col}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-right font-medium text-slate-300">Actions</th>
+                <th className="px-4 py-3 text-right font-medium text-ink-soft">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -276,16 +268,16 @@ export default function MasterListPage() {
                 <tr>
                   <td
                     colSpan={columns.length + 1}
-                    className="px-4 py-8 text-center text-slate-500"
+                    className="px-4 py-8 text-center text-muted"
                   >
                     No records yet. Use the form above to add one.
                   </td>
                 </tr>
               ) : (
                 rows.map((row, i) => (
-                  <tr key={i} className="border-t border-slate-800">
+                  <tr key={i} className="border-t border-line">
                     {columns.map((col) => (
-                      <td key={col} className="px-4 py-3 text-slate-200">
+                      <td key={col} className="px-4 py-3 text-ink">
                         {String(row[col] ?? '')}
                       </td>
                     ))}
@@ -293,14 +285,14 @@ export default function MasterListPage() {
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => startEdit(row)}
-                          className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 transition hover:border-cyber-teal/50 hover:text-cyber-teal"
+                          className="rounded border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-lagoon/50 hover:text-lagoon-dark"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(row)}
                           disabled={busyId === Number(row._id)}
-                          className="rounded border border-red-500/40 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
+                          className="rounded border border-coral/40 px-2 py-1 text-xs text-coral transition hover:bg-coral-50 disabled:opacity-50"
                         >
                           {busyId === Number(row._id) ? 'Deleting...' : 'Delete'}
                         </button>
@@ -315,7 +307,7 @@ export default function MasterListPage() {
 
         {tab === 'users' && (
           <div className="mt-4">
-            <h3 className="text-sm font-medium mb-2 text-slate-300">Reset Password</h3>
+            <h3 className="text-sm font-medium mb-2 text-ink-soft">Reset Password</h3>
             <div className="flex gap-2">
               <select id="reset-username" className="input-field">
                 <option value="">Select user...</option>
@@ -330,16 +322,15 @@ export default function MasterListPage() {
               </button>
             </div>
             {resetMessage && (
-              <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+              <div className="mt-2 rounded-lg border border-seagrass/40 bg-seagrass-50 px-4 py-3 text-sm text-seagrass">
                 {resetMessage}
               </div>
             )}
           </div>
         )}
 
-        <p className="mt-2 text-xs text-slate-500">{rawData.length} record(s)</p>
-      </main>
-    </div>
+        <p className="mt-2 text-xs text-muted">{rawData.length} record(s)</p>
+    </PortalLayout>
   );
 }
 

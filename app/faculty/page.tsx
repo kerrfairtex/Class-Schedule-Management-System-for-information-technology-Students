@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { PublicHeader } from '@/components/public/PublicHeader';
 import { getDb } from '@/lib/persistence/db';
 import { getPublicSchedules } from '@/lib/modules/mod-03-schedule-engine/service';
+import { PublicFooter } from '@/components/public/PublicFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,37 +39,37 @@ export default async function FacultyPage() {
   for (const e of published) classCount.set(e.faculty_id, (classCount.get(e.faculty_id) ?? 0) + 1);
 
   return (
-    <div className="min-h-screen bg-midnight text-slate-100">
+    <div className="min-h-screen">
       <PublicHeader active="/faculty" />
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <h1 className="text-3xl font-bold sm:text-4xl">Faculty</h1>
-        <p className="mt-2 text-slate-400">BSIT instructors, the subjects they handle, and their published class schedules.</p>
+        <p className="mt-2 text-muted">BSIT instructors, the subjects they handle, and their published class schedules.</p>
 
         {faculty.length === 0 ? (
-          <p className="mt-8 text-slate-500">No faculty have been added yet.</p>
+          <p className="mt-8 text-muted">No faculty have been added yet.</p>
         ) : (
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
             {faculty.map((f) => {
               const n = classCount.get(f.id) ?? 0;
               const subjects = subjectsOf.get(f.id) ?? [];
               return (
-                <li key={f.id} className="rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+                <li key={f.id} className="rounded-xl border border-line bg-surface p-4">
                   <h2 className="text-lg font-semibold">
                     {f.first_name} {f.last_name}
                   </h2>
-                  <p className="text-sm text-slate-400">{f.dept_code}</p>
+                  <p className="text-sm text-muted">{f.dept_code}</p>
                   {subjects.length > 0 && (
-                    <p className="mt-2 text-xs text-slate-400">Subjects: {subjects.join(', ')}</p>
+                    <p className="mt-2 text-xs text-muted">Subjects: {subjects.join(', ')}</p>
                   )}
                   {n > 0 ? (
                     <Link
                       href={`/schedules?faculty=${f.id}`}
-                      className="mt-3 inline-block text-sm text-cyber-cyan underline-offset-2 hover:underline"
+                      className="mt-3 inline-block text-sm text-lagoon underline-offset-2 hover:underline"
                     >
-                      Teaching schedule ({n} classes/week) →
+                      Teaching schedule, {n} classes a week
                     </Link>
                   ) : (
-                    <p className="mt-3 text-xs text-slate-500">No published classes this semester.</p>
+                    <p className="mt-3 text-xs text-muted">No published classes this semester.</p>
                   )}
                 </li>
               );
@@ -76,6 +77,7 @@ export default async function FacultyPage() {
           </ul>
         )}
       </main>
+      <PublicFooter />
     </div>
   );
 }

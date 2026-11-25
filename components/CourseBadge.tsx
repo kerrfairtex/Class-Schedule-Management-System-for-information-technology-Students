@@ -1,6 +1,5 @@
 'use client';
 
-import type { Schedule } from '@/lib/domain/types';
 
 interface CourseBadgeProps {
   subjectCode: string;
@@ -80,8 +79,8 @@ export function CourseBadge({ subjectCode, subjectName, size = 'md', showName = 
 
   return (
     <span className={`${badgeClass} ${sizeClasses[size]}`}>
-      <span className="font-mono">{categoryLabel}</span>
-      {showName && <span className="font-mono"> {subjectCode}</span>}
+      <span className="">{categoryLabel}</span>
+      {showName && <span className=""> {subjectCode}</span>}
     </span>
   );
 }

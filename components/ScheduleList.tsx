@@ -2,7 +2,7 @@
 
 import type { Schedule } from '@/lib/domain/types';
 import { DAY_LABELS } from '@/lib/domain/constants';
-import { getCourseBadgeClass, getCourseCategoryLabel, CourseBadge } from './CourseBadge';
+import { CourseBadge } from './CourseBadge';
 
 interface ScheduleListProps {
   schedules: Schedule[];
@@ -36,7 +36,7 @@ export function ScheduleList({ schedules, showFaculty, showSection, filters }: S
 
   if (filteredSchedules.length === 0) {
     return (
-      <div className="card text-center text-sm text-slate-500 py-12">
+      <div className="card text-center text-sm text-muted py-12">
         No classes scheduled.
       </div>
     );
@@ -51,11 +51,11 @@ export function ScheduleList({ schedules, showFaculty, showSection, filters }: S
   });
 
   return (
-    <div className="space-y-3 animate-in">
+    <div className="space-y-3">
       {sorted.map((s) => (
         <div
           key={s.id}
-          className="card flex flex-wrap items-center justify-between gap-4 print:break-inside-avoid print:shadow-none animate-in"
+          className="card flex flex-wrap items-center justify-between gap-4 print:break-inside-avoid print:shadow-none"
         >
           <div className="flex items-center gap-4 min-w-0 flex-1">
             <CourseBadge
@@ -65,27 +65,27 @@ export function ScheduleList({ schedules, showFaculty, showSection, filters }: S
               showName={true}
             />
             <div className="min-w-0">
-              <p className="font-semibold text-slate-100 truncate">
+              <p className="font-semibold text-ink truncate">
                 {s.subject_name}
               </p>
-              <p className="text-sm text-slate-500 font-mono">
+              <p className="text-sm text-muted">
                 {DAY_LABELS[s.day_of_week || '']} · {s.start_time} – {s.end_time}
               </p>
             </div>
           </div>
-          <div className="text-right text-sm text-slate-500 flex items-center gap-4 shrink-0">
+          <div className="text-right text-sm text-muted flex items-center gap-4 shrink-0">
             <div className="text-left">
-              <p className="font-mono text-cyber-cyan">{s.room_code}</p>
-              <p className="text-[11px] text-slate-600">{s.room_name}</p>
+              <p className="text-lagoon">{s.room_code}</p>
+              <p className="text-[11px] text-muted">{s.room_name}</p>
             </div>
             {showFaculty && s.faculty_name && (
               <div className="text-left">
-                <p className="font-mono text-emerald-400">{s.faculty_name}</p>
+                <p className="text-seagrass">{s.faculty_name}</p>
               </div>
             )}
             {showSection && s.section_code && (
               <div className="text-left">
-                <p className="font-mono text-amber-400">Section {s.section_code}</p>
+                <p className="text-ink">Section {s.section_code}</p>
               </div>
             )}
           </div>
@@ -116,8 +116,8 @@ function Stat({ label, value, iconClass }: { label: string; value: number; iconC
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
       </div>
-      <p className="text-2xl font-bold text-slate-100 font-mono">{value}</p>
-      <p className="text-sm text-slate-500">{label}</p>
+      <p className="text-2xl font-bold text-ink">{value}</p>
+      <p className="text-sm text-muted">{label}</p>
     </div>
   );
 }

@@ -725,3 +725,27 @@ export async function withTransaction<T>(fn: (database: any) => Promise<T>): Pro
     }
   }
 }
+
+/**
+ * True for "table does not exist" (PostgreSQL 42P01, SQLite "no such table").
+ * Used only where a newer feature's table may not be migrated yet.
+ */
+export function isMissingTableError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | null;
+  return e?.code === '42P01' || /no such table|relation .* does not exist/i.test(e?.message ?? '');
+}
+
+/**
+ * Run a read that depends on a table from a migration that may not have
+ * been applied yet (e.g. 003). A missing table yields `fallback` and a
+ * logged warning; every other error is re-thrown.
+ */
+export async function readIfMigrated<T>(read: () => Promise<T>, fallback: T, what: string): Promise<T> {
+  try {
+    return await read();
+  } catch (err) {
+    if (!isMissingTableError(err)) throw err;
+    console.warn(`[db] ${what} unavailable: run the pending migration in db/migrations/.`);
+    return fallback;
+  }
+}

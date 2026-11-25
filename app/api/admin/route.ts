@@ -48,6 +48,19 @@ import {
 } from '@/lib/modules/mod-03-schedule-engine/service';
 import { detectConflicts } from '@/lib/modules/mod-04-conflict-engine/validator';
 import { DATA_ENVIRONMENTS, setDataEnvironment } from '@/lib/modules/mod-08-database-service/settings';
+import {
+  activateSemester,
+  addSemester,
+  addTimeSlot,
+  createAcademicYear,
+  deleteTimeSlot,
+} from '@/lib/modules/mod-02-master-list/terms';
+import { createBooking, deleteBooking } from '@/lib/modules/mod-09-room-bookings/service';
+import {
+  createAnnouncement,
+  deleteAnnouncement,
+  updateAnnouncement,
+} from '@/lib/modules/mod-10-announcements/service';
 import { createBackup } from '@/lib/modules/mod-08-database-service/backup';
 import { getAuditLogs, logAudit } from '@/lib/modules/mod-08-database-service/audit';
 import { createUser } from '@/lib/modules/mod-01-auth/service';
@@ -67,7 +80,6 @@ import {
   toOptionalInt,
   toText,
   toOptionalText,
-  toEmail,
   toOptionalEmail,
   toIdentifier,
   toIntArray,
@@ -631,6 +643,85 @@ export async function POST(request: Request) {
           username: session!.username,
         });
         return NextResponse.json({ success: true, ...result });
+      }
+      case 'create-academic-year': {
+        const v = z
+          .object({ label: z.string(), start_date: z.string().optional(), end_date: z.string().optional() })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Enter the academic year, e.g. 2026-2027');
+        return NextResponse.json({ success: true, id: await createAcademicYear(v.data, session!.id) });
+      }
+      case 'add-semester': {
+        const v = z.object({ academicYearId: z.number().int().positive(), name: z.string() }).safeParse(body);
+        if (!v.success) return invalidBody('Choose an academic year and semester');
+        return NextResponse.json({ success: true, id: await addSemester(v.data.academicYearId, v.data.name, session!.id) });
+      }
+      case 'activate-semester': {
+        const v = z.object({ id: z.number().int().positive() }).safeParse(body);
+        if (!v.success) return invalidBody('Choose a semester');
+        await activateSemester(v.data.id, session!.id);
+        return NextResponse.json({ success: true });
+      }
+      case 'add-time-slot': {
+        const v = z
+          .object({ day_of_week: z.string(), start_time: z.string(), end_time: z.string() })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Choose a day, start and end time');
+        return NextResponse.json({ success: true, id: await addTimeSlot(v.data, session!.id) });
+      }
+      case 'delete-time-slot': {
+        const v = z.object({ id: z.number().int().positive() }).safeParse(body);
+        if (!v.success) return invalidBody('Choose a period');
+        await deleteTimeSlot(v.data.id, session!.id);
+        return NextResponse.json({ success: true });
+      }
+      case 'create-booking': {
+        const v = z
+          .object({
+            room_id: z.number().int().positive(),
+            title: z.string(),
+            kind: z.string(),
+            booking_date: z.string(),
+            start_time: z.string(),
+            end_time: z.string(),
+            notes: z.string().optional(),
+          })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Fill in the room, title, type, date and times');
+        return NextResponse.json({ success: true, id: await createBooking(v.data, session!.id) });
+      }
+      case 'delete-booking': {
+        const v = z.object({ id: z.number().int().positive() }).safeParse(body);
+        if (!v.success) return invalidBody('Choose a booking');
+        await deleteBooking(v.data.id, session!.id);
+        return NextResponse.json({ success: true });
+      }
+      case 'create-announcement':
+      case 'update-announcement': {
+        const v = z
+          .object({
+            id: z.number().int().positive().optional(),
+            title: z.string(),
+            body: z.string(),
+            starts_on: z.string(),
+            ends_on: z.string().optional(),
+            pinned: z.boolean().optional(),
+          })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Fill in the title, text and start date');
+        const { id, ...input } = v.data;
+        if (action === 'update-announcement') {
+          if (!id) return invalidBody('Choose an announcement');
+          await updateAnnouncement(id, input, session!.id);
+          return NextResponse.json({ success: true, id });
+        }
+        return NextResponse.json({ success: true, id: await createAnnouncement(input, session!.id) });
+      }
+      case 'delete-announcement': {
+        const v = z.object({ id: z.number().int().positive() }).safeParse(body);
+        if (!v.success) return invalidBody('Choose an announcement');
+        await deleteAnnouncement(v.data.id, session!.id);
+        return NextResponse.json({ success: true });
       }
       case 'reset-password': {
         const resetSchema = z.object({

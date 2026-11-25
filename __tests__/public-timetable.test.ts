@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
+  addDays,
   campusNow,
+  isoWeek,
   daysOf,
   formatTime,
   freeRoomIds,
@@ -62,5 +64,11 @@ describe('public timetable helpers', () => {
     const entries = [cls(1, 10, 'monday', '07:30', '08:30')];
     expect(freeRoomIds(entries, [10, 11], 'monday', '07:30')).toEqual([11]);
     expect(freeRoomIds(entries, [10, 11], 'monday', '08:30')).toEqual([10, 11]);
+  });
+
+  it('computes ISO weeks and adds days across month ends', () => {
+    expect(isoWeek('2026-11-25')).toBe(48);
+    expect(isoWeek('2027-01-01')).toBe(53); // belongs to 2026's last week
+    expect(addDays('2026-11-29', 3)).toBe('2026-12-02');
   });
 });

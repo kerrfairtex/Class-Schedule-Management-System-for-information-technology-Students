@@ -19,12 +19,12 @@ export interface TimeSlot {
 }
 
 export const STATUS_BADGE: Record<ScheduleStatus, string> = {
-  DRAFT: 'bg-slate-100 text-slate-700 border-slate-300',
-  PENDING_REVIEW: 'bg-amber-50 text-amber-800 border-amber-300',
-  APPROVED: 'bg-blue-50 text-blue-800 border-blue-300',
-  PUBLISHED: 'bg-emerald-50 text-emerald-800 border-emerald-300',
-  CANCELLED: 'bg-red-50 text-red-800 border-red-300',
-  ARCHIVED: 'bg-slate-50 text-slate-500 border-slate-200',
+  DRAFT: 'bg-paper-2 text-ink-soft border-line',
+  PENDING_REVIEW: 'bg-sand text-ink border-sand-dark/50',
+  APPROVED: 'bg-lagoon-50 text-lagoon-dark border-lagoon/40',
+  PUBLISHED: 'bg-seagrass-50 text-seagrass border-seagrass/40',
+  CANCELLED: 'bg-coral-50 text-coral border-coral/40',
+  ARCHIVED: 'bg-paper-2 text-muted border-line',
 };
 
 interface ScheduleBoardProps {
@@ -106,7 +106,7 @@ export function ScheduleBoard({
 
   if (loading) {
     return (
-      <div role="status" className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+      <div role="status" className="rounded-xl border border-line bg-white p-8 text-center text-sm text-muted">
         Loading schedule board…
       </div>
     );
@@ -114,7 +114,7 @@ export function ScheduleBoard({
 
   if (loadError) {
     return (
-      <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+      <div role="alert" className="rounded-xl border border-coral/40 bg-coral-50 p-6 text-sm text-coral">
         <p className="mb-3">Could not load schedules: {loadError}</p>
         <button type="button" onClick={onRefresh} className="btn-secondary text-sm">
           Try again
@@ -125,7 +125,7 @@ export function ScheduleBoard({
 
   if (timeSlots.length === 0) {
     return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
+      <div className="rounded-xl border border-sand-dark/50 bg-sand p-6 text-sm text-ink">
         No time slots are defined yet, so there is nothing to schedule into. Add time slots first.
       </div>
     );
@@ -135,23 +135,23 @@ export function ScheduleBoard({
     <div>
       <div aria-live="polite">
         {message && (
-          <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{message}</div>
+          <div className="mb-4 rounded-lg bg-seagrass-50 px-4 py-3 text-sm text-seagrass">{message}</div>
         )}
         {error && (
-          <div role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+          <div role="alert" className="mb-4 rounded-lg bg-coral-50 px-4 py-3 text-sm text-coral">{error}</div>
         )}
       </div>
-      <p className="mb-4 text-sm text-slate-500">
+      <p className="mb-4 text-sm text-muted">
         Drag a class to another slot, or open <strong>Actions</strong> on a class to move it, change its
         status or delete it. Every change is checked for conflicts. Only <strong>Published</strong> classes
         appear to students and on the public site.
       </p>
       {visible.length === 0 && (
-        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <div className="mb-4 rounded-lg border border-line bg-paper-2 px-4 py-3 text-sm text-muted">
           No classes scheduled yet. Use <strong>Add Schedule Manually</strong> or auto-generate a section.
         </div>
       )}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm" aria-busy={busy}>
+      <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm" aria-busy={busy}>
         <table className="w-full min-w-[900px] border-collapse text-sm">
           <caption className="sr-only">Weekly class schedule</caption>
           <thead>
@@ -166,8 +166,8 @@ export function ScheduleBoard({
           </thead>
           <tbody>
             {uniqueTimes.map((time, idx) => (
-              <tr key={time} className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
-                <th scope="row" className="border-t border-slate-200 px-3 py-2 text-left font-medium text-slate-600">
+              <tr key={time} className={idx % 2 === 0 ? 'bg-paper-2' : 'bg-white'}>
+                <th scope="row" className="border-t border-line px-3 py-2 text-left font-medium text-muted">
                   {time}
                 </th>
                 {days.map((day) => {
@@ -176,12 +176,12 @@ export function ScheduleBoard({
                   return (
                     <td
                       key={day}
-                      className="border-t border-slate-200 px-2 py-2 align-top"
+                      className="border-t border-line px-2 py-2 align-top"
                       onDragOver={(e) => slotExists && e.preventDefault()}
                       onDrop={() => handleDrop(day, time)}
                     >
                       {entries.length === 0 ? (
-                        <div className="h-14 rounded border border-dashed border-slate-200" />
+                        <div className="h-14 rounded border border-dashed border-line" />
                       ) : (
                         <div className="space-y-2">
                           {entries.map((entry) => (
@@ -237,7 +237,7 @@ function ScheduleCard({
       draggable={editable && !disabled}
       onDragStart={onDragStart}
       className={`rounded-lg border p-2 ${
-        status === 'CANCELLED' ? 'border-red-200 bg-red-50/50 opacity-70' : 'border-primary/20 bg-primary/5'
+        status === 'CANCELLED' ? 'border-coral/40 bg-red-50/50 opacity-70' : 'border-primary/20 bg-primary/5'
       } ${editable ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
       <div className="mb-1 flex items-start justify-between gap-1">
@@ -246,9 +246,9 @@ function ScheduleCard({
           {STATUS_LABEL[status]}
         </span>
       </div>
-      <p className="text-xs text-slate-700">{entry.section_code}</p>
-      <p className="text-xs text-slate-500">{entry.faculty_name}</p>
-      <p className="text-xs text-slate-500">{entry.room_code}</p>
+      <p className="text-xs text-ink-soft">{entry.section_code}</p>
+      <p className="text-xs text-muted">{entry.faculty_name}</p>
+      <p className="text-xs text-muted">{entry.room_code}</p>
 
       <details className="mt-1 text-xs">
         <summary className="cursor-pointer select-none rounded py-1 text-primary underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
@@ -259,7 +259,7 @@ function ScheduleCard({
             <label className="block">
               <span className="sr-only">Move {label} to</span>
               <select
-                className="w-full rounded border border-slate-300 bg-white px-1 py-1 text-xs"
+                className="w-full rounded border border-line bg-white px-1 py-1 text-xs"
                 value=""
                 disabled={disabled}
                 onChange={(e) => e.target.value && onMove(Number(e.target.value))}
@@ -282,7 +282,7 @@ function ScheduleCard({
               disabled={disabled}
               onClick={() => onTransition(to)}
               aria-label={`${TRANSITION_VERB[to]}: ${label}`}
-              className="block w-full rounded border border-slate-300 bg-white px-2 py-1 text-left hover:bg-slate-50 disabled:opacity-50"
+              className="block w-full rounded border border-line bg-white px-2 py-1 text-left hover:bg-paper-2 disabled:opacity-50"
             >
               {TRANSITION_VERB[to]}
             </button>
@@ -293,7 +293,7 @@ function ScheduleCard({
               disabled={disabled}
               onClick={onDelete}
               aria-label={`Delete ${label}`}
-              className="flex w-full items-center gap-1 rounded border border-red-200 bg-white px-2 py-1 text-left text-red-700 hover:bg-red-50 disabled:opacity-50"
+              className="flex w-full items-center gap-1 rounded border border-coral/40 bg-white px-2 py-1 text-left text-coral hover:bg-coral-50 disabled:opacity-50"
             >
               <Trash2 className="h-3 w-3" aria-hidden="true" /> Delete
             </button>
