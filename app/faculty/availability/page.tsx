@@ -17,7 +17,11 @@ export default async function FacultyAvailabilityPage() {
     getFacultyAvailability(session.facultyId),
     semester ? getSchedulesByFaculty(session.facultyId, semester.id) : Promise.resolve([]),
   ]);
-  const teaching = new Map(schedules.map((s) => [s.time_slot_id, `${s.subject_code}, ${s.section_code}`]));
+  // A period is "teaching" if any class overlaps it (classes can have free times).
+  const teachingIn = (day: string, start: string, end: string) => {
+    const c = schedules.find((s) => s.day_of_week === day && (s.start_time ?? '') < end && start < (s.end_time ?? ''));
+    return c ? `${c.subject_code}${c.component === 'LAB' ? ' lab' : ''}, ${c.section_code}` : undefined;
+  };
   const slots = rows
     .map((r) => ({
       time_slot_id: r.time_slot_id,
@@ -25,7 +29,7 @@ export default async function FacultyAvailabilityPage() {
       start_time: r.start_time,
       end_time: r.end_time,
       is_available: Number(r.is_available) === 1,
-      teaching: teaching.get(r.time_slot_id),
+      teaching: teachingIn(r.day_of_week, r.start_time, r.end_time),
     }))
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 

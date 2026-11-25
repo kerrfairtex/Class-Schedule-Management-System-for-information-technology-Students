@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PortalLayout, PrintHeader, ViewToggle } from '@/components/PortalLayout';
-import { ScheduleGrid } from '@/components/ScheduleGrid';
+import { TimeGrid } from '@/components/TimeGrid';
+import { WEEK_ORDER } from '@/lib/domain/constants';
 import { ScheduleList } from '@/components/ScheduleList';
 import { Printer } from 'lucide-react';
 import type { Schedule } from '@/lib/domain/types';
@@ -59,7 +60,22 @@ export default function FacultySchedulePage() {
       <PrintHeader title="Faculty Teaching Schedule" subtitle={semester?.name || ''} name={name} />
 
       {view === 'grid' ? (
-        <ScheduleGrid schedules={schedules} showSection />
+        <TimeGrid
+          caption="Weekly teaching schedule"
+          days={WEEK_ORDER.filter((d) => schedules.some((x) => x.day_of_week === d))}
+          entries={schedules}
+          minWidth={720}
+          blockClassName={(e) => (e.component === 'LAB' ? 'border-seagrass/40 bg-seagrass-50' : 'border-lagoon/30 bg-lagoon-50')}
+          renderBlock={(e) => (
+            <div className="p-1.5">
+              <p className="font-bold">
+                {e.subject_code} <span className="font-semibold text-ink-soft">{e.component === 'LAB' ? 'Lab' : 'Lec'}</span>
+              </p>
+              <p className="text-ink-soft">{e.section_code}, {e.room_code}</p>
+              {e.status === 'APPROVED' && <p className="text-muted">Not yet published</p>}
+            </div>
+          )}
+        />
       ) : (
         <ScheduleList schedules={schedules} showSection />
       )}

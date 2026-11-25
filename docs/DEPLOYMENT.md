@@ -98,6 +98,13 @@ For PRs #43, #44 and the production-release PR, in this order:
 5. When the published timetable has been checked against registrar records, set
    **Settings → Data environment** to VERIFIED so it appears on the public site.
 
+## 5a. Flexible class times release (migration 004)
+
+Run `db/migrations/004_flexible_class_times.sql` as `postgres` **before** merging the
+flexible-times PR: the new code reads the columns it adds, so deploying first breaks
+the schedule pages. 004 is additive and copies every existing class's time from its
+period, so nothing moves. Back up first.
+
 ## 6. Local development
 
 See the README: keep `DATABASE_URL` empty and use `npm run seed` for a local SQLite

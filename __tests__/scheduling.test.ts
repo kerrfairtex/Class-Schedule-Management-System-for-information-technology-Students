@@ -123,8 +123,11 @@ describe('MOD-03 Schedule Engine', () => {
   });
 
   it('generates schedules for a section from curriculum', async () => {
+    // IT 101 has 3 units and no hours set, so it needs 3 lecture hours; the
+    // fixture has only two 1-hour periods. Both are used and the shortfall
+    // is reported instead of the subject counting as done.
     const result = await generateSchedulesForSection(fixtures.sectionId, fixtures.semesterId);
-    expect(result.created).toBeGreaterThanOrEqual(1);
-    expect(result.errors).toHaveLength(0);
+    expect(result.created).toBe(2);
+    expect(result.errors).toEqual(['IT 101 lecture: placed 2 of 3 hours']);
   });
 });

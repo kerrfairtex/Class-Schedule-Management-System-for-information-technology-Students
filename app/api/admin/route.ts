@@ -24,6 +24,7 @@ import {
   updateSubject,
   deleteSubject,
   createSection,
+  createSectionSets,
   updateSection,
   deleteSection,
   createRoom,
@@ -45,6 +46,10 @@ import {
   transitionSchedule,
   getSchedulingReferences,
   semesterNumberOf,
+  createClassMeetings,
+  updateSchedule,
+  moveSchedule,
+  getSectionLoad,
 } from '@/lib/modules/mod-03-schedule-engine/service';
 import { detectConflicts } from '@/lib/modules/mod-04-conflict-engine/validator';
 import { DATA_ENVIRONMENTS, setDataEnvironment } from '@/lib/modules/mod-08-database-service/settings';
@@ -173,18 +178,34 @@ export async function GET(request: Request) {
       });
     }
     case 'schedule-check': {
-      // Live conflict preview for the manual-entry form; read-only.
+      // Live conflict preview for the class form, one result per chosen day; read-only.
       const semester = await getActiveSemester();
       if (!semester) return NextResponse.json({ error: 'No active semester' }, { status: 400 });
-      const ids = ['section_id', 'subject_id', 'faculty_id', 'room_id', 'time_slot_id'] as const;
+      const ids = ['section_id', 'subject_id', 'faculty_id', 'room_id'] as const;
       const values = ids.map((k) => Number(searchParams.get(k)));
-      if (values.some((v) => !Number.isInteger(v) || v <= 0)) {
-        return NextResponse.json({ error: 'All five fields are required' }, { status: 400 });
+      const days = (searchParams.get('days') ?? '').split(',').filter(Boolean);
+      const start_time = searchParams.get('start_time') ?? '';
+      const end_time = searchParams.get('end_time') ?? '';
+      const exclude = Number(searchParams.get('exclude')) || undefined;
+      if (values.some((v) => !Number.isInteger(v) || v <= 0) || days.length === 0 || days.length > 7) {
+        return NextResponse.json({ error: 'Choose a section, subject, instructor, room and at least one day' }, { status: 400 });
       }
-      const [section_id, subject_id, faculty_id, room_id, time_slot_id] = values;
-      return NextResponse.json(
-        await detectConflicts({ section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id: semester.id })
-      );
+      const [section_id, subject_id, faculty_id, room_id] = values;
+      const component = searchParams.get('component') === 'LAB' ? 'LAB' : 'LEC';
+      const results: Record<string, unknown> = {};
+      for (const day_of_week of days) {
+        results[day_of_week] = await detectConflicts(
+          { section_id, subject_id, faculty_id, room_id, semester_id: semester.id, day_of_week, start_time, end_time, component },
+          exclude
+        );
+      }
+      return NextResponse.json({ days: results });
+    }
+    case 'section-load': {
+      const semester = await getActiveSemester();
+      const sectionId = Number(searchParams.get('sectionId'));
+      if (!semester || !sectionId) return NextResponse.json([]);
+      return NextResponse.json(await getSectionLoad(sectionId, semester.id));
     }
     case 'meta': {
       const semester = await getActiveSemester();
@@ -194,6 +215,8 @@ export async function GET(request: Request) {
         sections: semester ? await getSections(semester.id) : [],
         buildings: await getBuildings(),
         subjects: await getSubjects(),
+        faculty: (await getFaculty()).map((f) => ({ id: f.id, code: `${f.last_name}, ${f.first_name}` })),
+        rooms: (await getRooms()).map((r) => ({ id: r.id, code: `${r.code} (${r.room_type === 'LAB' ? 'lab' : 'lecture'}, ${r.capacity})` })),
         semester,
       });
     }
@@ -218,6 +241,29 @@ export async function GET(request: Request) {
  * missing or malformed value becomes a 400 with a field-level message instead
  * of NaN reaching an int4 column.
  */
+const subjectExtra = (d: Record<string, any>) => ({
+  lec_units: d.lec_units,
+  lab_units: d.lab_units,
+  lec_hours: d.lec_hours,
+  lab_hours: d.lab_hours,
+});
+const sectionExtra = (d: Record<string, any>) => ({
+  capacity: d.capacity,
+  adviser_id: d.adviser_id,
+  home_room_id: d.home_room_id,
+});
+
+/** Weekly hours: 0 to 40 in half-hour steps; empty means "not given". */
+function toHours(raw: unknown, field: string, errors: FieldErrors): number | undefined {
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 40 || Math.round(n * 2) !== n * 2) {
+    errors[field] = 'Enter hours from 0 to 40, in steps of 0.5';
+    return undefined;
+  }
+  return n;
+}
+
 function coerceMasterListPayload(
   body: Record<string, any>,
   kind: 'faculty' | 'student' | 'subject' | 'section' | 'room' | 'user'
@@ -253,8 +299,16 @@ function coerceMasterListPayload(
       const raw = body.data ?? body;
       data.code = toText(raw.code, 'code', errors, { max: 32 });
       data.name = toText(raw.name, 'name', errors, { max: 160 });
-      data.credit_hours = toInt(raw.credit_hours, 'credit_hours', errors, { min: 0, max: 12 });
+      data.credit_hours = toInt(raw.credit_hours ?? 0, 'credit_hours', errors, { min: 0, max: 12 });
       data.program_id = toInt(raw.program_id, 'program_id', errors, { min: 1 });
+      // Lecture/lab split (optional; total units = lec_units + lab_units when given).
+      data.lec_units = toOptionalInt(raw.lec_units, 'lec_units', errors, { min: 0, max: 12 });
+      data.lab_units = toOptionalInt(raw.lab_units, 'lab_units', errors, { min: 0, max: 12 });
+      data.lec_hours = toHours(raw.lec_hours, 'lec_hours', errors);
+      data.lab_hours = toHours(raw.lab_hours, 'lab_hours', errors);
+      if (raw.credit_hours === undefined && data.lec_units === undefined && data.lab_units === undefined) {
+        errors.lec_units = 'Enter the lecture and/or lab units';
+      }
       return { errors, data };
     }
     case 'section': {
@@ -263,6 +317,9 @@ function coerceMasterListPayload(
       data.program_id = toInt(raw.program_id, 'program_id', errors, { min: 1 });
       data.year_level = toInt(raw.year_level, 'year_level', errors, { min: 1, max: 8 });
       data.semester_id = toInt(raw.semester_id, 'semester_id', errors, { min: 1 });
+      data.capacity = toOptionalInt(raw.capacity, 'capacity', errors, { min: 1, max: 500 });
+      data.adviser_id = toOptionalInt(raw.adviser_id, 'adviser_id', errors, { min: 1 }) ?? null;
+      data.home_room_id = toOptionalInt(raw.home_room_id, 'home_room_id', errors, { min: 1 }) ?? null;
       return { errors, data };
     }
     case 'room': {
@@ -271,6 +328,10 @@ function coerceMasterListPayload(
       data.code = toText(raw.code, 'code', errors, { max: 32 });
       data.name = toText(raw.name, 'name', errors, { max: 160 });
       data.capacity = toInt(raw.capacity, 'capacity', errors, { min: 1, max: 2000 });
+      if (raw.room_type !== undefined && raw.room_type !== '' && !['LECTURE', 'LAB'].includes(String(raw.room_type))) {
+        errors.room_type = 'Choose lecture room or laboratory';
+      }
+      data.room_type = raw.room_type ? String(raw.room_type) : undefined;
       return { errors, data };
     }
     case 'user': {
@@ -404,7 +465,7 @@ export async function POST(request: Request) {
       case 'create-subject': {
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'subject');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        const id = await createSubject(data.code, data.name, data.credit_hours, data.program_id, session!.id);
+        const id = await createSubject(data.code, data.name, data.credit_hours, data.program_id, session!.id, subjectExtra(data));
         return NextResponse.json({ success: true, id });
       }
       case 'update-subject': {
@@ -412,7 +473,7 @@ export async function POST(request: Request) {
         if (id === undefined) return invalidBody('id is required');
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'subject');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        await updateSubject(id, data.code, data.name, data.credit_hours, data.program_id, session!.id);
+        await updateSubject(id, data.code, data.name, data.credit_hours, data.program_id, session!.id, subjectExtra(data));
         return NextResponse.json({ success: true, id });
       }
       case 'delete-subject': {
@@ -427,7 +488,7 @@ export async function POST(request: Request) {
       case 'create-section': {
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'section');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        const id = await createSection(data.code, data.program_id, data.year_level, data.semester_id, session!.id);
+        const id = await createSection(data.code, data.program_id, data.year_level, data.semester_id, session!.id, sectionExtra(data));
         return NextResponse.json({ success: true, id });
       }
       case 'update-section': {
@@ -435,7 +496,7 @@ export async function POST(request: Request) {
         if (id === undefined) return invalidBody('id is required');
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'section');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        await updateSection(id, data.code, data.program_id, data.year_level, data.semester_id, session!.id);
+        await updateSection(id, data.code, data.program_id, data.year_level, data.semester_id, session!.id, sectionExtra(data));
         return NextResponse.json({ success: true, id });
       }
       case 'delete-section': {
@@ -450,7 +511,7 @@ export async function POST(request: Request) {
       case 'create-room': {
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'room');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        const id = await createRoom(data.building_id, data.code, data.name, data.capacity, session!.id);
+        const id = await createRoom(data.building_id, data.code, data.name, data.capacity, session!.id, { room_type: data.room_type });
         return NextResponse.json({ success: true, id });
       }
       case 'update-room': {
@@ -458,7 +519,7 @@ export async function POST(request: Request) {
         if (id === undefined) return invalidBody('id is required');
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'room');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        await updateRoom(id, data.building_id, data.code, data.name, data.capacity, session!.id);
+        await updateRoom(id, data.building_id, data.code, data.name, data.capacity, session!.id, { room_type: data.room_type });
         return NextResponse.json({ success: true, id });
       }
       case 'delete-room': {
@@ -562,6 +623,49 @@ export async function POST(request: Request) {
         const m = validated.data;
         return NextResponse.json(await updateScheduleTimeSlot(m.scheduleId, m.timeSlotId, session!.id));
       }
+      case 'create-class': {
+        const v = z
+          .object({
+            section_id: z.number().int().positive(),
+            subject_id: z.number().int().positive(),
+            faculty_id: z.number().int().positive(),
+            room_id: z.number().int().positive(),
+            component: z.enum(['LEC', 'LAB']),
+            days: z.array(z.string()).min(1).max(7),
+            start_time: z.string(),
+            end_time: z.string(),
+          })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Fill in the section, subject, part, instructor, room, days and times');
+        const semester = await getActiveSemester();
+        if (!semester) return NextResponse.json({ error: 'No active semester' }, { status: 400 });
+        return NextResponse.json(await createClassMeetings({ ...v.data, semester_id: semester.id }, session!.id));
+      }
+      case 'update-schedule': {
+        const v = z
+          .object({
+            scheduleId: z.number().int().positive(),
+            faculty_id: z.number().int().positive().optional(),
+            room_id: z.number().int().positive().optional(),
+            component: z.enum(['LEC', 'LAB']).optional(),
+            day_of_week: z.string().optional(),
+            start_time: z.string().optional(),
+            end_time: z.string().optional(),
+          })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Invalid class changes');
+        const { scheduleId, ...changes } = v.data;
+        return NextResponse.json(await updateSchedule(scheduleId, changes, session!.id));
+      }
+      case 'move-schedule-time': {
+        const v = z
+          .object({ scheduleId: z.number().int().positive(), day_of_week: z.string(), start_time: z.string() })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Invalid move');
+        return NextResponse.json(
+          await moveSchedule(v.data.scheduleId, { day_of_week: v.data.day_of_week, start_time: v.data.start_time }, session!.id)
+        );
+      }
       case 'delete-schedule': {
         const deleteSchema = z.object({
           scheduleId: z.number(),
@@ -643,6 +747,16 @@ export async function POST(request: Request) {
           username: session!.username,
         });
         return NextResponse.json({ success: true, ...result });
+      }
+      case 'create-section-sets': {
+        const v = z
+          .object({ program_id: z.number().int().positive(), year_level: z.number().int().min(1).max(8), count: z.number().int() })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Choose a program, year level and number of sets');
+        const semester = await getActiveSemester();
+        if (!semester) return NextResponse.json({ error: 'No active semester' }, { status: 400 });
+        const codes = await createSectionSets(v.data.program_id, v.data.year_level, v.data.count, semester.id, session!.id);
+        return NextResponse.json({ success: true, codes });
       }
       case 'create-academic-year': {
         const v = z

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Schedule, ScheduleStatus } from '@/lib/domain/types';
 import { DAY_LABELS, WEEK_ORDER } from '@/lib/domain/constants';
+import { TimeGrid } from '@/components/TimeGrid';
 import {
   ALLOWED_TRANSITIONS,
   EDITABLE_STATUSES,
@@ -32,41 +33,56 @@ interface ScheduleBoardProps {
   timeSlots: TimeSlot[];
   loading: boolean;
   loadError: string;
-  onMove: (scheduleId: number, timeSlotId: number) => Promise<void>;
+  /** Show the section code on each block (the "All sections" view). */
+  showSection: boolean;
+  onMoveTo: (scheduleId: number, day: string, start: string) => Promise<void>;
   onDelete: (scheduleId: number) => Promise<void>;
   onTransition: (scheduleId: number, toStatus: ScheduleStatus) => Promise<void>;
+  onEdit: (entry: Schedule) => void;
   onRefresh: () => void;
 }
 
 const statusOf = (s: Schedule): ScheduleStatus => s.status ?? 'DRAFT';
 const isEditable = (s: Schedule) => EDITABLE_STATUSES.includes(statusOf(s));
+const to12h = (hhmm = '') => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')}${h >= 12 ? 'pm' : 'am'}`;
+};
 
+/**
+ * The admin weekly board. Classes sit on a real time axis (any length);
+ * drag one to another day or time to move it, keeping its length. Select a
+ * class to edit it, change its status or delete it: the keyboard and touch
+ * path for everything drag-and-drop does.
+ */
 export function ScheduleBoard({
   schedules,
   timeSlots,
   loading,
   loadError,
-  onMove,
+  showSection,
+  onMoveTo,
   onDelete,
   onTransition,
+  onEdit,
   onRefresh,
 }: ScheduleBoardProps) {
-  const [dragging, setDragging] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  // Show every day that has slots (Saturday classes included), in week order.
-  const days = WEEK_ORDER.filter((d) => timeSlots.some((t) => t.day_of_week === d));
-  const uniqueTimes = Array.from(new Set(timeSlots.map((t) => t.start_time))).sort();
-  // Archived rows are history, not part of the timetable.
   const visible = schedules.filter((s) => statusOf(s) !== 'ARCHIVED');
-
-  const getSlotId = useCallback(
-    (day: string, startTime: string) =>
-      timeSlots.find((t) => t.day_of_week === day && t.start_time === startTime)?.id,
-    [timeSlots]
+  const days = WEEK_ORDER.filter(
+    (d) => d !== 'sunday' && (timeSlots.some((t) => t.day_of_week === d) || visible.some((s) => s.day_of_week === d))
   );
+  const bounds = timeSlots.length
+    ? {
+        start: timeSlots.reduce((m, t) => (t.start_time < m ? t.start_time : m), timeSlots[0].start_time),
+        end: timeSlots.reduce((m, t) => (t.end_time > m ? t.end_time : m), timeSlots[0].end_time),
+      }
+    : undefined;
+  const selected = visible.find((s) => s.id === selectedId) ?? null;
 
   async function run(action: () => Promise<void>, success: string) {
     setBusy(true);
@@ -83,50 +99,32 @@ export function ScheduleBoard({
     }
   }
 
-  function move(scheduleId: number, timeSlotId: number) {
-    return run(() => onMove(scheduleId, timeSlotId), 'Class moved. It is back in Draft for review.');
-  }
-
-  async function handleDrop(day: string, startTime: string) {
-    const id = dragging;
-    setDragging(null);
-    const slotId = getSlotId(day, startTime);
-    if (id && slotId) await move(id, slotId);
-  }
-
-  function remove(id: number) {
-    if (!confirm('Delete this class? This cannot be undone.')) return;
-    return run(() => onDelete(id), 'Class deleted');
-  }
-
-  function transition(s: Schedule, to: ScheduleStatus) {
-    if (to === 'CANCELLED' && !confirm('Cancel this published class? Students will no longer see it.')) return;
-    return run(() => onTransition(s.id, to), `${s.subject_code} · ${s.section_code}: ${STATUS_LABEL[to]}`);
+  function drop(day: string, start: string, e: React.DragEvent<HTMLElement>) {
+    const id = Number(e.dataTransfer.getData('text/plain'));
+    const entry = visible.find((s) => s.id === id);
+    if (!entry || !isEditable(entry)) return;
+    if (entry.day_of_week === day && entry.start_time === start) return;
+    return run(
+      () => onMoveTo(id, day, start),
+      `${entry.subject_code} moved to ${DAY_LABELS[day]} ${to12h(start)}. It is back in Draft for review.`
+    );
   }
 
   if (loading) {
     return (
-      <div role="status" className="rounded-xl border border-line bg-white p-8 text-center text-sm text-muted">
-        Loading schedule board…
+      <div role="status" className="card text-center text-sm text-muted">
+        Loading the schedule board…
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div role="alert" className="rounded-xl border border-coral/40 bg-coral-50 p-6 text-sm text-coral">
+      <div role="alert" className="notice-error">
         <p className="mb-3">Could not load schedules: {loadError}</p>
-        <button type="button" onClick={onRefresh} className="btn-secondary text-sm">
+        <button type="button" onClick={onRefresh} className="btn-secondary">
           Try again
         </button>
-      </div>
-    );
-  }
-
-  if (timeSlots.length === 0) {
-    return (
-      <div className="rounded-xl border border-sand-dark/50 bg-sand p-6 text-sm text-ink">
-        No time slots are defined yet, so there is nothing to schedule into. Add time slots first.
       </div>
     );
   }
@@ -134,172 +132,123 @@ export function ScheduleBoard({
   return (
     <div>
       <div aria-live="polite">
-        {message && (
-          <div className="mb-4 rounded-lg bg-seagrass-50 px-4 py-3 text-sm text-seagrass">{message}</div>
-        )}
+        {message && <div className="notice-success mb-4">{message}</div>}
         {error && (
-          <div role="alert" className="mb-4 rounded-lg bg-coral-50 px-4 py-3 text-sm text-coral">{error}</div>
+          <div role="alert" className="notice-error mb-4">
+            {error}
+          </div>
         )}
       </div>
-      <p className="mb-4 text-sm text-muted">
-        Drag a class to another slot, or open <strong>Actions</strong> on a class to move it, change its
-        status or delete it. Every change is checked for conflicts. Only <strong>Published</strong> classes
-        appear to students and on the public site.
+      <p className="mb-3 text-sm text-muted">
+        Drag a class to another day or time (it keeps its length), or select it to edit, change its status or delete
+        it. Every change is checked for conflicts. Only published classes appear to students.
       </p>
       {visible.length === 0 && (
-        <div className="mb-4 rounded-lg border border-line bg-paper-2 px-4 py-3 text-sm text-muted">
-          No classes scheduled yet. Use <strong>Add Schedule Manually</strong> or auto-generate a section.
-        </div>
+        <p className="notice-info mb-4">
+          No classes yet. Use <strong>Add a class</strong>, or auto-generate drafts for a set.
+        </p>
       )}
-      <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm" aria-busy={busy}>
-        <table className="w-full min-w-[900px] border-collapse text-sm">
-          <caption className="sr-only">Weekly class schedule</caption>
-          <thead>
-            <tr className="bg-primary text-white">
-              <th scope="col" className="px-3 py-2 text-left">Time</th>
-              {days.map((d) => (
-                <th key={d} scope="col" className="px-3 py-2 text-left">
-                  {DAY_LABELS[d]}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {uniqueTimes.map((time, idx) => (
-              <tr key={time} className={idx % 2 === 0 ? 'bg-paper-2' : 'bg-white'}>
-                <th scope="row" className="border-t border-line px-3 py-2 text-left font-medium text-muted">
-                  {time}
-                </th>
-                {days.map((day) => {
-                  const entries = visible.filter((s) => s.day_of_week === day && s.start_time === time);
-                  const slotExists = getSlotId(day, time) !== undefined;
-                  return (
-                    <td
-                      key={day}
-                      className="border-t border-line px-2 py-2 align-top"
-                      onDragOver={(e) => slotExists && e.preventDefault()}
-                      onDrop={() => handleDrop(day, time)}
-                    >
-                      {entries.length === 0 ? (
-                        <div className="h-14 rounded border border-dashed border-line" />
-                      ) : (
-                        <div className="space-y-2">
-                          {entries.map((entry) => (
-                            <ScheduleCard
-                              key={entry.id}
-                              entry={entry}
-                              timeSlots={timeSlots}
-                              disabled={busy}
-                              onDragStart={() => setDragging(entry.id)}
-                              onMove={(slotId) => move(entry.id, slotId)}
-                              onTransition={(to) => transition(entry, to)}
-                              onDelete={() => remove(entry.id)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
 
-function ScheduleCard({
-  entry,
-  timeSlots,
-  disabled,
-  onDragStart,
-  onMove,
-  onTransition,
-  onDelete,
-}: {
-  entry: Schedule;
-  timeSlots: TimeSlot[];
-  disabled: boolean;
-  onDragStart: () => void;
-  onMove: (timeSlotId: number) => void;
-  onTransition: (to: ScheduleStatus) => void;
-  onDelete: () => void;
-}) {
-  const status = statusOf(entry);
-  const editable = isEditable(entry);
-  const next = ALLOWED_TRANSITIONS[status];
-  const label = `${entry.subject_code} ${entry.section_code}`;
+      <TimeGrid
+        caption="Weekly schedule board"
+        days={days}
+        entries={visible}
+        bounds={bounds}
+        minWidth={showSection ? 980 : 820}
+        onDropAt={drop}
+        blockClassName={(e) =>
+          `${statusOf(e) === 'CANCELLED' ? 'border-coral/40 bg-coral-50 opacity-70' : e.component === 'LAB' ? 'border-seagrass/40 bg-seagrass-50' : 'border-lagoon/30 bg-lagoon-50'} ${
+            e.id === selectedId ? 'ring-2 ring-lagoon' : ''
+          }`
+        }
+        renderBlock={(e) => (
+          <button
+            type="button"
+            draggable={isEditable(e) && !busy}
+            onDragStart={(ev) => ev.dataTransfer.setData('text/plain', String(e.id))}
+            onClick={() => setSelectedId(e.id === selectedId ? null : e.id)}
+            aria-pressed={e.id === selectedId}
+            className={`block h-full w-full p-1.5 text-left ${isEditable(e) ? 'cursor-grab active:cursor-grabbing' : ''}`}
+          >
+            <span className="flex items-start justify-between gap-1">
+              <span className="font-bold text-ink">
+                {e.subject_code} <span className="font-semibold text-ink-soft">{e.component === 'LAB' ? 'Lab' : 'Lec'}</span>
+              </span>
+              <span className={`shrink-0 rounded border px-1 text-[10px] font-semibold leading-tight ${STATUS_BADGE[statusOf(e)]}`}>
+                {STATUS_LABEL[statusOf(e)]}
+              </span>
+            </span>
+            <span className="block text-ink-soft">
+              {showSection && <>{e.section_code}, </>}
+              {e.room_code}
+            </span>
+            <span className="block truncate text-muted">{e.faculty_name}</span>
+            <span className="block text-muted">
+              {to12h(e.start_time)}–{to12h(e.end_time)}
+            </span>
+          </button>
+        )}
+      />
 
-  return (
-    <div
-      draggable={editable && !disabled}
-      onDragStart={onDragStart}
-      className={`rounded-lg border p-2 ${
-        status === 'CANCELLED' ? 'border-coral/40 bg-red-50/50 opacity-70' : 'border-primary/20 bg-primary/5'
-      } ${editable ? 'cursor-grab active:cursor-grabbing' : ''}`}
-    >
-      <div className="mb-1 flex items-start justify-between gap-1">
-        <p className="text-xs font-semibold text-primary">{entry.subject_code}</p>
-        <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium leading-none ${STATUS_BADGE[status]}`}>
-          {STATUS_LABEL[status]}
-        </span>
-      </div>
-      <p className="text-xs text-ink-soft">{entry.section_code}</p>
-      <p className="text-xs text-muted">{entry.faculty_name}</p>
-      <p className="text-xs text-muted">{entry.room_code}</p>
-
-      <details className="mt-1 text-xs">
-        <summary className="cursor-pointer select-none rounded py-1 text-primary underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-          Actions
-        </summary>
-        <div className="mt-1 space-y-1.5">
-          {editable && (
-            <label className="block">
-              <span className="sr-only">Move {label} to</span>
-              <select
-                className="w-full rounded border border-line bg-white px-1 py-1 text-xs"
-                value=""
-                disabled={disabled}
-                onChange={(e) => e.target.value && onMove(Number(e.target.value))}
+      {selected && (
+        <section aria-labelledby="selected-heading" className="card mt-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 id="selected-heading" className="text-lg font-bold">
+                {selected.subject_code} {selected.component === 'LAB' ? 'laboratory' : 'lecture'}, {selected.section_code}
+              </h3>
+              <p className="text-sm text-ink-soft">
+                {DAY_LABELS[selected.day_of_week ?? '']} {to12h(selected.start_time)}–{to12h(selected.end_time)}, {selected.room_code},{' '}
+                {selected.faculty_name}.{' '}
+                <span className={`rounded border px-1.5 text-xs font-semibold ${STATUS_BADGE[statusOf(selected)]}`}>
+                  {STATUS_LABEL[statusOf(selected)]}
+                </span>
+              </p>
+            </div>
+            <button type="button" className="btn-ghost" onClick={() => setSelectedId(null)}>
+              Close
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {isEditable(selected) && (
+              <button type="button" className="btn-primary" disabled={busy} onClick={() => onEdit(selected)}>
+                Edit day, time, room or instructor
+              </button>
+            )}
+            {ALLOWED_TRANSITIONS[statusOf(selected)].map((to) => (
+              <button
+                key={to}
+                type="button"
+                disabled={busy}
+                className="btn-secondary"
+                onClick={() => {
+                  if (to === 'CANCELLED' && !confirm('Cancel this published class? Students will no longer see it.')) return;
+                  run(() => onTransition(selected.id, to), `${selected.subject_code}, ${selected.section_code}: ${STATUS_LABEL[to]}`);
+                }}
               >
-                <option value="">Move to…</option>
-                {timeSlots
-                  .filter((t) => t.id !== entry.time_slot_id)
-                  .map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {DAY_LABELS[t.day_of_week] ?? t.day_of_week} {t.start_time}–{t.end_time}
-                    </option>
-                  ))}
-              </select>
-            </label>
+                {TRANSITION_VERB[to]}
+              </button>
+            ))}
+            {isEditable(selected) && (
+              <button
+                type="button"
+                disabled={busy}
+                className="btn-danger"
+                onClick={() => {
+                  if (!confirm('Delete this class meeting? This cannot be undone.')) return;
+                  setSelectedId(null);
+                  run(() => onDelete(selected.id), 'Class meeting deleted');
+                }}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" /> Delete
+              </button>
+            )}
+          </div>
+          {!isEditable(selected) && statusOf(selected) === 'PUBLISHED' && (
+            <p className="hint mt-2">Published classes are locked. Cancel this one, then add a replacement.</p>
           )}
-          {next.map((to) => (
-            <button
-              key={to}
-              type="button"
-              disabled={disabled}
-              onClick={() => onTransition(to)}
-              aria-label={`${TRANSITION_VERB[to]}: ${label}`}
-              className="block w-full rounded border border-line bg-white px-2 py-1 text-left hover:bg-paper-2 disabled:opacity-50"
-            >
-              {TRANSITION_VERB[to]}
-            </button>
-          ))}
-          {editable && (
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={onDelete}
-              aria-label={`Delete ${label}`}
-              className="flex w-full items-center gap-1 rounded border border-coral/40 bg-white px-2 py-1 text-left text-coral hover:bg-coral-50 disabled:opacity-50"
-            >
-              <Trash2 className="h-3 w-3" aria-hidden="true" /> Delete
-            </button>
-          )}
-        </div>
-      </details>
+        </section>
+      )}
     </div>
   );
 }

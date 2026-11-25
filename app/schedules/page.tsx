@@ -123,7 +123,11 @@ export default async function SchedulesPage({ searchParams }: PageProps) {
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h2 id="timetable-heading" className="text-2xl font-bold">{view.title}</h2>
-                    <p className="text-sm text-muted">{view.list.length} class meetings a week</p>
+                    <p className="text-sm text-muted">
+                      {view.list.length} class meetings a week
+                      {selectedSection?.adviser_name && `. Adviser: ${selectedSection.adviser_name}`}
+                      {selectedSection?.home_room_code && `. Home room: ${selectedSection.home_room_code}`}
+                    </p>
                   </div>
                   <PrintButton label="Print timetable" />
                 </div>
@@ -148,6 +152,7 @@ export default async function SchedulesPage({ searchParams }: PageProps) {
                         <thead>
                           <tr>
                             <th scope="col">Subject</th>
+                            <th scope="col">Part</th>
                             <th scope="col">{view.mode === 'section' ? 'Instructor' : 'Section'}</th>
                             <th scope="col">Day</th>
                             <th scope="col">Time</th>
@@ -158,6 +163,7 @@ export default async function SchedulesPage({ searchParams }: PageProps) {
                           {sortByWeek(view.list).map((e) => (
                             <tr key={e.id}>
                               <td><strong>{e.subject_code}</strong> {e.subject_name}</td>
+                              <td>{e.component === 'LAB' ? 'Lab' : 'Lecture'}</td>
                               <td>{view.mode === 'section' ? e.faculty_name : e.section_code}</td>
                               <td>{DAY_LABELS[e.day_of_week ?? ''] ?? e.day_of_week}</td>
                               <td className="whitespace-nowrap">{formatRange(e.start_time ?? '', e.end_time ?? '')}</td>

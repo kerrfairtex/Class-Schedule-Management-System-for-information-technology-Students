@@ -112,12 +112,13 @@ export async function createRoom(
   code: string,
   name: string,
   capacity: number,
-  userId?: number
+  userId?: number,
+  extra: { room_type?: string } = {}
 ) {
   const db = await getDb();
   const result = await db
-    .prepare('INSERT INTO rooms (building_id, code, name, capacity) VALUES (?, ?, ?, ?)')
-    .run(buildingId, code, name, capacity);
+    .prepare('INSERT INTO rooms (building_id, code, name, capacity, room_type) VALUES (?, ?, ?, ?, ?)')
+    .run(buildingId, code, name, capacity, extra.room_type ?? 'LECTURE');
   const id = toInsertId(result);
   await logAudit(userId ?? null, 'CREATE', 'room', id);
   return id;
@@ -129,12 +130,13 @@ export async function updateRoom(
   code: string,
   name: string,
   capacity: number,
-  userId?: number
+  userId?: number,
+  extra: { room_type?: string } = {}
 ) {
   const db = await getDb();
   await db
-    .prepare('UPDATE rooms SET building_id = ?, code = ?, name = ?, capacity = ? WHERE id = ?')
-    .run(buildingId, code, name, capacity, id);
+    .prepare('UPDATE rooms SET building_id = ?, code = ?, name = ?, capacity = ?, room_type = COALESCE(?, room_type) WHERE id = ?')
+    .run(buildingId, code, name, capacity, extra.room_type ?? null, id);
   await logAudit(userId ?? null, 'UPDATE', 'room', id);
   return id;
 }
@@ -159,17 +161,47 @@ export async function getSubjects(): Promise<Subject[]> {
   return db.prepare('SELECT * FROM subjects ORDER BY code').all() as Subject[];
 }
 
+export interface SubjectHours {
+  lec_units?: number;
+  lab_units?: number;
+  lec_hours?: number;
+  lab_hours?: number;
+}
+
+/**
+ * Units and weekly hours for a subject. When lecture/lab units are given,
+ * total units (credit_hours) is their sum; otherwise the subject is treated
+ * as all lecture, one hour per unit.
+ */
+export function subjectHours(creditHours: number, extra: SubjectHours) {
+  const given = extra.lec_units !== undefined || extra.lab_units !== undefined;
+  const lec_units = given ? extra.lec_units ?? 0 : creditHours;
+  const lab_units = given ? extra.lab_units ?? 0 : 0;
+  return {
+    credit_hours: given ? lec_units + lab_units : creditHours,
+    lec_units,
+    lab_units,
+    lec_hours: extra.lec_hours ?? (given ? lec_units : creditHours),
+    lab_hours: extra.lab_hours ?? 0,
+  };
+}
+
 export async function createSubject(
   code: string,
   name: string,
   creditHours: number,
   programId: number,
-  userId?: number
+  userId?: number,
+  extra: SubjectHours = {}
 ) {
   const db = await getDb();
+  const h = subjectHours(creditHours, extra);
   const result = await db
-    .prepare('INSERT INTO subjects (code, name, credit_hours, program_id) VALUES (?, ?, ?, ?)')
-    .run(code, name, creditHours, programId);
+    .prepare(
+      `INSERT INTO subjects (code, name, credit_hours, program_id, lec_units, lab_units, lec_hours, lab_hours)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(code, name, h.credit_hours, programId, h.lec_units, h.lab_units, h.lec_hours, h.lab_hours);
   const id = toInsertId(result);
   await logAudit(userId ?? null, 'CREATE', 'subject', id);
   return id;
@@ -181,12 +213,17 @@ export async function updateSubject(
   name: string,
   creditHours: number,
   programId: number,
-  userId?: number
+  userId?: number,
+  extra: SubjectHours = {}
 ) {
   const db = await getDb();
+  const h = subjectHours(creditHours, extra);
   await db
-    .prepare('UPDATE subjects SET code = ?, name = ?, credit_hours = ?, program_id = ? WHERE id = ?')
-    .run(code, name, creditHours, programId, id);
+    .prepare(
+      `UPDATE subjects SET code = ?, name = ?, credit_hours = ?, program_id = ?,
+       lec_units = ?, lab_units = ?, lec_hours = ?, lab_hours = ? WHERE id = ?`
+    )
+    .run(code, name, h.credit_hours, programId, h.lec_units, h.lab_units, h.lec_hours, h.lab_hours, id);
   await logAudit(userId ?? null, 'UPDATE', 'subject', id);
   return id;
 }
@@ -238,14 +275,53 @@ export async function addCurriculumEntry(
 }
 
 // Sections
+const SECTION_SELECT = `
+  SELECT sec.*, f.first_name || ' ' || f.last_name AS adviser_name, r.code AS home_room_code
+  FROM sections sec
+  LEFT JOIN faculty f ON f.id = sec.adviser_id
+  LEFT JOIN rooms r ON r.id = sec.home_room_id`;
+
 export async function getSections(semesterId?: number): Promise<Section[]> {
   const db = await getDb();
   if (semesterId) {
-    return db
-      .prepare('SELECT * FROM sections WHERE semester_id = ? ORDER BY code')
-      .all(semesterId) as Section[];
+    return db.prepare(`${SECTION_SELECT} WHERE sec.semester_id = ? ORDER BY sec.code`).all(semesterId) as Section[];
   }
-  return db.prepare('SELECT * FROM sections ORDER BY code').all() as Section[];
+  return db.prepare(`${SECTION_SELECT} ORDER BY sec.code`).all() as Section[];
+}
+
+export interface SectionDetails {
+  capacity?: number;
+  adviser_id?: number | null;
+  home_room_id?: number | null;
+}
+
+/**
+ * Add the next `count` sets for a year level: BSIT-1A, BSIT-1B, ... Existing
+ * codes are skipped, so asking for 3 sets when 1A exists adds 1B, 1C, 1D.
+ */
+export async function createSectionSets(
+  programId: number,
+  yearLevel: number,
+  count: number,
+  semesterId: number,
+  userId?: number
+): Promise<string[]> {
+  if (!Number.isInteger(count) || count < 1 || count > 12) throw new DomainError('Add between 1 and 12 sets at a time.');
+  const db = await getDb();
+  const program = (await db.prepare('SELECT code FROM programs WHERE id = ?').get(programId)) as { code: string } | undefined;
+  if (!program) throw new DomainError('The selected Program no longer exists');
+  const existing = new Set(
+    ((await db.prepare('SELECT code FROM sections').all()) as { code: string }[]).map((r) => r.code.toUpperCase())
+  );
+  const created: string[] = [];
+  for (let i = 0; i < 26 && created.length < count; i++) {
+    const code = `${program.code}-${yearLevel}${String.fromCharCode(65 + i)}`;
+    if (existing.has(code.toUpperCase())) continue;
+    await createSection(code, programId, yearLevel, semesterId, userId);
+    created.push(code);
+  }
+  if (created.length < count) throw new DomainError(`Only ${created.length} more set(s) fit (A to Z) for year ${yearLevel}.`);
+  return created;
 }
 
 export async function createSection(
@@ -253,14 +329,16 @@ export async function createSection(
   programId: number,
   yearLevel: number,
   semesterId: number,
-  userId?: number
+  userId?: number,
+  extra: SectionDetails = {}
 ) {
   const db = await getDb();
   const result = await db
     .prepare(
-      'INSERT INTO sections (code, program_id, year_level, semester_id) VALUES (?, ?, ?, ?)'
+      `INSERT INTO sections (code, program_id, year_level, semester_id, capacity, adviser_id, home_room_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(code, programId, yearLevel, semesterId);
+    .run(code, programId, yearLevel, semesterId, extra.capacity ?? 40, extra.adviser_id ?? null, extra.home_room_id ?? null);
   const id = toInsertId(result);
   await logAudit(userId ?? null, 'CREATE', 'section', id);
   return id;
@@ -272,14 +350,16 @@ export async function updateSection(
   programId: number,
   yearLevel: number,
   semesterId: number,
-  userId?: number
+  userId?: number,
+  extra: SectionDetails = {}
 ) {
   const db = await getDb();
   await db
     .prepare(
-      'UPDATE sections SET code = ?, program_id = ?, year_level = ?, semester_id = ? WHERE id = ?'
+      `UPDATE sections SET code = ?, program_id = ?, year_level = ?, semester_id = ?,
+       capacity = COALESCE(?, capacity), adviser_id = ?, home_room_id = ? WHERE id = ?`
     )
-    .run(code, programId, yearLevel, semesterId, id);
+    .run(code, programId, yearLevel, semesterId, extra.capacity ?? null, extra.adviser_id ?? null, extra.home_room_id ?? null, id);
   await logAudit(userId ?? null, 'UPDATE', 'section', id);
   return id;
 }

@@ -108,13 +108,12 @@ export async function createBooking(input: BookingInput, userId?: number): Promi
   // and archived classes no longer hold the room.
   const cls = (await db
     .prepare(
-      `SELECT sub.code AS subject_code, sec.code AS section_code, ts.start_time, ts.end_time
+      `SELECT sub.code AS subject_code, sec.code AS section_code, s.start_time, s.end_time
        FROM schedules s
-       JOIN time_slots ts ON ts.id = s.time_slot_id
        JOIN subjects sub ON sub.id = s.subject_id
        JOIN sections sec ON sec.id = s.section_id
        JOIN semesters sem ON sem.id = s.semester_id AND sem.is_active = 1
-       WHERE s.room_id = ? AND ts.day_of_week = ? AND ts.start_time < ? AND ? < ts.end_time
+       WHERE s.room_id = ? AND s.day_of_week = ? AND s.start_time < ? AND ? < s.end_time
          AND s.status NOT IN ('CANCELLED', 'ARCHIVED')`
     )
     .get(b.room_id, weekdayOf(b.booking_date), b.end_time, b.start_time)) as

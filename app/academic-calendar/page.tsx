@@ -30,9 +30,7 @@ export default async function AcademicCalendarPage() {
       <div className="mx-auto max-w-4xl px-6 py-12">
         <h1 className="mb-6 text-4xl font-bold">Academic Calendar</h1>
         <p className="mb-8 text-sm text-muted">
-          Academic years and semesters tracked by the CSMS.
-          Per spec §22, there must be only one active/current term for the
-          scheduling context.
+          Academic years and semesters. Only one semester is current at a time.
         </p>
         <div className="space-y-3">
           {years.map((y) => (

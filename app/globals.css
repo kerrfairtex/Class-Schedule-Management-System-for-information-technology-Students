@@ -287,47 +287,6 @@
     @apply text-coral;
   }
 
-  /* ===== Portal timetable (ScheduleGrid) ===== */
-  .schedule-grid {
-    @apply overflow-x-auto rounded-lg border border-line bg-surface;
-  }
-  .schedule-grid-table {
-    @apply w-full min-w-[760px] border-collapse text-sm;
-  }
-  .schedule-grid-header th {
-    @apply border-b border-line-strong bg-paper-2 px-3 py-2 text-left font-semibold text-ink-soft;
-  }
-  .schedule-grid-time-col {
-    @apply whitespace-nowrap border-r border-line px-3 py-2 text-left font-medium text-muted;
-  }
-  .schedule-grid-cell {
-    @apply border-b border-line px-2 py-2 align-top;
-  }
-  .schedule-block {
-    @apply rounded-md border-l-4 bg-paper p-2 text-xs;
-  }
-  .schedule-block-networking {
-    @apply border-lagoon;
-  }
-  .schedule-block-software {
-    @apply border-seagrass;
-  }
-  .schedule-block-systems {
-    @apply border-sand-dark;
-  }
-  .schedule-block-gened {
-    @apply border-line-strong;
-  }
-  .schedule-block-title {
-    @apply font-semibold text-ink;
-  }
-  .schedule-block-meta {
-    @apply text-muted;
-  }
-  .schedule-empty {
-    @apply py-4 text-center text-line-strong;
-  }
-
   /* ===== Filters ===== */
   .filter-toolbar {
     @apply mb-4 rounded-lg border border-line bg-surface p-4;
@@ -376,8 +335,7 @@
     }
     .card,
     .panel,
-    .glass-card,
-    .schedule-grid {
+    .glass-card {
       @apply border-slate-400 shadow-none;
     }
   }

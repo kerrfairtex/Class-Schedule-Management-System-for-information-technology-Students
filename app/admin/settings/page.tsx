@@ -29,7 +29,7 @@ export default async function AdminSettingsPage() {
     <PortalLayout role="admin" name={session.name} links={navFor(ADMIN_NAV, '/admin/settings')}>
         <h1 className="mb-2 text-3xl font-bold">System Settings</h1>
         <p className="mb-8 text-muted">
-          Deployment environment and source-of-truth configuration (spec §64).
+          Data environment and system settings.
         </p>
 
         <section aria-labelledby="visibility-heading" className="mb-10">
@@ -75,7 +75,7 @@ export default async function AdminSettingsPage() {
         </ul>
 
         <div className="mt-8 border-t border-sand-dark/50 bg-sand p-4 text-sm">
-          <p className="font-medium text-ink">Production Safety Checklist (spec §65)</p>
+          <p className="font-medium text-ink">Before going live</p>
           <ul className="mt-2 space-y-1 text-ink">
             <li>□ Remove demo faculty (data_environment = DEMO)</li>
             <li>□ Remove demo student records and any old student logins</li>

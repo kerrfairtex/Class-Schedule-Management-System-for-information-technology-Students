@@ -78,7 +78,7 @@ export default function FacultyAvailabilityPage() {
     <PortalLayout role="admin" name="Administrator" links={adminLinks}>
         <h1 className="mb-2 text-2xl font-bold">Faculty Availability</h1>
         <p className="mb-6 text-sm text-muted">
-          Mark unavailable time slots — MOD-04 uses this during conflict detection.
+          Mark the periods each instructor cannot teach. The schedule board warns before placing a class in one.
         </p>
 
         {message && (

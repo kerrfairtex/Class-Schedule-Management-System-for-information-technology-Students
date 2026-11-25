@@ -110,8 +110,9 @@ describe('schedule visibility (spec §35, §63)', () => {
 
   it('rejects a double booking at the database level', () => {
     const insert = db.prepare(
-      `INSERT INTO schedules (section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO schedules (section_id, subject_id, faculty_id, room_id, time_slot_id, semester_id,
+                              day_of_week, start_time, end_time)
+       VALUES (?, ?, ?, ?, ?, ?, 'monday', '09:00', '10:00')`
     );
     const v = input();
     insert.run(v.section_id, v.subject_id, v.faculty_id, v.room_id, v.time_slot_id, v.semester_id);

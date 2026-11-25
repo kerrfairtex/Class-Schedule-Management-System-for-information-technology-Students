@@ -32,18 +32,17 @@ export default async function TermSchedules({ params }: PageProps) {
     .prepare(
       `SELECT s.id, sec.code as section_code, sub.code as subject_code, sub.name as subject_name,
               f.first_name || ' ' || f.last_name as faculty_name,
-              r.code as room_code, ts.start_time, ts.end_time, ts.day_of_week,
+              r.code as room_code, s.start_time, s.end_time, s.day_of_week,
               s.status, s.data_environment
        FROM schedules s
        JOIN sections sec ON sec.id = s.section_id
        JOIN subjects sub ON sub.id = s.subject_id
        JOIN faculty f ON f.id = s.faculty_id
        JOIN rooms r ON r.id = s.room_id
-       JOIN time_slots ts ON ts.id = s.time_slot_id
        JOIN semesters sem ON sem.id = s.semester_id
        WHERE sem.academic_year_id = ?
          AND ${scheduleVisibilitySql('public')}
-       ORDER BY sec.code, ts.day_of_week, ts.start_time`
+       ORDER BY sec.code, s.day_of_week, s.start_time`
     )
     .all(yearId) as Array<{
       id: number;
