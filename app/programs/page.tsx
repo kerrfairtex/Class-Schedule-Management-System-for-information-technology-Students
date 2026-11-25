@@ -36,7 +36,7 @@ export default async function ProgramsPage() {
         <h1 className="mb-6 text-4xl font-bold">Programs</h1>
         <p className="mb-8 text-sm text-muted">
           Programs offered under the Institute of Computing Studies.
-          Sample data is tagged <code className="rounded bg-surface px-1">DEMO</code> per spec §63.
+          Sample data is tagged <code className="rounded bg-surface px-1">DEMO</code>.
         </p>
         <div className="space-y-4">
           {programs.map((p) => (

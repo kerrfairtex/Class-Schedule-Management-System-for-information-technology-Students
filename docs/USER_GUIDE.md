@@ -188,11 +188,11 @@ The admin sidebar (`PortalSidebar` from `components/PortalLayout.tsx`) contains:
 | Link | Label | Module |
 |------|-------|--------|
 | `/admin/dashboard` | Mission Control | System overview |
-| `/admin/master-list` | Master List (MOD-02) | Data management |
-| `/admin/faculty-availability` | Faculty Availability | MOD-04 |
-| `/admin/schedule-board` | Schedule Board (MOD-05) | MOD-03/04/05 |
+| `/admin/master-list` | Master List | Data management |
+| `/admin/faculty-availability` | Faculty Availability | Instructor availability |
+| `/admin/schedule-board` | Schedule Board | Building and publishing schedules |
 | `/admin/schedules` | (linked from conflicts page only) | Scheduling workflow |
-| `/admin/conflicts` | (linked from schedules page only) | MOD-04 Conflict Detection |
+| `/admin/conflicts` | Conflicts | Conflict report |
 | `/admin/evidence` | (linked from settings page only) | Source-of-truth |
 | `/admin/settings` | (linked from evidence page only) | System config |
 
@@ -219,8 +219,8 @@ The dashboard is wrapped in `PortalLayout` with role `admin`. It displays:
 6. Scheduled Operations — total schedules (shows conflicts as red trend if > 0)
 
 **Operational Commands (QuickLink buttons):**
-1. **Master List (MOD-02)** — Manages faculty, subjects, rooms, sections, and curriculum
-2. **Schedule Board (MOD-05)** — Generate schedules, drag-and-drop manual adjustments
+1. **Master List** — Manages faculty, subjects, rooms, sections, and curriculum
+2. **Schedule Board** — Generate schedules, drag-and-drop manual adjustments
 3. **Faculty Load Matrix** — View and configure faculty availability constraints
 4. **Audit Logs** — Review system audit trail (`/api/admin?resource=audit`)
 
@@ -236,8 +236,8 @@ The dashboard is wrapped in `PortalLayout` with role `admin`. It displays:
 
 **Page header:**
 - Title: "Master List"
-- Subtitle: "MOD-02 — System source of truth"
-- **Backup Database (MOD-08)** button — creates a SQLite backup file
+- Subtitle: "Faculty, students, subjects, sections, rooms and user accounts."
+- **Back up database** button — creates a SQLite backup file
 
 **Tabs** (5 tabs):
 - Faculty
@@ -278,7 +278,7 @@ The forms are dynamically rendered by `MasterListForm.tsx` based on the active t
 
 **Page header:**
 - Title: "Faculty Availability"
-- Subtitle: "Mark unavailable time slots — MOD-04 uses this during conflict detection."
+- Subtitle: "Mark the periods each instructor cannot teach. The schedule board warns before placing a class in one."
 
 **Controls:**
 1. **Faculty Member dropdown** — Selects a faculty member from a list (employee_id — full_name format)
@@ -297,12 +297,12 @@ The forms are dynamically rendered by `MasterListForm.tsx` based on the active t
 
 **Page header:**
 - Title: "Schedule Board"
-- Subtitle: "MOD-03 Generation · MOD-04 Conflict Detection · MOD-05 Manual Adjustment"
+- Subtitle: "Build each set's week: lectures and labs of any length, on the days they meet."
 
 **Controls:**
 1. **Add Schedule Manually** button — Opens the `ManualScheduleForm` form inline
 2. **Filter section:** dropdown — Filters the board by section (default: "All sections")
-3. **Auto-generate (MOD-03):** Buttons for each section — Click a section button to auto-generate schedules
+3. **Auto-generate:** Buttons for each section — Click a section button to auto-generate schedules
 
 **Manual Schedule Form** (when expanded):
 Five dropdown fields:
@@ -318,7 +318,7 @@ On success: "Schedule created" message, form collapses, board refreshes.
 **Schedule Board grid (ScheduleBoard component):**
 - A table grid with time slots on rows and days (Monday–Friday) as columns
 - Each cell with a schedule entry shows: subject code, section code, faculty name, room code
-- Drag-and-drop: Schedule entries are draggable; dropping onto an empty slot moves the schedule (validates via MOD-04)
+- Drag-and-drop: Schedule entries are draggable; dropping onto an empty slot moves the schedule (checked for conflicts)
 - Delete icon (Trash2): Click to remove a schedule entry (requires `confirm("Remove this schedule entry?")`)
 - Status messages appear for successful moves ("Schedule updated successfully") and errors
 
@@ -518,7 +518,7 @@ Wrapped in `PortalLayout` with role `faculty`.
 
 **Page header:**
 - Title: "Teaching Schedule"
-- Subtitle: "MOD-06 — View and print only"
+- Subtitle: "Your approved and published classes this semester."
 - Semester displays in the sidebar details
 
 **Controls (top-right):**
@@ -865,7 +865,7 @@ Complete list of all user-facing routes:
 | (Drag schedule block) | Schedule Board grid | Admin | Drags to another time slot | "Schedule updated successfully" or error |
 | Delete (trash icon) | Schedule Board grid | Admin | Shows confirm dialog, then deletes | "Schedule removed" or error |
 | (Time slot button) | Faculty Availability | Admin | Toggles availability status | "Availability updated" message |
-| Backup Database (MOD-08) | Master List | Admin | POSTs `{ action: "backup" }` | "Backup created: {path}" message |
+| Back up database | Master List | Admin | POSTs `{ action: "backup" }` | "Backup created: {path}" message |
 | Faculty tab / Students tab / Subjects tab / Sections tab / Rooms tab | Master List | Admin | Switches data table view | Shows corresponding table + create form |
 | Grid | Schedule pages | Faculty | Sets view to grid | Renders ScheduleGrid component |
 | List | Schedule pages | Faculty | Sets view to list | Renders ScheduleList component |
@@ -887,7 +887,7 @@ Complete list of all user-facing routes:
 
 **Validation (verified code):** Both fields must be non-empty; submitted via `zod` schema with `min(1)` constraint. Rate-limited to 5 attempts per 15 minutes per IP.
 
-#### 16.2 Manual Schedule Entry (MOD-05)
+#### 16.2 Manual Schedule Entry
 
 | Page | Field | Type | Required | Meaning |
 |------|-------|------|----------|---------|
@@ -915,8 +915,8 @@ Complete list of all user-facing routes:
 | View admin dashboard (Mission Control) | ✓ | — | — |
 | Manage master data (faculty, student records, subjects, sections, rooms) | ✓ | — | — |
 | Set faculty availability constraints | ✓ | — | — |
-| View/edit schedule board (MO-05) | ✓ | — | — |
-| Auto-generate schedules (MOD-03) | ✓ | — | — |
+| View/edit schedule board | ✓ | — | — |
+| Auto-generate schedules | ✓ | — | — |
 | View conflict detection report | ✓ | — | — |
 | View schedule management table | ✓ | — | — |
 | Access evidence dashboard | ✓ | — | — |
@@ -968,7 +968,7 @@ Complete list of all user-facing routes:
 #### Workflow D — Administrator creates a schedule
 
 1. Log in as admin → arrive at `/admin/dashboard`.
-2. Click **Schedule Board (MOD-05)** in the Operational Commands.
+2. Click **Schedule Board** in the Operational Commands.
 3. Click **Add Schedule Manually**.
 4. Fill in: Section, Subject, Faculty, Room, Time Slot.
 5. Click **Create Schedule**.
@@ -978,8 +978,8 @@ Complete list of all user-facing routes:
 #### Workflow E — Administrator auto-generates schedules
 
 1. Log in as admin → arrive at `/admin/dashboard`.
-2. Click **Schedule Board (MOD-05)** in the Operational Commands.
-3. Find the **Auto-generate (MOD-03)** button group below the filter.
+2. Click **Schedule Board** in the Operational Commands.
+3. Find the **Auto-generate** button group below the filter.
 4. Click the button for the section you want to auto-generate (e.g., "BSIT-2A").
 5. A message appears: "Generated N schedules." (where N is the count).
 6. Review the generated schedules on the board.
@@ -996,10 +996,10 @@ Complete list of all user-facing routes:
 #### Workflow G — Administrator manages master data
 
 1. Log in as admin → arrive at `/admin/dashboard`.
-2. Click **Master List (MOD-02)** in the Operational Commands or sidebar.
+2. Click **Master List** in the Operational Commands or sidebar.
 3. Click the tab for the entity you want to manage (Faculty, Students, Subjects, Sections, Rooms).
 4. View existing records in the table below.
-5. Click **Backup Database (MOD-08)** to create a backup before making changes.
+5. Click **Back up database** to create a backup before making changes.
 
 #### Workflow H — User logs out
 
@@ -1165,17 +1165,10 @@ Error messages appear in red alert boxes:
 | Building | A structure containing rooms; rooms are grouped under buildings |
 | Schedule | A time-slot assignment linking a section, subject, faculty, room, and time slot |
 | Time Slot | A day + start/end time window (e.g., Monday 08:30–09:30) |
-| Conflict | A scheduling clash (same faculty, room, or section at the same time) — detected by MOD-04 |
+| Conflict | A scheduling clash (same faculty, room, or section at the same time) — detected automatically |
 | Blocking Conflict | A conflict that prevents a schedule from being published (spec §34) |
 | DRAFT | Initial status of a newly created schedule |
 | PUBLISHED | Final status for schedules publicly displayed on `/schedules/{term}` |
-| MOD-02 | Master List module (data management) |
-| MOD-03 | Schedule Engine module (auto-generation) |
-| MOD-04 | Conflict Detection module |
-| MOD-05 | Manual Adjustment module (schedule board) |
-| MOD-06 | Faculty Portal module |
-| MOD-07 | Public student access (schedule finder, room availability; no account) |
-| MOD-08 | Database Service module (backup, audit) |
 | DEMO | Sample/seed data not authorized for production display (spec §63) |
 | VERIFIED | Data confirmed against an authoritative source |
 | PRODUCTION | Live institutional data (not sample/seed) |

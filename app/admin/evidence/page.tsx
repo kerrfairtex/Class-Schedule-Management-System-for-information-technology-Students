@@ -68,7 +68,7 @@ export default async function AdminEvidencePage() {
     <PortalLayout role="admin" name={session.name} links={navFor(ADMIN_NAV, '/admin/evidence')}>
         <h1 className="mb-2 text-3xl font-bold">Evidence Dashboard</h1>
         <p className="mb-8 text-muted">
-          Source-of-Truth overview (spec §66).
+          Where each institutional fact comes from, and what still needs checking.
         </p>
 
         <div className="mb-8 grid gap-4 md:grid-cols-4">

@@ -94,7 +94,7 @@ export default async function AdminConflictsPage() {
             </p>
             <p className="mt-2 text-sm">
               Schedules with blocking conflicts cannot transition to{' '}
-              <code className="rounded bg-surface px-1">PUBLISHED</code> (spec §34).
+              <code className="rounded bg-surface px-1">PUBLISHED</code>.
             </p>
           </div>
           <div className="rounded border border-line bg-surface p-4">

@@ -201,7 +201,7 @@ export default function EvidencePage() {
             <p className="mb-4 text-sm text-muted">
               These institutional data points MUST NOT be displayed as
               authoritative facts until an authoritative TRAC source is
-              identified. Per spec §62.
+              identified.
             </p>
             <ul className="grid gap-2 sm:grid-cols-2">
               {PENDING_VERIFICATION_ITEMS.map((item) => (

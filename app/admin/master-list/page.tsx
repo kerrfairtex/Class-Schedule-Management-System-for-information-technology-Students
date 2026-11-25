@@ -185,10 +185,10 @@ export default function MasterListPage() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-ink">Master List</h1>
-            <p className="text-sm text-muted">MOD-02 — System source of truth</p>
+            <p className="text-sm text-muted">Faculty, students, subjects, sections, rooms and user accounts.</p>
           </div>
           <button onClick={handleBackup} className="btn-secondary">
-            Backup Database (MOD-08)
+            Back up database
           </button>
         </div>
 
