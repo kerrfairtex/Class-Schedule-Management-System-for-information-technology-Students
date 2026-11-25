@@ -291,10 +291,6 @@ async function seedRenderDatabase() {
     // Students
     await client.query(`INSERT INTO csms.students (student_id, first_name, last_name, email, section_id) VALUES ('2022-0001', 'Demo', 'Student', 'demo.student@trac.edu.ph', $1) ON CONFLICT (student_id) DO NOTHING`, [sec2aId]);
     await client.query(`INSERT INTO csms.students (student_id, first_name, last_name, email, section_id) VALUES ('2023-0001', 'Sample', 'Enrollee', 'sample.enrollee@trac.edu.ph', $1) ON CONFLICT (student_id) DO NOTHING`, [sec1aId]);
-    const s1Result = await client.query(`SELECT id FROM csms.students WHERE student_id = '2022-0001'`);
-    const s2Result = await client.query(`SELECT id FROM csms.students WHERE student_id = '2023-0001'`);
-    const s1Id = s1Result.rows[0].id;
-    const s2Id = s2Result.rows[0].id;
 
     // Demo users - passwords come from env vars with production guard
     const demoUsers = [
@@ -302,12 +298,10 @@ async function seedRenderDatabase() {
       { username: 'fac-001', role: 'faculty' as const, faculty_id: f1Id, student_id: null, passwordEnv: 'FACULTY_PASSWORD' },
       { username: 'fac-002', role: 'faculty' as const, faculty_id: f2Id, student_id: null, passwordEnv: 'FACULTY_PASSWORD' },
       { username: 'fac-003', role: 'faculty' as const, faculty_id: f3Id, student_id: null, passwordEnv: 'FACULTY_PASSWORD' },
-      { username: '2022-0001', role: 'student' as const, faculty_id: null, student_id: s1Id, passwordEnv: 'STUDENT_PASSWORD' },
-      { username: '2023-0001', role: 'student' as const, faculty_id: null, student_id: s2Id, passwordEnv: 'STUDENT_PASSWORD' },
     ];
 
     // Validate passwords exist (production guard)
-    const REQUIRED_PASSWORDS = ['ADMIN_PASSWORD', 'FACULTY_PASSWORD', 'STUDENT_PASSWORD'];
+    const REQUIRED_PASSWORDS = ['ADMIN_PASSWORD', 'FACULTY_PASSWORD'];
     for (const key of REQUIRED_PASSWORDS) {
       if (!process.env[key]) {
         console.error(`[SEED] Missing required env var: ${key}. Set it before running seed-render-db.`);

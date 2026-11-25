@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SYSTEM_IDENTITY, ORGANIZATION } from '@/lib/domain/constants';
 import type { Metadata } from 'next';
+import { PublicHeader } from '@/components/public/PublicHeader';
 
 export const metadata: Metadata = {
   title: 'User Guidelines — TRAC BSIT CSMS',
@@ -11,11 +12,9 @@ export const metadata: Metadata = {
 export default function UserGuidelinesPage() {
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
+      <PublicHeader />
       <div className="mx-auto max-w-3xl px-6 py-12">
         <div className="mb-4">
-          <Link href="/" className="text-sm text-cyber-teal hover:text-cyber-cyan">
-            ← Back to home
-          </Link>
         </div>
 
         <header className="mb-8 border-b border-slate-800 pb-6">
@@ -48,17 +47,21 @@ export default function UserGuidelinesPage() {
             </li>
             <li>
               <span className="font-medium text-slate-200">Faculty:</span>{' '}
-              View assigned teaching loads, schedule boards, and faculty availability. Log in at{' '}
+              View your teaching schedule and print it. Sign in at{' '}
               <Link href="/login" className="text-cyber-teal hover:text-cyber-cyan">
                 Faculty Login
               </Link>
               .
             </li>
             <li>
-              <span className="font-medium text-slate-200">Students:</span>{' '}
-              View your personal class schedule and academic calendar. Log in at{' '}
-              <Link href="/login" className="text-cyber-teal hover:text-cyber-cyan">
-                Student Login
+              <span className="font-medium text-slate-200">Students and visitors:</span>{' '}
+              No account needed. Find any section&apos;s timetable on{' '}
+              <Link href="/schedules" className="text-cyber-teal hover:text-cyber-cyan">
+                Class Schedules
+              </Link>{' '}
+              and see which rooms are free on{' '}
+              <Link href="/rooms" className="text-cyber-teal hover:text-cyber-cyan">
+                Rooms
               </Link>
               .
             </li>

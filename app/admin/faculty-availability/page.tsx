@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PortalSidebar } from '@/components/Sidebar';
 import { ORGANIZATION, DAY_LABELS } from '@/lib/domain/constants';
+import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
 
 interface FacultyOption {
   id: number;
@@ -71,12 +72,7 @@ export default function FacultyAvailabilityPage() {
     }
   }
 
-  const adminLinks = [
-    { href: '/admin/dashboard', label: 'Dashboard' },
-    { href: '/admin/master-list', label: 'Master List (MOD-02)' },
-    { href: '/admin/faculty-availability', label: 'Faculty Availability', active: true },
-    { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)' },
-  ];
+  const adminLinks = navFor(ADMIN_NAV, '/admin/faculty-availability');
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

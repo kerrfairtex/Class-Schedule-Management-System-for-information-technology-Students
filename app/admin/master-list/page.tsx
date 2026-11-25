@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { PortalSidebar } from '@/components/Sidebar';
 import { MasterListForm, type EditingRecord } from '@/components/MasterListForm';
 import { ORGANIZATION } from '@/lib/domain/constants';
+import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
 import {
   masterListAction,
   type MasterListTab,
@@ -21,12 +22,7 @@ interface Meta {
   semester: { id: number; name: string } | null;
 }
 
-const ADMIN_LINKS = [
-  { href: '/admin/dashboard', label: 'Dashboard' },
-  { href: '/admin/master-list', label: 'Master List (MOD-02)', active: true },
-  { href: '/admin/faculty-availability', label: 'Faculty Availability' },
-  { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)' },
-];
+const ADMIN_LINKS = navFor(ADMIN_NAV, '/admin/master-list');
 
 export default function MasterListPage() {
   const router = useRouter();

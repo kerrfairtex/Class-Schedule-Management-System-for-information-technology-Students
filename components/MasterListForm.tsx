@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   toInt,
   toOptionalInt,
@@ -25,7 +25,6 @@ interface Meta {
   semester: { id: number; name: string } | null;
 }
 
-type Tab = MasterListTab;
 
 export interface EditingRecord {
   id: number;
@@ -43,16 +42,6 @@ interface MasterListFormProps {
 }
 
 type Mode = 'create' | 'edit';
-
-/**
- * A single value that can be edited: the row id for updates, or undefined for
- * creates. Keeping it in one place means the form renders the same fields for
- * Add and Edit.
- */
-interface EditTarget {
-  id: number;
-  values: Record<string, string>;
-}
 
 export function MasterListForm({
   tab,
@@ -117,7 +106,6 @@ export function MasterListForm({
           email: toOptionalEmail(raw.email, 'email', errors),
           section_id: toInt(raw.section_id, 'section_id', errors, { min: 1 }),
         };
-        body.password = raw.password || undefined;
         break;
       }
       case 'subjects': {
@@ -239,9 +227,6 @@ export function MasterListForm({
       {tab === 'faculty' && (
         <>
           <Field name="employee_id" label="Employee ID" required defaultValue={defaults.employee_id} error={fieldErrors.employee_id} />
-          {mode === 'create' && (
-            <Field name="password" label="Login Password" placeholder="Leave blank to generate a temporary password" error={fieldErrors.password} />
-          )}
           <Field name="first_name" label="First Name" required defaultValue={defaults.first_name} error={fieldErrors.first_name} />
           <Field name="last_name" label="Last Name" required defaultValue={defaults.last_name} error={fieldErrors.last_name} />
           <Field name="email" label="Email" type="email" defaultValue={defaults.email} error={fieldErrors.email} />
@@ -375,7 +360,6 @@ export function MasterListForm({
             options={[
               { id: 1, code: 'admin' },
               { id: 2, code: 'faculty' },
-              { id: 3, code: 'student' },
             ]}
             required
             defaultValue={defaults.role}

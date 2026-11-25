@@ -25,13 +25,13 @@ The system runs as a Next.js web application with a local-first SQLite backend. 
 
 ### 2. Who Uses the System
 
-Three roles are implemented in the system's authentication and authorization layer:
+Two roles sign in; students use the public site without an account:
 
 | Role | Description | Route Prefix |
 |------|------------|-------------|
 | Administrator | Full system access — manages schedules, master data, faculty availability, conflicts | `/admin/*` |
 | Faculty | Views assigned teaching load, schedule board, and faculty availability | `/faculty/*` |
-| Student | Views personal class schedule and can search other section schedules | `/student/*` |
+| Student / visitor | No account. Views published schedules, rooms, faculty and calendar on the public site | `/schedules`, `/rooms`, … |
 
 **Public (unauthenticated)** users can access informational pages without logging in.
 
@@ -44,7 +44,7 @@ Three roles are implemented in the system's authentication and authorization lay
 https://class-schedule-management-system-for-1myk.onrender.com
 ```
 
-**Step 2:** On the landing page, click **Admin Portal**, **Faculty Portal**, or **Student Portal** in the navbar (all lead to `/login`). Alternatively, click the **Get Started →** button in the hero section.
+**Step 2:** Students: click **Find my class schedule** or **Free rooms now**; no account needed. Administrators and faculty: click **Staff sign in** in the navbar (leads to `/login`).
 
 **Step 3:** On the login page, enter your credentials and click **Sign In**.
 
@@ -62,8 +62,8 @@ The landing page at `/` is publicly accessible. It is structured as follows:
 
 #### 4.1 Navigation Bar (top)
 - **Left:** Institution name (TRAC) and department code/location — non-clickable branding.
-- **Desktop:** Links to **Admin Portal**, **Faculty Portal**, **Student Portal**, and **About** (all lead to `/login` except About which goes to `/about`).
-- **Mobile:** A single **Login** button.
+- **Desktop:** **Schedules**, **Rooms**, **Faculty**, **About**, and **Staff sign in** (`/login`).
+- **Mobile:** **Schedules**, **Rooms** and **Staff**.
 
 #### 4.2 Hero Section
 - Large heading: **Class Schedule Management System**
@@ -115,9 +115,8 @@ Plus developer attribution: "Developers: Jimlani Paiji K., Albashrie Mashul A., 
 #### 5.1 How to Reach the Login Page
 
 Click any of these:
-- **Get Started →** on the homepage hero
-- **Admin Portal / Faculty Portal / Student Portal** in the navbar
-- **Login** button (mobile navbar)
+- **Staff sign in** in the navbar (**Staff** on mobile)
+- **Staff sign in** in the footer
 - Direct URL: `https://class-schedule-management-system-for-1myk.onrender.com/login`
 
 All three navbar portal links point to the same login page; role selection happens server-side after authentication based on the user's account.
@@ -145,7 +144,8 @@ All three navbar portal links point to the same login page; role selection happe
 
 **On success:**
 - A signed HTTP-only cookie (`csms_session`) is set (8-hour expiry)
-- The server returns JSON `{ success: true, role: "admin"|"faculty"|"student", redirect: "/admin/dashboard" | "/faculty/dashboard" | "/student/dashboard" }`
+- The server returns JSON `{ success: true, role: "admin"|"faculty", redirect: "/admin/dashboard" | "/faculty/dashboard" }`. A student account is refused (403) with a link to `/schedules`.
+- Failed sign-ins are limited to 5 per account and 20 per IP address every 15 minutes.
 - The UI navigates to the role-specific dashboard
 
 **On failure:**
@@ -158,7 +158,6 @@ All three navbar portal links point to the same login page; role selection happe
 |------|---------------------------------|
 | admin | `/admin/dashboard` |
 | faculty | `/faculty/dashboard` |
-| student | `/student/dashboard` |
 
 #### 5.6 Logout
 
@@ -170,11 +169,11 @@ Logout is performed via a POST form submission to `/api/auth/logout`. The logout
 
 **Verified code behavior** (from `middleware.ts`):
 - Public routes (no auth required): `/`, `/login`, `/about`, `/about/evidence`, `/schedules`, `/programs`, `/faculty`, `/rooms`, `/academic-calendar`, `/contact`
-- Protected routes (auth required): `/admin/*`, `/faculty/*`, `/student/*`
+- Protected routes (auth required): `/admin/*`, `/faculty/*` (except the public `/faculty` directory). `/student/*` redirects to `/schedules`.
 - If an unauthenticated user attempts to access a protected route, they are redirected to `/login`
 - Root paths `/admin`, `/faculty`, `/student` (without subpages) are technically public per middleware but serve as entry points
 
-**Note:** The middleware only runs on `/admin/:path*`, `/faculty/:path*`, `/student/:path*`. Protected subpages redirect to `/login` if no session cookie is present.
+**Note:** The middleware only runs on `/admin/:path*` and `/faculty/:path*`. Protected subpages redirect to `/login` if no session cookie is present.
 
 ---
 
@@ -266,7 +265,7 @@ Each tab shows a data table with columns specific to that entity:
 
 When the "Add" form is submitted, it POSTs to `/api/admin` with:
 - **Faculty:** `{ action: "create-faculty", data: { employee_id, first_name, last_name, email, phone, department_id }, subjectIds: [], password: "faculty123" }`
-- **Students:** `{ action: "create-student", data: { student_id, first_name, last_name, email, section_id }, password: "student123" }`
+- **Students:** `{ action: "create-student", data: { student_id, first_name, last_name, email, section_id }, no password: student records never get a login }`
 - **Subjects:** `{ action: "create-subject", code, name, credit_hours, program_id }`
 - **Sections:** `{ action: "create-section", code, program_id, year_level, semester_id }`
 - **Rooms:** `{ action: "create-room", building_id, code, name, capacity }`
@@ -514,97 +513,53 @@ Wrapped in `PortalLayout` with role `faculty`.
 
 ---
 
-### 8. Student Guide
+### 8. Student Guide (public site, no account)
 
-Student routes are prefixed with `/student/`. All require student role authentication.
+Students do **not** have accounts. Everything a student needs is on the public site,
+reachable from the landing page and from the navigation bar on every public page.
+Only classes that the department has **published** (and whose data is marked VERIFIED
+or PRODUCTION) appear.
 
-#### 8.1 Student Navigation Sidebar
+#### 8.1 Find your class schedule — `/schedules`
 
-The student sidebar (same `PortalSidebar` component) contains:
+1. Open the site and click **Find my class schedule** (or **Class Schedules** in the menu).
+2. Under **Find your schedule**, tap your section (grouped by year level). The number
+   in brackets is how many class meetings it has per week.
+3. Your weekly timetable appears: a grid on computers, one list per day on phones.
+   The current class period is highlighted.
+4. Below it, the **Class list** shows subject, instructor, day, time and room.
+5. Click **Print timetable**, or copy the address (e.g. `/schedules?section=BSIT-2A`)
+   to save or share it.
 
-| Link | Label |
-|------|-------|
-| `/student/dashboard` | Dashboard |
-| `/student/schedule` | My Schedule |
+To see an instructor's timetable instead, choose them under **Or an instructor** and
+click **Show** (`/schedules?faculty={id}`). Room and instructor names in a timetable
+are links.
 
-The sidebar header shows:
-- Role: STUDENT
-- Student's full name
-- Section code
+If nothing is published yet, the page says so. Past years are under
+**Past academic years** (`/schedules/archive`).
 
-Sidebar details:
-- Student ID
-- Section code
-- Semester
+#### 8.2 Room availability — `/rooms`
 
-#### 8.2 Student Dashboard — `/student/dashboard`
+- Each room card shows **Free now** or **In use** on the campus clock (Philippine
+  time), with the current or next class.
+- **Find a free room**: choose a day and class period, then **Search**. Free rooms are
+  highlighted.
+- Click a room to see its weekly schedule, with free periods marked.
 
-**Verified UI** (from `app/student/dashboard/page.tsx`):
+Availability reflects the published class schedule only; a room may still be booked for
+an exam or event.
 
-Wrapped in `PortalLayout` with role `student`.
+#### 8.3 Other public pages
 
-**Telemetry Bar:**
-- Academic Term: Active semester name
-- Active Week: "Week N"
-- System Health: "SYSTEM NOMINAL"
-- Conflict Alerts: 0
+| Page | What it shows |
+|---|---|
+| `/faculty` | Instructors, their subjects, and a link to each teaching schedule |
+| `/courses` | Subjects in the BSIT curriculum |
+| `/academic-calendar` | Academic years and the current term |
+| `/contact` | Department contact channels |
 
-**Schedule Telemetry cards (4 MetricCards):**
-1. Total Classes — number of enrolled schedule entries
-2. Unique Subjects — count of distinct subjects
-3. Active Days — count of distinct days with classes
-4. Weekly Hours — number of schedule entries (labeled "Weekly Hours" but shows count)
-
-**Navigation Commands (QuickLink buttons):**
-1. **Schedule Matrix** — Grid and list views, print your timetable
-2. **Section Lookup** — Search any section's timetable (links to `/student/schedule?search=1`)
-
-#### 8.3 Student Schedule — `/student/schedule`
-
-**Verified UI** (from `app/student/schedule/page.tsx`):
-
-Wrapped in `PortalLayout` with role `student`.
-
-**Page header:**
-- Title: "Class Schedule" (or "Section {code}" when viewing another section)
-- Subtitle: "MOD-07 — View and print only"
-
-**Controls (top-right):**
-1. **ViewToggle** — Grid | List
-2. **Print / PDF** button
-
-**Section Search (print:hidden):**
-- Toggle button: "Search other sections" / "Hide section search"
-- Input field: section code (e.g., "BSIT-2A") with a `<datalist>` autocomplete of all available sections
-- **Search** button — Fetches the schedule for the entered section via `/api/student?section={code}`
-- **Reset** button (appears after search results) — Clears search results and returns to personal schedule
-
-**Grid view** (`ScheduleGrid` with `showFaculty` enabled):
-- Time-slot table: days (Mon–Fri) as columns, time slots as rows
-- Each cell shows subject badge, subject name, room code, faculty name
-- Course badges color-coded by category (SE, NET, SYS, GEN)
-
-**List view** (`ScheduleList` with `showFaculty` and `showSection` enabled):
-- Sorted chronologically (day then time)
-- Each entry shows: CourseBadge (category label + subject code), subject name, day + time, room code + name, faculty name, section code
-
-**How a student finds their schedule:**
-1. Log in via `/login` (redirected to `/student/dashboard`)
-2. From the dashboard, click **Schedule Matrix** in the Navigation Commands
-3. Or click **My Schedule** in the sidebar
-4. The personal schedule loads automatically from `/api/student`
-5. Use the **ViewToggle** to switch between grid and list
-6. Use **Print / PDF** to export
-
-**How a student views another section's schedule:**
-1. Navigate to `/student/schedule`
-2. Click **Search other sections**
-3. Type or select a section code (e.g., "BSIT-2A")
-4. Click **Search**
-5. The page displays "Section {code} Schedule" as the title
-6. Click **Reset** to return to personal schedule
-
----
+If a student opens the old `/student/...` links, they are redirected to `/schedules`.
+Signing in with an old student account shows a message pointing to the public pages.
 
 ### 9. Schedule Management
 
@@ -836,8 +791,8 @@ Complete list of all user-facing routes:
 | `/admin/settings` | Admin | System Settings |
 | `/faculty/dashboard` | Faculty | Faculty Dashboard |
 | `/faculty/schedule` | Faculty | Teaching Schedule |
-| `/student/dashboard` | Student | Student Dashboard |
-| `/student/schedule` | Student | Student Schedule |
+| `/schedules` | Public | Class schedule finder (by section or instructor) |
+| `/rooms` | Public | Room availability |
 
 ---
 
@@ -847,7 +802,6 @@ Complete list of all user-facing routes:
 |------------------|----------|-----------|-------------|--------|
 | Admin Portal | Home navbar | Public | Links to `/login` | Opens login page |
 | Faculty Portal | Home navbar | Public | Links to `/login` | Opens login page |
-| Student Portal | Home navbar | Public | Links to `/login` | Opens login page |
 | About | Home navbar | Public | Links to `/about` | Opens About page |
 | Login | Home mobile nav | Public | Links to `/login` | Opens login page |
 | Get Started → | Home hero | Public | Links to `/login` | Opens login page |
@@ -864,13 +818,11 @@ Complete list of all user-facing routes:
 | (Time slot button) | Faculty Availability | Admin | Toggles availability status | "Availability updated" message |
 | Backup Database (MOD-08) | Master List | Admin | POSTs `{ action: "backup" }` | "Backup created: {path}" message |
 | Faculty tab / Students tab / Subjects tab / Sections tab / Rooms tab | Master List | Admin | Switches data table view | Shows corresponding table + create form |
-| Grid | Schedule pages | Faculty/Student | Sets view to grid | Renders ScheduleGrid component |
-| List | Schedule pages | Faculty/Student | Sets view to list | Renders ScheduleList component |
-| Print / PDF | Schedule pages | Faculty/Student | Calls `window.print()` | Browser print dialog |
-| Search other sections | Student schedule | Student | Expands section search panel | Shows input field + Search button |
-| Hide section search | Student schedule | Student | Collapses section search panel | Hides input field |
-| Search | Student schedule search | Student | Fetches `/api/student?section={code}` | Displays results for that section |
-| Reset | Student schedule search | Student | Clears search, returns to personal schedule | Reloads personal schedule |
+| Grid | Schedule pages | Faculty | Sets view to grid | Renders ScheduleGrid component |
+| List | Schedule pages | Faculty | Sets view to list | Renders ScheduleList component |
+| Print / PDF | Schedule pages | Faculty, public | Calls `window.print()` | Browser print dialog |
+| Section chip | `/schedules` | Public | Opens that section's timetable | Weekly grid + class list |
+| Find a free room → Search | `/rooms` | Public | Lists rooms free in the chosen period | Free rooms highlighted |
 | Logout | Sidebar (all portals) | All roles | POSTs to `/api/auth/logout` | Cookie cleared, redirect to `/` |
 
 ---
@@ -907,34 +859,30 @@ Complete list of all user-facing routes:
 
 ### 17. Role and Permission Matrix
 
-| Capability | Administrator | Faculty | Student | Public |
-|-----------|--------------:|--------:|--------:|-------:|
-| View public pages | ✓ | ✓ | ✓ | ✓ |
-| Login | ✓ | ✓ | ✓ | — |
-| View admin dashboard (Mission Control) | ✓ | — | — | — |
-| Manage master data (faculty/students/subjects/sections/rooms) | ✓ | — | — | — |
-| Set faculty availability constraints | ✓ | — | — | — |
-| View/edit schedule board (MO-05) | ✓ | — | — | — |
-| Auto-generate schedules (MOD-03) | ✓ | — | — | — |
-| View conflict detection report | ✓ | — | — | — |
-| View schedule management table | ✓ | — | — | — |
-| Access evidence dashboard | ✓ | — | — | — |
-| Access system settings | ✓ | — | — | — |
-| Create database backups | ✓ | — | — | — |
-| View faculty dashboard (Mission Log) | — | ✓ | — | — |
-| View teaching schedule (grid/list) | — | ✓ | — | — |
-| Print teaching schedule | — | ✓ | — | — |
-| View student dashboard (Mission Log) | — | — | ✓ | — |
-| View personal class schedule | — | — | ✓ | — |
-| Search other sections' schedules | ✓* | — | ✓ | — |
-| Print personal schedule | — | — | ✓ | — |
-| View faculty roster | — | — | — | ✓ |
-| View programs list | — | — | — | ✓ |
-| View rooms list | — | — | — | ✓ |
-| View academic calendar | — | — | — | ✓ |
-| View public schedules (published only) | — | — | — | ✓ |
+| Capability | Administrator | Faculty | Student / Public (no account) |
+|-----------|--------------:|--------:|--------:|
+| View public pages | ✓ | ✓ | ✓ |
+| Login | ✓ | ✓ | — |
+| View admin dashboard (Mission Control) | ✓ | — | — |
+| Manage master data (faculty, student records, subjects, sections, rooms) | ✓ | — | — |
+| Set faculty availability constraints | ✓ | — | — |
+| View/edit schedule board (MO-05) | ✓ | — | — |
+| Auto-generate schedules (MOD-03) | ✓ | — | — |
+| View conflict detection report | ✓ | — | — |
+| View schedule management table | ✓ | — | — |
+| Access evidence dashboard | ✓ | — | — |
+| Access system settings | ✓ | — | — |
+| Create database backups | ✓ | — | — |
+| View faculty dashboard (Mission Log) | — | ✓ | — |
+| View teaching schedule (grid/list) | — | ✓ | — |
+| Print teaching schedule | — | ✓ | — |
+| View any section or instructor timetable | ✓ | ✓ | ✓ |
+| View faculty roster | — | — | ✓ |
+| View programs list | — | — | ✓ |
+| View rooms list | — | — | ✓ |
+| View academic calendar | — | — | ✓ |
+| View public schedules (published only) | — | — | ✓ |
 
-*Admin can access `/api/student?section={code}` directly via API but the section-search UI is only in the student portal.
 
 ---
 
@@ -944,23 +892,19 @@ Complete list of all user-facing routes:
 
 1. Open `https://class-schedule-management-system-for-1myk.onrender.com` in a web browser.
 2. Review the landing page — see TRAC branding, statistics, and feature cards.
-3. Click **Admin Portal**, **Faculty Portal**, or **Student Portal** in the navbar.
+3. Click **Staff sign in** in the navbar.
 4. Enter your username and password on the login page.
 5. Click **Sign In**.
 6. The system authenticates your credentials and redirects you to:
    - Admin: `/admin/dashboard` (Mission Control)
    - Faculty: `/faculty/dashboard` (Mission Log)
-   - Student: `/student/dashboard` (Mission Log)
 
 #### Workflow B — Student views a schedule
 
-1. Navigate to `.../login` from the homepage.
-2. Enter student credentials, click **Sign In**.
-3. Arrive at the Student Dashboard.
-4. Click **Schedule Matrix** in the Navigation Commands section.
-5. The grid view of your personal class schedule appears.
-6. Use the **Grid**/**List** toggle to switch views.
-7. Click **Print / PDF** to export your schedule.
+1. Open the homepage and click **Find my class schedule** (no sign-in).
+2. Tap your section.
+3. The weekly timetable and class list appear.
+4. Click **Print timetable**, or bookmark the page address.
 
 #### Workflow C — Faculty views their schedule
 
@@ -1082,8 +1026,8 @@ Error messages appear in red alert boxes:
 **Verified UI** (from `app/page.tsx`, `components/PortalLayout.tsx`):
 
 #### 21.1 Mobile Navbar Behavior
-- On mobile (`md:hidden`), the navbar collapses the portal links (Admin/Faculty/Student Portal, About) and shows only a **Login** button.
-- On desktop (`md:flex`), all four links are visible.
+- On mobile (`md:hidden`), the navbar shows **Schedules**, **Rooms** and **Staff**.
+- On desktop (`md:flex`), it shows **Schedules**, **Rooms**, **Faculty**, **About** and **Staff sign in**.
 
 #### 21.2 Mobile Sidebar Behavior
 - The sidebar in portal pages has a toggle button (chevron icons) visible on `lg:hidden`.
@@ -1131,9 +1075,9 @@ Error messages appear in red alert boxes:
 | Password hashing | `lib/modules/mod-01-auth/service.ts` | bcrypt with 10 salt rounds (`bcryptjs.hashSync`) |
 | Rate limiting | `app/api/auth/login/route.ts` | 5 login attempts per 15 minutes per IP address; in-memory store |
 | Role authorization | `lib/modules/mod-01-auth/service.ts` | Admin pages require `session.role === 'admin'`; faculty require `'faculty'`; student requires `'student'` |
-| Middleware protection | `middleware.ts` | Redirects to `/login` if no session cookie on `/admin/*`, `/faculty/*`, `/student/*` |
+| Route protection | `proxy.ts` | Redirects to `/login` if no session cookie on `/admin/*` and `/faculty/*` subpages |
 | Session signing | `lib/modules/mod-01-auth/session.ts` | HMAC-SHA256 signed payload (requires `SESSION_SECRET` in production) |
-| API authorization | `app/api/admin/route.ts`, `app/api/faculty/route.ts`, `app/api/student/route.ts` | All API routes call `getSession()` + `authorize()` — returns 401 if unauthenticated/unauthorized |
+| API authorization | `app/api/admin/route.ts`, `app/api/faculty/route.ts` | All portal API routes call `getSession()` + `authorize()` — returns 401 if unauthenticated/unauthorized |
 | Rate limit headers | `app/api/auth/login/route.ts` | Returns `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers |
 
 **Not exposed to users:** No passwords, tokens, or API keys are visible in the UI. No secrets from `.env` files are exposed.
@@ -1181,7 +1125,7 @@ Error messages appear in red alert boxes:
 | MOD-04 | Conflict Detection module |
 | MOD-05 | Manual Adjustment module (schedule board) |
 | MOD-06 | Faculty Portal module |
-| MOD-07 | Student Portal module |
+| MOD-07 | Public student access (schedule finder, room availability; no account) |
 | MOD-08 | Database Service module (backup, audit) |
 | DEMO | Sample/seed data not authorized for production display (spec §63) |
 | VERIFIED | Data confirmed against an authoritative source |
@@ -1211,14 +1155,11 @@ Error messages appear in red alert boxes:
 5. Use **Grid/List** toggle and **Print / PDF** as needed
 6. Click **Logout** when finished
 
-#### Student
-1. Navigate to `.../login`
-2. Enter student credentials, click **Sign In**
-3. Arrive at **Mission Log** (`/student/dashboard`)
-4. Click **Schedule Matrix** to view personal schedule
-5. Optionally click **Search other sections** to view another section's timetable
-6. Use **Grid/List** toggle and **Print / PDF** as needed
-7. Click **Logout** when finished
+#### Student (no account)
+1. Open the homepage and click **Find my class schedule**
+2. Tap your section; the timetable and class list appear
+3. Use **Print timetable** or bookmark the address
+4. Use **Rooms** to see which rooms are free now or in a chosen period
 
 ---
 
@@ -1318,19 +1259,15 @@ Source file: app/faculty/schedule/page.tsx
 Components: components/ScheduleGrid.tsx, components/ScheduleList.tsx
 Evidence type: Verified UI
 
-Feature: Student dashboard (Mission Log) with section search CTA
-Frontend route: /student/dashboard
-Source file: app/student/dashboard/page.tsx
-Evidence type: Verified UI
-
-Feature: Student schedule with section lookup, grid/list, print
-Frontend route: /student/schedule
-Source file: app/student/schedule/page.tsx
-Evidence type: Verified UI
-
-Feature: Public schedules listing (academic years)
+Feature: Public class schedule finder (by section or instructor), print
 Frontend route: /schedules
 Source file: app/schedules/page.tsx
+Components: components/public/WeeklyTimetable.tsx
+Evidence type: Verified UI
+
+Feature: Public schedules by academic year
+Frontend route: /schedules/archive
+Source file: app/schedules/archive/page.tsx
 Evidence type: Verified UI
 
 Feature: Public term-specific published schedules table
@@ -1338,7 +1275,7 @@ Frontend route: /schedules/[term]
 Source file: app/schedules/[term]/page.tsx
 Evidence type: Verified UI + Verified code behavior
 
-Feature: Rooms listing table
+Feature: Room availability (free now, find a free room, weekly room schedule)
 Frontend route: /rooms
 Source file: app/rooms/page.tsx
 Evidence type: Verified UI

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/modules/mod-01-auth/session';
-import { authorize } from '@/lib/modules/mod-01-auth/service';
+import { PORTAL_HOME } from '@/lib/modules/mod-01-auth/service';
 
 export async function GET() {
   const session = await getSession();
@@ -9,12 +9,6 @@ export async function GET() {
     return NextResponse.json({ session: null });
   }
 
-  const redirectMap = {
-    admin: '/admin/dashboard',
-    faculty: '/faculty/dashboard',
-    student: '/student/dashboard',
-  };
-
   return NextResponse.json({
     session: {
       id: session.id,
@@ -22,6 +16,6 @@ export async function GET() {
       role: session.role,
       name: session.name,
     },
-    redirect: redirectMap[session.role as keyof typeof redirectMap] || '/',
+    redirect: PORTAL_HOME[session.role] ?? '/schedules',
   });
 }

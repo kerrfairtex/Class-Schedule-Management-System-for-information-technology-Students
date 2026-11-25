@@ -15,5 +15,5 @@ export default async function Page() {
     title: `${r.code} · ${r.name}`,
     meta: `${r.credit_hours} credit hours`,
   }));
-  return <DetailPage title="Courses Offered" subtitle="Subjects in the BSIT curriculum" items={items} />;
+  return <DetailPage active="/courses" title="Courses Offered" subtitle="Subjects in the BSIT curriculum" items={items} />;
 }

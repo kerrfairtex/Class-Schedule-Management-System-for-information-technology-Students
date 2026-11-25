@@ -19,7 +19,6 @@
  */
 
 import { getDb } from '@/lib/persistence/db';
-import { DomainError } from '@/lib/modules/mod-02-master-list/validation';
 
 /** A table that references the record being deleted. */
 export interface ReferenceSite {

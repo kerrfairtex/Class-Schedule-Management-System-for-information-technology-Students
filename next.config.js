@@ -36,6 +36,10 @@ const nextConfig = {
   },
   serverExternalPackages: ['better-sqlite3'],
   outputFileTracingRoot: __dirname,
+  // Students have no accounts; their old portal links go to the public schedules.
+  async redirects() {
+    return [{ source: '/student/:path*', destination: '/schedules', permanent: false }];
+  },
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },

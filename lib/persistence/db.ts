@@ -222,6 +222,25 @@ export async function checkDatabase(): Promise<{ adapter: 'postgres' | 'sqlite';
   return { adapter: 'sqlite', schema: 'main' };
 }
 
+/**
+ * Tables that belong to CSMS only: the csms schema on PostgreSQL (never
+ * `public`, which other apps on the shared database use), or the SQLite file.
+ */
+export async function listAppTables(): Promise<string[]> {
+  const database = await getDb();
+  const rows = isPostgres(database)
+    ? await database
+        .prepare(
+          `SELECT table_name AS name FROM information_schema.tables
+           WHERE table_schema = ? AND table_type = 'BASE TABLE' ORDER BY table_name`
+        )
+        .all(PG_SCHEMA)
+    : database
+        .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
+        .all();
+  return (rows as Array<{ name: string }>).map((r) => r.name);
+}
+
 export function getDbPath(): string {
   const url = process.env.DATABASE_URL;
   if (url && url.trim() !== '') return url;

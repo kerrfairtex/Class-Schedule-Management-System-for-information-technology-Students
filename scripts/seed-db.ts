@@ -148,8 +148,6 @@ async function seedDatabase() {
     { username: 'fac-001', role: 'faculty', faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
     { username: 'fac-002', role: 'faculty', faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
     { username: 'fac-003', role: 'faculty', faculty_id: undefined, student_id: undefined, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
-    { username: '2022-0001', role: 'student', faculty_id: undefined, student_id: undefined, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
-    { username: '2023-0001', role: 'student', faculty_id: undefined, student_id: undefined, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
   ] as const;
 
   const seedDefaultUsers = process.env.SEED_DEFAULT_USERS !== '0';
@@ -159,29 +157,23 @@ async function seedDatabase() {
     const faculty = await all('SELECT id, employee_id FROM faculty') as { id: number; employee_id: string }[];
     const facultyByEmployeeId = new Map(faculty.map(f => [f.employee_id.toLowerCase(), f.id]));
 
-    const students = await all('SELECT id, student_id FROM students') as { id: number; student_id: string }[];
-    const studentsByStudentId = new Map(students.map(s => [s.student_id, s.id]));
-
     for (const account of DEMO_ACCOUNTS) {
       const envPassword = process.env[account.passwordEnv];
       const password = envPassword && envPassword.length >= 8 ? envPassword : account.passwordFallback;
       const passwordHash = hashPassword(password);
 
       let resolvedFacultyId: number | undefined;
-      let resolvedStudentId: number | undefined;
 
       if (account.role === 'faculty') {
         resolvedFacultyId = facultyByEmployeeId.get(account.username);
-      } else if (account.role === 'student') {
-        resolvedStudentId = studentsByStudentId.get(account.username);
       }
 
       const existingUser = await get('SELECT id FROM users WHERE username = ?', account.username) as { id: number } | undefined;
 
       if (existingUser) {
-        await run('UPDATE users SET password_hash = ?, must_change_password = ?, faculty_id = ?, student_id = ? WHERE id = ?', passwordHash, 1, resolvedFacultyId ?? null, resolvedStudentId ?? null, existingUser.id);
+        await run('UPDATE users SET password_hash = ?, must_change_password = ?, faculty_id = ?, student_id = ? WHERE id = ?', passwordHash, 1, resolvedFacultyId ?? null, null, existingUser.id);
       } else {
-        await run('INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?)', account.username, passwordHash, account.role, resolvedFacultyId ?? null, resolvedStudentId ?? null, 1);
+        await run('INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?)', account.username, passwordHash, account.role, resolvedFacultyId ?? null, null, 1);
       }
     }
   }

@@ -120,3 +120,17 @@ export function initialPassword(
   }
   return { password: typed, temporary: false };
 }
+
+/**
+ * Where each role lands after signing in. Students are absent on purpose:
+ * they have no accounts, because schedules and room availability are public.
+ */
+export const PORTAL_HOME: Partial<Record<RoleName, string>> = {
+  admin: '/admin/dashboard',
+  faculty: '/faculty/dashboard',
+};
+
+/** Only staff roles with a portal may sign in. */
+export function canSignIn(role: RoleName): boolean {
+  return role in PORTAL_HOME;
+}

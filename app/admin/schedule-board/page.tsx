@@ -9,6 +9,7 @@ import { scheduleApi } from '@/lib/api/client';
 import { ORGANIZATION } from '@/lib/domain/constants';
 import { STATUS_LABEL } from '@/lib/domain/schedule-status';
 import type { ScheduleStatus } from '@/lib/domain/types';
+import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
 
 /** One-click workflow steps applied to every matching class in the current view. */
 const BULK_STEPS: { from: ScheduleStatus; to: ScheduleStatus; label: string }[] = [
@@ -86,12 +87,7 @@ export default function ScheduleBoardPage() {
     refresh();
   }
 
-  const adminLinks = [
-    { href: '/admin/dashboard', label: 'Dashboard' },
-    { href: '/admin/master-list', label: 'Master List (MOD-02)' },
-    { href: '/admin/faculty-availability', label: 'Faculty Availability' },
-    { href: '/admin/schedule-board', label: 'Schedule Board (MOD-05)', active: true },
-  ];
+  const adminLinks = navFor(ADMIN_NAV, '/admin/schedule-board');
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

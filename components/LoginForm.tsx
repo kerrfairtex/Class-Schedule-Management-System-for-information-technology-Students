@@ -19,6 +19,8 @@ export function LoginForm({
 }: LoginFormProps) {
   const router = useRouter();
   const [error, setError] = useState('');
+  // Set when a student signs in: their information is public, no account needed.
+  const [publicLink, setPublicLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -102,6 +104,7 @@ export function LoginForm({
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'Login failed');
+        setPublicLink(res.status === 403 && data.redirect ? data.redirect : '');
         return;
       }
       setSuccess(true);
@@ -153,7 +156,17 @@ export function LoginForm({
                 <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
-                <span id="error-message">{error}</span>
+                <span id="error-message">
+                  {error}
+                  {publicLink && (
+                    <>
+                      {' '}
+                      <Link href={publicLink} className="font-medium text-cyber-cyan underline underline-offset-2">
+                        View class schedules
+                      </Link>
+                    </>
+                  )}
+                </span>
               </div>
             )}
 
@@ -174,7 +187,7 @@ export function LoginForm({
                     required
                     autoComplete="username"
                     className="input-field pl-10"
-                    placeholder="Enter email, employee ID, or student ID"
+                    placeholder="Employee ID or username"
                     disabled={loading || success}
                     aria-describedby={error ? 'error-message' : undefined}
                     autoFocus
@@ -273,6 +286,18 @@ export function LoginForm({
                 )}
               </button>
             </form>
+
+            <div className="mt-6 rounded-lg border border-cyber-teal/20 bg-cyber-teal/5 px-4 py-3 text-sm text-slate-300">
+              <strong className="text-slate-100">Student?</strong> You don&apos;t need an account.{' '}
+              <Link href="/schedules" className="font-medium text-cyber-cyan underline underline-offset-2">
+                Find your class schedule
+              </Link>{' '}
+              or{' '}
+              <Link href="/rooms" className="font-medium text-cyber-cyan underline underline-offset-2">
+                check room availability
+              </Link>
+              .
+            </div>
 
             <p className="mt-6 text-center text-sm text-slate-500">
               <Link href="/" className="hover:text-cyber-cyan transition-colors focus:outline-none focus:ring-2 focus:ring-cyber-teal focus:ring-offset-2 focus:ring-offset-midnight rounded">

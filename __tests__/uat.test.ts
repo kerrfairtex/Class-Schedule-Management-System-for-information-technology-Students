@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type Database from 'better-sqlite3';
 import { createTestDb, destroyTestDb, type TestFixtures } from '@/lib/persistence/test-db';
-import { authenticate, toSessionUser, authorize } from '@/lib/modules/mod-01-auth/service';
+import { authenticate, toSessionUser, authorize, canSignIn, PORTAL_HOME } from '@/lib/modules/mod-01-auth/service';
 import { createUser } from '@/lib/modules/mod-01-auth/service';
 import { getDashboardStats, getActiveSemester, getSections } from '@/lib/modules/mod-02-master-list/service';
 import { generateSchedulesForSection, getSchedulesBySemester } from '@/lib/modules/mod-03-schedule-engine/service';
@@ -16,7 +16,8 @@ describe('UAT: Acceptance criteria', () => {
     ({ db, fixtures } = createTestDb());
     await createUser({ username: 'admin', password: 'admin123', role: 'admin' });
     await createUser({ username: 'fac-001', password: 'faculty123', role: 'faculty', faculty_id: fixtures.facultyId });
-    await createUser({ username: '2022-0001', password: 'student123', role: 'student', student_id: fixtures.studentId });
+    // A student login left over from before students lost their accounts.
+    await createUser({ username: '2022-0001', password: 'legacy-student-pw', role: 'student', student_id: fixtures.studentId });
   });
 
   afterEach(() => {
@@ -41,12 +42,12 @@ describe('UAT: Acceptance criteria', () => {
     expect(authorize(session, ['faculty'])).toBe(true);
   });
 
-  it('UAT-03: student authenticates with correct role', async () => {
-    const user = await authenticate('2022-0001', 'student123');
-    expect(user).not.toBeNull();
-    const session = await toSessionUser(user!);
-    expect(session.role).toBe('student');
-    expect(authorize(session, ['student'])).toBe(true);
+  it('UAT-03: students cannot sign in; their information is public', async () => {
+    const legacy = await authenticate('2022-0001', 'legacy-student-pw');
+    expect(legacy?.role).toBe('student');
+    // The login route refuses any role without a portal.
+    expect(canSignIn('student')).toBe(false);
+    expect(PORTAL_HOME.student).toBeUndefined();
   });
 
   it('UAT-04: invalid credentials rejected', async () => {
@@ -86,10 +87,10 @@ describe('UAT: Acceptance criteria', () => {
     expect(authorize(session, ['admin'])).toBe(false);
   });
 
-  it('UAT-10: student cannot authorize as faculty', async () => {
-    const user = await authenticate('2022-0001', 'student123');
-    const session = await toSessionUser(user!);
-    expect(authorize(session, ['faculty'])).toBe(false);
+  it('UAT-10: only admin and faculty have a portal to sign in to', async () => {
+    expect(canSignIn('admin')).toBe(true);
+    expect(canSignIn('faculty')).toBe(true);
+    expect(PORTAL_HOME).toEqual({ admin: '/admin/dashboard', faculty: '/faculty/dashboard' });
   });
 
   it('UAT-11: re-generation is idempotent (no duplicates)', async () => {

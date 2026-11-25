@@ -172,8 +172,6 @@ async function main() {
     { username: 'fac-001', role: 'faculty' as const, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
     { username: 'fac-002', role: 'faculty' as const, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
     { username: 'fac-003', role: 'faculty' as const, passwordEnv: 'FACULTY_PASSWORD', passwordFallback: 'faculty123' },
-    { username: '2022-0001', role: 'student' as const, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
-    { username: '2023-0001', role: 'student' as const, passwordEnv: 'STUDENT_PASSWORD', passwordFallback: 'student123' },
   ] as const;
 
   const seedDefaultUsers = process.env.SEED_DEFAULT_USERS !== '0';
@@ -182,31 +180,24 @@ async function main() {
     const faculty = Array.isArray(facultyRows) ? facultyRows : [];
     const facultyByEmployeeId = new Map(faculty.map(f => [f.employee_id.toLowerCase(), f.id]));
 
-    const studentRows = db.prepare('SELECT id, student_id FROM students').all();
-    const students = Array.isArray(studentRows) ? studentRows : [];
-    const studentsByStudentId = new Map(students.map(s => [s.student_id, s.id]));
-
     for (const account of DEMO_ACCOUNTS) {
       const password = getEnvPassword(account.passwordEnv, account.passwordFallback);
       const passwordHash = hashPassword(password);
 
       let resolvedFacultyId: number | undefined;
-      let resolvedStudentId: number | undefined;
 
       if (account.role === 'faculty') {
         resolvedFacultyId = facultyByEmployeeId.get(account.username);
-      } else if (account.role === 'student') {
-        resolvedStudentId = studentsByStudentId.get(account.username);
       }
 
       const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(account.username) as { id: number } | undefined;
 
       if (existingUser) {
         db.prepare('UPDATE users SET password_hash = ?, must_change_password = ?, faculty_id = ?, student_id = ? WHERE id = ?')
-          .run(passwordHash, 0, resolvedFacultyId ?? null, resolvedStudentId ?? null, existingUser.id);
+          .run(passwordHash, 0, resolvedFacultyId ?? null, null, existingUser.id);
       } else {
         db.prepare('INSERT INTO users (username, password_hash, role, faculty_id, student_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?)')
-          .run(account.username, passwordHash, account.role, resolvedFacultyId ?? null, resolvedStudentId ?? null, 0);
+          .run(account.username, passwordHash, account.role, resolvedFacultyId ?? null, null, 0);
       }
     }
     console.log('Seeded demo users');

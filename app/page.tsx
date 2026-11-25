@@ -62,26 +62,23 @@ export default function HomePage() {
             </Link>
             <div className="hidden md:flex items-center space-x-6">
               <Link href="/schedules" className="text-slate-400 hover:text-cyber-cyan transition-colors">Schedules</Link>
+              <Link href="/rooms" className="text-slate-400 hover:text-cyber-cyan transition-colors">Rooms</Link>
+              <Link href="/faculty" className="text-slate-400 hover:text-cyber-cyan transition-colors">Faculty</Link>
               <Link href="/about" className="text-slate-400 hover:text-cyber-cyan transition-colors">
                 About
               </Link>
               <Link
                 href="/login"
-                className="btn-primary px-4 py-2 rounded-md text-sm font-medium"
+                className="rounded-md border border-slate-600 px-3 py-1.5 text-sm text-slate-300 hover:border-cyber-teal hover:text-cyber-cyan"
               >
-                Login
+                Staff sign in
               </Link>
             </div>
             <div className="md:hidden flex items-center gap-3">
               <Link href="/schedules" className="text-slate-400 hover:text-cyber-cyan transition-colors">Schedules</Link>
-              <Link href="/about" className="text-slate-400 hover:text-cyber-cyan transition-colors">
-                About
-              </Link>
-              <Link
-                href="/login"
-                className="btn-primary px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Login
+              <Link href="/rooms" className="text-slate-400 hover:text-cyber-cyan transition-colors">Rooms</Link>
+              <Link href="/login" className="text-sm text-slate-500 hover:text-cyber-cyan">
+                Staff
               </Link>
             </div>
           </div>
@@ -108,17 +105,23 @@ export default function HomePage() {
           </h1>
           <p className="mb-8 max-w-2xl mx-auto text-lg text-slate-700 dark:text-slate-300" data-aos="fade-up" data-aos-delay="200">
             Department-level academic scheduling MIS for {ORGANIZATION.departmentCode} — designed for TRAC&apos;s
-            BSIT Department in {ORGANIZATION.location}. Streamline your academic scheduling with our intelligent,
-            local-first system.
+            BSIT Department in {ORGANIZATION.location}. Students: your class schedule, rooms and instructors are
+            all here. No account needed.
           </p>
-          <Link
-            href="/login"
-            className="btn-primary px-8 py-3 text-lg font-medium transition-all hover:scale-[1.02] shadow-glow-teal-sm"
-            data-aos="fade-up"
-            data-aos-delay="300"
-          >
-            Get Started →
-          </Link>
+          <div className="flex flex-wrap justify-center gap-3" data-aos="fade-up" data-aos-delay="300">
+            <Link
+              href="/schedules"
+              className="btn-primary px-8 py-3 text-lg font-medium transition-all hover:scale-[1.02] shadow-glow-teal-sm"
+            >
+              Find my class schedule →
+            </Link>
+            <Link
+              href="/rooms"
+              className="rounded-lg border border-slate-400 px-6 py-3 text-lg font-medium text-slate-900 hover:border-cyber-teal dark:border-slate-500 dark:text-slate-100"
+            >
+              Free rooms now
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -223,11 +226,12 @@ export default function HomePage() {
                 <Users className="mx-auto h-10 w-10 text-cyber-teal" />
               </div>
               <h3 className="mb-4 text-xl font-semibold text-center text-slate-900 dark:text-slate-100">
-                Multi-Portal Access
+                Open to Every Student
               </h3>
               <p className="text-center text-slate-600 dark:text-slate-400">
-                Dedicated interfaces for administrators, faculty, and students — each
-                with tailored views and permissions for their specific needs.
+                Students and visitors see published schedules, room availability and the
+                faculty directory without an account. Administrators and faculty sign in
+                to plan and publish them.
               </p>
             </div>
           </div>
@@ -266,12 +270,12 @@ export default function HomePage() {
                 TRAC&apos;s mission while embracing modern educational management practices.
               </p>
               <Link
-                href="/login"
+                href="/schedules"
                 className="mt-6 inline-block btn-primary px-6 py-3 text-medium font-medium transition-all hover:scale-[1.02]"
                 data-aos="fade-up"
                 data-aos-delay="500"
               >
-                Experience the System →
+                Browse class schedules →
               </Link>
             </div>
           </div>
@@ -281,20 +285,19 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="bg-cyber-teal/90 dark:bg-cyber-teal/80 py-16">
         <div className="mx-auto max-w-7xl px-6 text-center">
-          <h2 className="mb-6 text-3xl font-bold text-slate-100" data-aos="fade-up">
-            Ready to Transform Your Academic Scheduling?
+          <h2 className="mb-6 text-3xl font-bold text-midnight" data-aos="fade-up">
+            Where is my next class?
           </h2>
-          <p className="mb-10 max-w-2xl mx-auto text-slate-300 dark:text-slate-700" data-aos="fade-up" data-aos-delay="100">
-            Join the growing number of educational institutions trusting our scheduling
-            solution to streamline operations and enhance educational delivery.
+          <p className="mb-10 max-w-2xl mx-auto text-midnight/80" data-aos="fade-up" data-aos-delay="100">
+            Pick your section to see your weekly timetable, instructors and rooms, then print it or save the link.
           </p>
           <Link
-            href="/login"
+            href="/schedules"
             className="btn-primary btn-light px-6 py-3 text-medium font-medium transition-all hover:scale-[1.02]"
             data-aos="fade-up"
             data-aos-delay="200"
           >
-            Login
+            Find my class schedule
           </Link>
         </div>
       </section>
@@ -449,7 +452,7 @@ export default function HomePage() {
             <div className="space-y-2">
               <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">Quick Links</h3>
               <Link href="/" className="block text-sm hover:text-cyber-cyan transition-colors">Home</Link>
-              <Link href="/login" className="block text-sm hover:text-cyber-cyan transition-colors">Login</Link>
+              <Link href="/login" className="block text-sm hover:text-cyber-cyan transition-colors">Staff sign in</Link>
               <Link href="/about" className="block text-sm hover:text-cyber-cyan transition-colors">About</Link>
               <Link href="/about/evidence" className="block text-sm hover:text-cyber-cyan transition-colors">Evidence</Link>
               <Link href="/contact" className="block text-sm hover:text-cyber-cyan transition-colors">Contact</Link>
@@ -457,10 +460,11 @@ export default function HomePage() {
               <Link href="/user-guide" className="block text-sm hover:text-cyber-cyan transition-colors">User Guide</Link>
             </div>
             <div className="space-y-2">
-              <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">Portals</h3>
-              <Link href="/admin" className="block text-sm hover:text-cyber-cyan transition-colors">Admin</Link>
-              <Link href="/faculty" className="block text-sm hover:text-cyber-cyan transition-colors">Faculty</Link>
-              <Link href="/student" className="block text-sm hover:text-cyber-cyan transition-colors">Student</Link>
+              <h3 className="mb-4 text-lg font-semibold text-slate-100 dark:text-slate-100">For Students</h3>
+              <Link href="/schedules" className="block text-sm hover:text-cyber-cyan transition-colors">Class schedules</Link>
+              <Link href="/rooms" className="block text-sm hover:text-cyber-cyan transition-colors">Room availability</Link>
+              <Link href="/faculty" className="block text-sm hover:text-cyber-cyan transition-colors">Faculty directory</Link>
+              <Link href="/academic-calendar" className="block text-sm hover:text-cyber-cyan transition-colors">Academic calendar</Link>
             </div>
             <div className="space-y-4">
               {/* Institutional Contact (per spec §14, §51) */}

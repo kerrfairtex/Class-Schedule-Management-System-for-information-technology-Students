@@ -2,6 +2,7 @@ import { getDb, withTransaction } from '@/lib/persistence/db';
 import { detectConflicts, validateScheduleMove, validateForPublish } from '@/lib/modules/mod-04-conflict-engine/validator';
 import type { Schedule, ScheduleInput, ScheduleStatus } from '@/lib/domain/types';
 import { logAudit } from '@/lib/modules/mod-08-database-service/audit';
+import { getDataEnvironment } from '@/lib/modules/mod-08-database-service/settings';
 import { DomainError } from '@/lib/modules/mod-02-master-list/validation';
 import { scheduleVisibilitySql, type ScheduleAudience } from './visibility';
 import { ALLOWED_TRANSITIONS, EDITABLE_STATUSES } from '@/lib/domain/schedule-status';
@@ -105,17 +106,6 @@ export async function countPublicSchedules(): Promise<number> {
   return Number(row.c);
 }
 
-/**
- * The deployment's data environment (spec §64), stamped on every new
- * schedule so DEMO fixtures can never be published to the public site.
- */
-async function getDeploymentDataEnvironment(): Promise<string> {
-  const db = await getDb();
-  const row = await db
-    .prepare(`SELECT value FROM system_settings WHERE key = 'data_environment'`)
-    .get() as { value: string } | undefined;
-  return row?.value ?? 'DEMO';
-}
 
 export async function createSchedule(
   input: ScheduleInput,
@@ -126,7 +116,8 @@ export async function createSchedule(
     throw new DomainError(conflict.blockingConflicts.map((c) => c.message).join('; '));
   }
 
-  const dataEnvironment = await getDeploymentDataEnvironment();
+  // Spec §64: stamp the deployment's environment so DEMO data never goes public.
+  const dataEnvironment = await getDataEnvironment();
   const db = await getDb();
   const result = await db
     .prepare(

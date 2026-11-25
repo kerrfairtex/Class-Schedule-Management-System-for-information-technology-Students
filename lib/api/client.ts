@@ -62,16 +62,3 @@ export const scheduleApi = {
 export const facultyApi = {
   getProfile: () => apiGet<{ faculty: Record<string, string>; schedules: Schedule[]; semester: { name: string } }>('/api/faculty'),
 };
-
-export const studentApi = {
-  getProfile: () =>
-    apiGet<{
-      student: Record<string, string>;
-      schedules: Schedule[];
-      semester: { name: string };
-    }>('/api/student'),
-  searchSection: (code: string) =>
-    apiGet<{ schedules: Schedule[]; sectionCode: string; semester: { name: string } }>(
-      `/api/student?section=${encodeURIComponent(code)}`
-    ),
-};

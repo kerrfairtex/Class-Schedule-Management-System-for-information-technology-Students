@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { DEVELOPERS, SYSTEM_IDENTITY } from '@/lib/domain/constants';
+import { PublicHeader } from '@/components/public/PublicHeader';
 
 export const metadata = {
   title: 'Developers — TRAC BSIT CSMS',
@@ -9,11 +10,9 @@ export const metadata = {
 export default function DevelopersPage() {
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
+      <PublicHeader />
       <div className="mx-auto max-w-3xl px-6 py-12">
         <div className="mb-4">
-          <Link href="/" className="text-sm text-cyber-teal hover:text-cyber-cyan">
-            ← Back to home
-          </Link>
         </div>
 
         <header className="mb-8 border-b border-slate-800 pb-6">

@@ -47,12 +47,16 @@ import {
   semesterNumberOf,
 } from '@/lib/modules/mod-03-schedule-engine/service';
 import { detectConflicts } from '@/lib/modules/mod-04-conflict-engine/validator';
+import { DATA_ENVIRONMENTS, setDataEnvironment } from '@/lib/modules/mod-08-database-service/settings';
 import { createBackup } from '@/lib/modules/mod-08-database-service/backup';
 import { getAuditLogs, logAudit } from '@/lib/modules/mod-08-database-service/audit';
 import { createUser } from '@/lib/modules/mod-01-auth/service';
 import { getDb } from '@/lib/persistence/db';
 import { changePassword } from '@/lib/modules/mod-01-auth/session';
-import { generateRandomPassword, initialPassword } from '@/lib/modules/mod-01-auth/service';
+import { canSignIn, generateRandomPassword, initialPassword } from '@/lib/modules/mod-01-auth/service';
+import type { RoleName } from '@/lib/domain/types';
+
+const STAFF_ROLES_ONLY = 'Only admin and faculty accounts can be created. Students do not need an account.';
 import {
   getFacultyList,
   getAvailabilityGrid,
@@ -364,24 +368,9 @@ export async function POST(request: Request) {
       case 'create-student': {
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'student');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
-        const initial = initialPassword(bodyRecord.password);
-        if ('error' in initial) return fieldErrorResponse({ password: initial.error });
+        // A student record only; students have no login (schedules are public).
         const studentId = await createStudent(data as any, session!.id);
-        // The login account is created with the same bcrypt hash the seed uses
-        // (hashPassword, 10 rounds) so the new student can actually log in.
-        await createUser({
-          // Stored lowercase: the login route lowercases the submitted username.
-          username: String(data.student_id).toLowerCase(),
-          password: initial.password,
-          role: 'student',
-          student_id: studentId ?? undefined,
-          must_change_password: initial.temporary ? 1 : 0,
-        });
-        return NextResponse.json({
-          success: true,
-          id: studentId,
-          ...(initial.temporary && { temporaryPassword: initial.password }),
-        });
+        return NextResponse.json({ success: true, id: studentId });
       }
       case 'update-student': {
         const id = toInt(bodyRecord.id, 'id', {}, { min: 1 });
@@ -472,6 +461,7 @@ export async function POST(request: Request) {
       case 'create-user': {
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'user');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
+        if (!canSignIn(data.role as RoleName)) return fieldErrorResponse({ role: STAFF_ROLES_ONLY });
         const initial = initialPassword(bodyRecord.password);
         if ('error' in initial) return fieldErrorResponse({ password: initial.error });
         await createUser({
@@ -493,6 +483,9 @@ export async function POST(request: Request) {
         if (id === undefined) return invalidBody('id is required');
         const { errors, data } = coerceMasterListPayload(bodyRecord, 'user');
         if (Object.keys(errors).length > 0) return fieldErrorResponse(errors);
+        if (data.role !== undefined && !canSignIn(data.role as RoleName)) {
+          return fieldErrorResponse({ role: STAFF_ROLES_ONLY });
+        }
         await updateUser(id, data, session!.id);
         return NextResponse.json({ success: true, id });
       }
@@ -623,6 +616,21 @@ export async function POST(request: Request) {
           return NextResponse.json({ ...result, error }, { status: 409 });
         }
         return NextResponse.json(result);
+      }
+      case 'set-data-environment': {
+        const envSchema = z.object({
+          value: z.enum(DATA_ENVIRONMENTS),
+          applyToActiveSemester: z.boolean().optional(),
+        });
+        const validated = envSchema.safeParse(body);
+        if (!validated.success) return invalidBody('Invalid data environment');
+        const semester = validated.data.applyToActiveSemester ? await getActiveSemester() : null;
+        const result = await setDataEnvironment(validated.data.value, {
+          semesterId: semester?.id,
+          userId: session!.id,
+          username: session!.username,
+        });
+        return NextResponse.json({ success: true, ...result });
       }
       case 'reset-password': {
         const resetSchema = z.object({

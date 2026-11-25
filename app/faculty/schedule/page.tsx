@@ -7,6 +7,7 @@ import { ScheduleGrid } from '@/components/ScheduleGrid';
 import { ScheduleList } from '@/components/ScheduleList';
 import { Printer } from 'lucide-react';
 import type { Schedule } from '@/lib/domain/types';
+import { FACULTY_NAV, navFor } from '@/lib/domain/navigation';
 
 export default function FacultySchedulePage() {
   const router = useRouter();
@@ -29,10 +30,7 @@ export default function FacultySchedulePage() {
   }, [router]);
 
   const name = faculty ? `${faculty.first_name} ${faculty.last_name}` : '';
-  const links = [
-    { href: '/faculty/dashboard', label: 'Dashboard' },
-    { href: '/faculty/schedule', label: 'My Schedule', active: true },
-  ];
+  const links = navFor(FACULTY_NAV, '/faculty/schedule');
 
   return (
     <PortalLayout

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import Link from "next/link";
 import { renderMarkdown } from "@/lib/markdown";
+import { PublicHeader } from '@/components/public/PublicHeader';
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +21,9 @@ export default function UserGuidePage() {
   const html = renderMarkdown(md);
   return (
     <div className="min-h-screen bg-midnight text-slate-100">
+      <PublicHeader />
       <div className="mx-auto max-w-5xl px-6 py-12">
         <div className="mb-6">
-          <Link href="/" className="text-sm text-cyber-teal hover:text-cyber-cyan transition-colors">
-            ← Back to home
-          </Link>
         </div>
         <h1 className="mb-2 text-4xl font-bold text-slate-100">
           Class Schedule Management System
