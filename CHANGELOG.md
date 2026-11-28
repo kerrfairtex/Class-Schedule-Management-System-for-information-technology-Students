@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Scheduling rules
+- **Added:** Settings → Scheduling rules: school day (default 7:00 AM–7:00 PM),
+  instructor hours per week (24) and per day (8), and hours in a row without a
+  30-minute break (4, for instructors and sections). Stored in `system_settings`;
+  no migration.
+- **Changed:** every class added, moved, edited, auto-filled or published is checked
+  against these rules, and must have an instructor assigned to its subject in the
+  Master List. Breaking a rule blocks saving, like a room clash. A class on several
+  days counts all its days toward the weekly load.
+- **Removed:** the class form's "Include instructors not assigned to this subject"
+  option, since the server now refuses unassigned instructors.
+- **Note:** classes already saved or published are not changed; ones that break a rule are
+  listed under Conflicts, and a draft that breaks one cannot be published until fixed.
+
 ### Flexible class times, lecture/lab, sets
 - **Added (database):** migration 004: class day/start/end and LEC/LAB part (existing
   classes back-filled), subject lecture/lab units and hours, room types, section

@@ -52,7 +52,7 @@ import {
   getSectionLoad,
 } from '@/lib/modules/mod-03-schedule-engine/service';
 import { detectConflicts } from '@/lib/modules/mod-04-conflict-engine/validator';
-import { DATA_ENVIRONMENTS, setDataEnvironment } from '@/lib/modules/mod-08-database-service/settings';
+import { DATA_ENVIRONMENTS, setDataEnvironment, setSchedulingRules } from '@/lib/modules/mod-08-database-service/settings';
 import {
   activateSemester,
   addSemester,
@@ -193,10 +193,15 @@ export async function GET(request: Request) {
       const [section_id, subject_id, faculty_id, room_id] = values;
       const component = searchParams.get('component') === 'LAB' ? 'LAB' : 'LEC';
       const results: Record<string, unknown> = {};
+      // A new class on several days counts all of them toward the weekly load.
+      const [sh, sm] = start_time.split(':').map(Number);
+      const [eh, em] = end_time.split(':').map(Number);
+      const otherNewMinutes = exclude ? 0 : Math.max(0, (eh * 60 + em - (sh * 60 + sm)) * (days.length - 1)) || 0;
       for (const day_of_week of days) {
         results[day_of_week] = await detectConflicts(
           { section_id, subject_id, faculty_id, room_id, semester_id: semester.id, day_of_week, start_time, end_time, component },
-          exclude
+          exclude,
+          { otherNewMinutes }
         );
       }
       return NextResponse.json({ days: results });
@@ -747,6 +752,22 @@ export async function POST(request: Request) {
           username: session!.username,
         });
         return NextResponse.json({ success: true, ...result });
+      }
+      case 'set-scheduling-rules': {
+        const v = z
+          .object({
+            data: z.object({
+              dayStart: z.string(),
+              dayEnd: z.string(),
+              maxFacultyHoursWeek: z.number(),
+              maxFacultyHoursDay: z.number(),
+              maxContinuousHours: z.number(),
+            }),
+          })
+          .safeParse(body);
+        if (!v.success) return invalidBody('Fill in every scheduling rule');
+        await setSchedulingRules(v.data.data, { userId: session!.id, username: session!.username });
+        return NextResponse.json({ success: true });
       }
       case 'create-section-sets': {
         const v = z

@@ -1,7 +1,8 @@
 import { requireAdmin } from '@/lib/auth';
 import { DataEnvironmentForm } from '@/components/admin/DataEnvironmentForm';
+import { SchedulingRulesForm } from '@/components/admin/SchedulingRulesForm';
 import { getDb, listAppTables } from '@/lib/persistence/db';
-import { getDataEnvironment } from '@/lib/modules/mod-08-database-service/settings';
+import { getDataEnvironment, getSchedulingRules } from '@/lib/modules/mod-08-database-service/settings';
 import { getActiveSemester } from '@/lib/modules/mod-02-master-list/service';
 import { PortalLayout } from '@/components/PortalLayout';
 import { ADMIN_NAV, navFor } from '@/lib/domain/navigation';
@@ -15,7 +16,7 @@ export const metadata = {
 export default async function AdminSettingsPage() {
   const session = await requireAdmin();
   const db = await getDb();
-  const [settings, tables, dataEnvironment, semester] = await Promise.all([
+  const [settings, tables, dataEnvironment, semester, rules] = await Promise.all([
     db
       .prepare(`SELECT key, value, description, updated_at FROM system_settings ORDER BY key`)
       .all() as Promise<Array<{ key: string; value: string; description: string | null; updated_at: string }>>,
@@ -23,6 +24,7 @@ export default async function AdminSettingsPage() {
     listAppTables(),
     getDataEnvironment(),
     getActiveSemester(),
+    getSchedulingRules(),
   ]);
 
   return (
@@ -40,6 +42,15 @@ export default async function AdminSettingsPage() {
             <strong>DEMO</strong>, published classes reach faculty but stay off the public pages.
           </p>
           <DataEnvironmentForm current={dataEnvironment} semesterName={semester?.name ?? null} />
+        </section>
+
+        <section aria-labelledby="rules-heading" className="mb-10">
+          <h2 id="rules-heading" className="mb-2 text-lg font-semibold">Scheduling rules</h2>
+          <p className="mb-4 text-sm text-muted">
+            Every class is checked against these limits when it is added, moved, edited or published. Classes that break
+            them cannot be saved. Each class also needs an instructor assigned to its subject in the Master List.
+          </p>
+          <SchedulingRulesForm current={rules} />
         </section>
 
         <h2 className="mb-3 text-lg font-semibold">Settings</h2>

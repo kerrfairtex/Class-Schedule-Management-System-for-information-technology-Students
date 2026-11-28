@@ -194,8 +194,11 @@ export async function createClassMeetings(
 
   const problems: string[] = [];
   const warnings = new Set<string>();
-  for (const t of meetings) {
-    const r = await detectConflicts(t);
+  // Each day's weekly-load check also counts the other days saved with it.
+  const lengths = meetings.map((t) => mins(t.end_time) - mins(t.start_time));
+  const allNew = lengths.reduce((a, b) => a + b, 0);
+  for (const [i, t] of meetings.entries()) {
+    const r = await detectConflicts(t, undefined, { otherNewMinutes: allNew - lengths[i] });
     if (r.hasBlockingConflict) problems.push(`${t.day_of_week[0].toUpperCase()}${t.day_of_week.slice(1)}: ${conflictMessage(r.blockingConflicts)}`);
     r.nonBlockingConflicts.forEach((c) => warnings.add(c.message));
   }

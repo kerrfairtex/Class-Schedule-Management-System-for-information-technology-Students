@@ -42,7 +42,6 @@ export function ClassForm({ options, editing, defaultSectionId, onSaved, onCance
   const [length, setLength] = useState<number | 'custom'>(LENGTHS.includes(initialLength) ? initialLength : 'custom');
   const [customEnd, setCustomEnd] = useState(editing?.end_time ?? '08:30');
   const [allSubjects, setAllSubjects] = useState(false);
-  const [allFaculty, setAllFaculty] = useState(false);
   const [check, setCheck] = useState<Record<string, ConflictResult> | null>(null);
   const [checkError, setCheckError] = useState('');
   const [load, setLoad] = useState<LoadRow[]>([]);
@@ -68,10 +67,10 @@ export function ClassForm({ options, editing, defaultSectionId, onSaved, onCance
   }, [options, section, allSubjects, subjectId]);
 
   const faculty = useMemo(() => {
-    if (!subjectId || allFaculty) return options.faculty;
+    if (!subjectId) return options.faculty;
     const ids = new Set(options.facultySubjects.filter((fs) => String(fs.subject_id) === subjectId).map((fs) => fs.faculty_id));
     return options.faculty.filter((f) => ids.has(f.id) || String(f.id) === facultyId);
-  }, [options, subjectId, allFaculty, facultyId]);
+  }, [options, subjectId, facultyId]);
 
   // Labs first for a lab part, lecture rooms first for a lecture.
   const rooms = useMemo(() => {
@@ -287,10 +286,11 @@ export function ClassForm({ options, editing, defaultSectionId, onSaved, onCance
               ))}
             </select>
           </label>
-          <label className="mt-1 flex items-center gap-2 text-xs text-muted">
-            <input type="checkbox" checked={allFaculty} onChange={(e) => setAllFaculty(e.target.checked)} />
-            Include instructors not assigned to this subject
-          </label>
+          {subjectId && (
+            <p className="hint">
+              Only instructors assigned to this subject are listed. To add one, assign the subject to them in the Master List.
+            </p>
+          )}
         </div>
 
         <label className="block">
