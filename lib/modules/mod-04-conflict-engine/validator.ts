@@ -1,6 +1,7 @@
 import { getDb } from '@/lib/persistence/db';
 import type { ClassComponent, Conflict, ConflictResult, ScheduleInput } from '@/lib/domain/types';
 import { DAY_LABELS, WEEK_ORDER } from '@/lib/domain/constants';
+import { getSchedulingRules, MIN_BREAK_MINUTES } from '@/lib/modules/mod-08-database-service/settings';
 
 /**
  * MOD-04 conflict detection (spec §33/§34).
@@ -107,16 +108,132 @@ async function firstOverlap(
     .get(...params)) as Clash | undefined;
 }
 
+const fmtHours = (mins: number) => String(Math.round((mins / 60) * 10) / 10);
+
+/** Same-day classes of one instructor or section, this meeting excluded. */
+async function dayMeetings(column: 'faculty_id' | 'section_id', t: TimedInput, excludeScheduleId?: number) {
+  const db = await getDb();
+  const exclude = excludeScheduleId ? 'AND s.id <> ?' : '';
+  const params: unknown[] = [t[column], t.semester_id];
+  if (excludeScheduleId) params.push(excludeScheduleId);
+  return (await db
+    .prepare(
+      `SELECT s.day_of_week, s.start_time, s.end_time FROM schedules s
+       WHERE s.${column} = ? AND s.semester_id = ? AND ${OCCUPIES_SLOT} ${exclude}`
+    )
+    .all(...params)) as { day_of_week: string; start_time: string; end_time: string }[];
+}
+
+/**
+ * Length of the run of classes containing this meeting, where a gap shorter
+ * than MIN_BREAK_MINUTES does not count as a break.
+ */
+function continuousMinutes(t: TimedInput, sameDay: { start_time: string; end_time: string }[]): number {
+  const blocks = [...sameDay, t]
+    .map((m) => [minutes(m.start_time), minutes(m.end_time)] as [number, number])
+    .sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const [s, e] of blocks) {
+    const last = merged[merged.length - 1];
+    if (last && s - last[1] < MIN_BREAK_MINUTES) last[1] = Math.max(last[1], e);
+    else merged.push([s, e]);
+  }
+  const start = minutes(t.start_time);
+  const run = merged.find(([s, e]) => s <= start && start < e);
+  return run ? run[1] - run[0] : 0;
+}
+
+/**
+ * Department rules (Settings → Scheduling rules): school hours, a qualified
+ * instructor, instructor load, and a break after long runs. All blocking.
+ * `otherNewMinutes` is the length of sibling meetings saved in the same
+ * request (e.g. the Wednesday and Friday of an MWF class), so the weekly load
+ * counts them too.
+ */
+async function ruleViolations(t: TimedInput, excludeScheduleId: number | undefined, otherNewMinutes: number): Promise<Conflict[]> {
+  const rules = await getSchedulingRules();
+  const db = await getDb();
+  const out: Conflict[] = [];
+  const day = DAY_LABELS[t.day_of_week] ?? t.day_of_week;
+  const length = minutes(t.end_time) - minutes(t.start_time);
+
+  if (t.start_time < rules.dayStart || t.end_time > rules.dayEnd) {
+    out.push({
+      kind: 'hours',
+      message: `Class is outside school hours (${to12h(rules.dayStart)}–${to12h(rules.dayEnd)})`,
+      blocking: true,
+    });
+  }
+
+  const qualified = await db
+    .prepare('SELECT 1 AS ok FROM faculty_subjects WHERE faculty_id = ? AND subject_id = ?')
+    .get(t.faculty_id, t.subject_id);
+  if (!qualified) {
+    out.push({
+      kind: 'qualification',
+      message: 'Instructor is not assigned to teach this subject (assign it in Master List first)',
+      blocking: true,
+    });
+  }
+
+  const [facultyClasses, sectionClasses] = await Promise.all([
+    dayMeetings('faculty_id', t, excludeScheduleId),
+    dayMeetings('section_id', t, excludeScheduleId),
+  ]);
+  const total = (ms: { start_time: string; end_time: string }[]) =>
+    ms.reduce((sum, m) => sum + minutes(m.end_time) - minutes(m.start_time), 0);
+
+  const week = total(facultyClasses) + length + otherNewMinutes;
+  if (week > rules.maxFacultyHoursWeek * 60) {
+    out.push({
+      kind: 'load',
+      message: `Instructor would teach ${fmtHours(week)} hours this week (limit ${rules.maxFacultyHoursWeek})`,
+      blocking: true,
+    });
+  }
+  const facultyToday = facultyClasses.filter((m) => m.day_of_week === t.day_of_week);
+  const today = total(facultyToday) + length;
+  if (today > rules.maxFacultyHoursDay * 60) {
+    out.push({
+      kind: 'load',
+      message: `Instructor would teach ${fmtHours(today)} hours on ${day} (limit ${rules.maxFacultyHoursDay})`,
+      blocking: true,
+    });
+  }
+
+  const limit = rules.maxContinuousHours * 60;
+  const runs = [
+    ['Instructor', facultyToday],
+    ['Section', sectionClasses.filter((m) => m.day_of_week === t.day_of_week)],
+  ] as const;
+  for (const [who, sameDay] of runs) {
+    const run = continuousMinutes(t, sameDay);
+    if (run > limit) {
+      out.push({
+        kind: 'break',
+        message: `${who} would be in class ${fmtHours(run)} hours in a row on ${day} without a ${MIN_BREAK_MINUTES}-minute break (limit ${rules.maxContinuousHours})`,
+        blocking: true,
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * All conflicts for a proposed class meeting: BLOCKING ones must be fixed
  * before saving or publishing; NON-BLOCKING ones are warnings the admin may
  * accept.
  */
-export async function detectConflicts(input: ScheduleInput, excludeScheduleId?: number): Promise<ConflictResult> {
+export async function detectConflicts(
+  input: ScheduleInput,
+  excludeScheduleId?: number,
+  options: { otherNewMinutes?: number } = {}
+): Promise<ConflictResult> {
   const t = await resolveTimes(input);
   const db = await getDb();
   const blocking: Conflict[] = [];
   const nonBlocking: Conflict[] = [];
+  blocking.push(...(await ruleViolations(t, excludeScheduleId, options.otherNewMinutes ?? 0)));
 
   const checks = [
     ['faculty_id', 'faculty', 'Faculty is already assigned to another class at this time'],

@@ -191,7 +191,7 @@ export interface ScheduleInput {
  * - capacity    — section capacity exceeds room capacity (BLOCKING)
  * - availability — assignment outside permitted faculty/room availability (NON-BLOCKING)
  */
-export type ConflictKind = 'faculty' | 'room' | 'section' | 'time' | 'capacity' | 'availability' | 'room-type';
+export type ConflictKind = 'faculty' | 'room' | 'section' | 'time' | 'capacity' | 'availability' | 'room-type' | 'hours' | 'qualification' | 'load' | 'break';
 
 export interface Conflict {
   kind: ConflictKind;

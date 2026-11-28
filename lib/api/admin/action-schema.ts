@@ -49,6 +49,7 @@ export const AdminPostSchema = z.object({
     'transition-schedule',
     'reset-password',
     'set-data-environment',
+    'set-scheduling-rules',
     'create-section-sets',
     'create-class',
     'update-schedule',
